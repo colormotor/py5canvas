@@ -55,7 +55,7 @@ class Sketch:
                        title="Sketch"):
         self.window = pyglet.window.Window(width, height, title)
         self.width, self.height = width, height
-        self.set_window_size(self.width, self.height)
+        self.create_canvas(self.width, self.height)
         self.frame_rate(60)
         self.startup_error = False
         self.runtime_error = False
@@ -70,7 +70,7 @@ class Sketch:
         self.watcher = None
         self.path = path
 
-    def set_window_size(self, w, h, fullscreen=False):
+    def create_canvas(self, w, h, fullscreen=False):
         print('setting window size')
         self.is_fullscreen = fullscreen
         self.window.set_size(w, h)
@@ -146,7 +146,7 @@ class Sketch:
 
     def frame_rate(self, fps):
         pyglet.clock.unschedule(self._update)
-        pyglet.clock.schedule_interval(self._update, 1.0/60) #1/fps)
+        pyglet.clock.schedule_interval(self._update, 1.0/fps)
 
 
 def main():
@@ -174,13 +174,10 @@ def main():
 
     @sketch.window.event
     def on_key_press(symbol, modifier):
-        print('key press')
         key_pressed(symbol, modifier)
 
     @sketch.window.event
     def on_mouse_motion(x, y, dx, dy):
-        print('mmove')
-        print((x,y,dx,dy))
         mouse_moved(x, y)
 
     sketch.reload(locals())
@@ -189,7 +186,7 @@ def main():
     @sketch.window.event
     def on_draw():
         # clearing the window
-        # sketch.window.clear()
+        sketch.window.clear()
         sketch.image.blit(0, 0) #, width=sketch.window_width, height=sketch.window_height) #*window.get_size())
         if sketch.startup_error or sketch.runtime_error:
             sketch.error_label.draw()

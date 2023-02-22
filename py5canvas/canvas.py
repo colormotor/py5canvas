@@ -329,7 +329,7 @@ class Canvas:
         else:
             center, radius = args
         self.ctx.new_sub_path()
-        self.ctx.arc(*center, radius, 0,np.pi*2.)
+        self.ctx.arc(*center, radius, 0, np.pi*2.)
         self._fillstroke()
 
     def ellipse(self, *args):
@@ -548,9 +548,13 @@ class Canvas:
 
         self._fillstroke()
 
+    def identity(self):
+        self.ctx.identity_matrix()
+
     def background(self, *args):
         ''' Clear the canvas with a given color '''
-        self.ctx.set_source_rgb(*self._convert_rgb(args))
+        self.ctx.identity_matrix()
+        self.ctx.set_source_rgba(*self._apply_colormode(self._convert_rgba(args)))
         self.ctx.rectangle(0, 0, self.width, self.height)
         self.ctx.fill()
 
