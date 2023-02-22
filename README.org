@@ -113,5 +113,5 @@ c = sketch.canvas
 this assigns the canvas to a local variable called ~c~ to make the code less verbose and for consistency with the other examples that use the Canvas API in a non-interactive setting.
 
 
-**** Why do we need these extra objects
+**** Why do we need these extra objects?
 It would be possible to create an interface that does not require referring to a ~sketch~ or to the canvas similarly to Processing. However I've decided to not do that as this would result in additional complexity and internal boilerplate code, and would result in an API that is different for non-interactive and interactive uses of the ~Canvas~ object.
