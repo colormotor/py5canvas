@@ -117,12 +117,6 @@ class Canvas:
         self.PI = pi
         self.TWO_PI = pi*2
 
-        # For interactive use, these will be get set externally and do nothing otherwise
-        self.frame_count = 0
-        self.mouse_pos = np.zeros(2)
-        self.mouse_delta = np.zeros(2)
-        self.delta_time = 0.0
-
     def set_color_scale(self, scale):
         """Set color scale, e.g. if we want to specify colors in the `0`-`255` range, scale would be `255`,
         or if the colors are in the `0`-`1` range, scale will be `1`"""
@@ -732,27 +726,56 @@ def hsv_to_rgb(hsva):
     return np.array([r,g,b,a])[:len(hsva)]
 
 
-class Video:
-    def __init__(self, name=0):
+class VideoInput:
+    '''Video Input utility (required OpenCV)'''
+    def __init__(self, name=0, size=None, resize_mode='crop'):
         import cv2
         # define a video capture object
-        self.vid = cv2.VideoCapture(0)
+        self.vid = cv2.VideoCapture(name)
+        self.size = size
+        self.resize_mode = resize_mode
+        self.name = name
 
-
-    def read(self, size=None):
+    def read(self, loop_flag=False):
         import cv2
         # Capture video frame by frame
         success, img = self.vid.read()
-        if not success:
-            return np.zeros((16, 16, 3)).astype(np.uint8)
 
-        if size is not None:
+        if not success:
+            if type(self.name) == str and not loop_flag: # If a video loop automatically
+                self.vid.set(cv2.CAP_PROP_POS_FRAMES, 0)
+                return self.read(True)
+            else:
+                print('No video')
+                if self.size is not None:
+                    return np.zeros((self.size[1], self.size[0], 3)).astype(np.uint8)
+                else:
+                    return np.zeros((16, 16, 3)).astype(np.uint8)
+
+        if self.size is not None:
+            src_w, src_h = img.shape[1], img.shape[0]
+            dst_w, dst_h = self.size
+
+            if self.resize_mode == 'crop':
+
+                # Keep aspect ratio by cropping
+                aspect = dst_w / dst_h
+
+                # Check if aspect ratio match
+                asrc_w = int(aspect*src_h)
+                if asrc_w > src_w: # aspect ratio > 1
+                    asrc_h = int(src_h/aspect)
+                    d = (src_h - asrc_h)//2
+                    img = img[d:d+asrc_h, :, :]
+                elif asrc_w < src_w: # aspect ratio < 1
+                    d = (src_w - asrc_w)//2
+                    img = img[:, d:d+asrc_w, :]
+
             # Resize the image frames
-            img = cv2.resize(img, size)
+            img = cv2.resize(img, self.size)
 
         img = img[:,:,::-1]
         return img
-        #return np.flip(img, (0,1,2))
     
 if __name__ == '__main__':
     from skimage import io

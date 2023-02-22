@@ -121,15 +121,16 @@ class Sketch:
     def _update(self, dt):
         self.delta_time = dt
         with perf_timer('update'):
-            try:
-                self.var_context['draw']()
-                self.runtime_error = False
-            except Exception as e:
-                print('Error in sketch draw')
-                print(e)
-                self.error_label.text = str(e)
-                self.runtime_error = True
-                traceback.print_exc()
+            if not self.runtime_error or self.frame_count==0:
+                try:
+                    self.var_context['draw']()
+                    self.runtime_error = False
+                except Exception as e:
+                    print('Error in sketch draw')
+                    print(e)
+                    self.error_label.text = str(e)
+                    self.runtime_error = True
+                    traceback.print_exc()
 
         pitch = self.width * 4
         with perf_timer('get buffer'):
