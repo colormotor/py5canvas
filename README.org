@@ -84,3 +84,11 @@ py5sketch basic_animation.py
 #+end_example
 
 This will open a window with the sketch.
+
+Similarly to P5js and Processing, the sketch revolves around a ~setup~ and a ~draw~ function. The main difference to take into account is that the setup refers to a ~sketch~ object and that we explicitly need to refer to the ~Canvas~ contained in it to draw things. The ~sketch~ object takes care exposes functionalities such as setting up the window and interactive information such as the number of frames since the sketch has been launched. It is automatically inserted into the scope of the script by the ~py5sketch~ program.
+
+Also, note that in the ~draw~ function we have the line
+#+begin_src python
+c = sketch.canvas
+#+end_src
+We could refer to the ~Canvas~ object with ~sketch.canvas~, but this is simply done to save some typing and for consistency with the other examples that use the same API in a non-interactive setting.

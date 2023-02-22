@@ -12,6 +12,6 @@ def draw():
     # Draw rotating circle
     c.fill(255, 0, 0)
     c.stroke(255)
-    c.rotate(c.frame_count*0.05)
+    c.rotate(sketch.frame_count*0.05)
     c.circle(100, 0, 20)
     c.pop()

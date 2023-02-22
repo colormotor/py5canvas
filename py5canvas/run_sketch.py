@@ -7,7 +7,7 @@ It will probably be significantly slow when using a large canvas size
 # importing pyglet module
 import pyglet
 from pyglet.window import key
-
+import numpy as np
 import os, sys, time
 from py5canvas import canvas
 import traceback
@@ -70,6 +70,13 @@ class Sketch:
         self.watcher = None
         self.path = path
 
+
+        self.frame_count = 0
+        self.mouse_pos = np.zeros(2)
+        self.mouse_delta = np.zeros(2)
+        self.delta_time = 0.0
+
+
     def create_canvas(self, w, h, fullscreen=False):
         print('setting window size')
         self.is_fullscreen = fullscreen
@@ -94,6 +101,7 @@ class Sketch:
 
     def reload(self, var_context):
         self.var_context = var_context
+        self.frame_count = 0
         if self.watcher is None:
             self.watcher = FileWatcher(self.path)
         try:
@@ -111,7 +119,7 @@ class Sketch:
 
     # internal update
     def _update(self, dt):
-        self.canvas.delta_time = dt
+        self.delta_time = dt
         with perf_timer('update'):
             try:
                 self.var_context['draw']()
@@ -137,7 +145,7 @@ class Sketch:
 
         with perf_timer('update count'):
             # Update timers etc
-            self.canvas.frame_count += 1
+            self.frame_count += 1
 
         if self.watcher.modified(): # Every frame check for file modification
             print("File modified, reloading")
