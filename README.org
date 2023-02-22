@@ -53,7 +53,7 @@ c.save_image('test.png')
 c.show()
 #+end_src
 
-In general, the syntax is very similar to P5js but it uses ~snake_case~ as a syntax convention, and it requires explicitly referencing a ~Canvas~ object rather than exposing this functionality globally. For more detailed instructions refer to this notebook.
+In general, the syntax is very similar to P5js but it uses ~snake_case~ as a syntax convention, and it requires explicitly referencing a ~Canvas~ object rather than exposing this functionality globally. For more detailed instructions refer to [[https://github.com/colormotor/py5canvas/blob/main/examples/canvas_tutorial.ipynb][this notebook]].
 
 ** py5sketch
 While the Canvas API alone does not supprt interactivity, the ~py5sketch~ program allows to create simple "sketches" that can be run interactively in a window.
