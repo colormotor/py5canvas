@@ -478,11 +478,12 @@ class Canvas:
             print("Unexpected number of arguments for image")
             raise ValueError
 
-        self.ctx.translate(pos[0], pos[1])
         if size is not None:
             sx = size[0]/img.get_width()
             sy = size[1]/img.get_height()
             self.ctx.scale(sx, sy)
+        self.ctx.translate(pos[0], pos[1])
+
         self.ctx.set_source_surface(img)
         self.ctx.paint_with_alpha(opacity)
         self.ctx.restore()
