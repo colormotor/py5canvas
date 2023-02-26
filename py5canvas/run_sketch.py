@@ -16,7 +16,7 @@ args = lambda: None
 args.program = './../examples/basic_animation.py'
 
 class perf_timer:
-    def __init__(self, name='', verbose=False): # Set verbose to true for debugging
+    def __init__(self, name='', verbose=True): # Set verbose to true for debugging
         #if name and verbose:
         #    print(name)
         self.name = name
@@ -100,16 +100,20 @@ class Sketch:
         self.window_width, self.window_height = self.window.get_size()
 
     def reload(self, var_context):
+        print("Reloading sketch code")
         self.var_context = var_context
         self.frame_count = 0
         if self.watcher is None:
+            print("Creating file watcher for " + self.path)
             self.watcher = FileWatcher(self.path)
         try:
+            print("Compiling")
             prog = compile(open(self.path).read(), self.path, 'exec')
             exec(prog, var_context)
                 # Once we loaded script setup
             var_context['setup']()
             self.startup_error = False
+            print("Success")
         except Exception as e:
             print('Error in sketch setup')
             print(e)
@@ -178,6 +182,7 @@ def main():
         print('You need to specify a python sketch file in the arguments')
         assert(0)
 
+    print("Starting up sketch " + sys.argv[1])
     # Create our sketch context and load script
     sketch = Sketch(sys.argv[1], 512, 512)
 
@@ -200,6 +205,7 @@ def main():
         if sketch.startup_error or sketch.runtime_error:
             sketch.error_label.draw()
 
+    print("Starting loop")
     pyglet.app.run()
 
 
