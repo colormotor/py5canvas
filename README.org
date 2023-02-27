@@ -8,9 +8,9 @@ The library consists of two main components. The ~canvas~ API and a command line
 The main idea behind this system is to facilitate the development of creative and interactive machine learning applications.
 
 * Dependencies and installation
-The main requirements for Py5Canvas are [[https://numpy.org][NumPy]], [[https://matplotlib.org][Matplotlib]], [[https://pycairo.readthedocs.io/en/latest/][pyCairo]] and [[https://pyglet.readthedocs.io/en/latest/][Pyglet]]. Pyglet is only necessary if you want to use interactivity. It is recommended to use the [[Miniconda][https://docs.conda.io/en/latest/miniconda.html]] (or Anaconda) package manager to install the dependencies when possible. When doing so install the dependencies with:
+The main requirements for Py5Canvas are [[https://numpy.org][NumPy]], [[https://matplotlib.org][Matplotlib]], [[https://pycairo.readthedocs.io/en/latest/][pyCairo]] and [[https://pyglet.readthedocs.io/en/latest/][Pyglet]]. Pyglet is only necessary if you want to use interactivity. It is recommended to use the [[Miniconda][https://docs.conda.io/en/latest/miniconda.html]] (or Anaconda) package manager to install the dependencies when possible. To fully use the Canvas API with video input, you will also need [[https://opencv.org][OpenCV]], The conda instructions below include it, but it is not essential.  Using conda you can rapidly install the dependencies with:
 #+begin_example
-conda install -c conda-forge numpy matplotlib pycairo
+conda install -c conda-forge numpy matplotlib pycairo opencv
 #+end_example
 Then install the latest version of Pyglet with
 #+begin_example
