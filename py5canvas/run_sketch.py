@@ -16,7 +16,7 @@ args = lambda: None
 args.program = './../examples/basic_animation.py'
 
 class perf_timer:
-    def __init__(self, name='', verbose=True): # Set verbose to true for debugging
+    def __init__(self, name='', verbose=False): # Set verbose to true for debugging
         #if name and verbose:
         #    print(name)
         self.name = name
