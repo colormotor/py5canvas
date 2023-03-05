@@ -70,12 +70,18 @@ class Sketch:
         self.watcher = None
         self.path = path
 
-
         self.frame_count = 0
-        self.mouse_pos = np.zeros(2)
-        self.mouse_delta = np.zeros(2)
         self.delta_time = 0.0
 
+        self._mouse_pos = None #np.zeros(2)
+        self.mouse_pos = np.zeros(2)
+        self.prev_mouse = None
+        self.mouse_delta = np.zeros(2)
+        self.mouse_button = 0
+        self.mouse_pressed = False
+        self.mouse_moving = False
+
+        self.var_context = {}
 
     def create_canvas(self, w, h, fullscreen=False):
         print('setting window size')
@@ -102,6 +108,7 @@ class Sketch:
     def reload(self, var_context):
         print("Reloading sketch code")
         self.var_context = var_context
+
         self.frame_count = 0
         if self.watcher is None:
             print("Creating file watcher for " + self.path)
@@ -121,13 +128,37 @@ class Sketch:
             self.error_label.text = str(e)
             traceback.print_exc()
 
+
+    def _update_mouse(self):
+        if self._mouse_pos is None:
+            return
+
+        if self.prev_mouse is None:
+            self.mouse_pos = self._mouse_pos
+
+        self.prev_mouse = self.mouse_pos
+        self.mouse_pos = self._mouse_pos
+        self.mouse_delta = self.mouse_pos - self.prev_mouse
+
+        # if self.mouse_pressed:
+        #     print('Mouse:')
+        #     print(self.mouse_delta)
+        #     print(self.mouse_pos)
+        #     print(self.mouse_delta)
+
+
     # internal update
     def _update(self, dt):
         self.delta_time = dt
+        self._update_mouse()
+
         with perf_timer('update'):
             if not self.runtime_error or self.frame_count==0:
                 try:
-                    self.var_context['draw']()
+                    if 'draw' in self.var_context:
+                        self.var_context['draw']()
+                    else:
+                        print('no draw in var context')
                     self.runtime_error = False
                 except Exception as e:
                     print('Error in sketch draw')
@@ -164,6 +195,7 @@ class Sketch:
 
 def main():
     from importlib import reload
+    mouse_moving = False
 
     ## User callbacks, will get overridden by user sketch
     def setup():
@@ -175,7 +207,10 @@ def main():
     def key_pressed(k, modifier):
         pass
 
-    def mouse_moved(x, y):
+    def mouse_moved():
+        pass
+
+    def mouse_dragged():
         pass
 
     if len(sys.argv) < 2:
@@ -188,13 +223,39 @@ def main():
 
     @sketch.window.event
     def on_key_press(symbol, modifier):
-        key_pressed(symbol, modifier)
+        # print('Key pressed')
+        if 'key_pressed' in sketch.var_context:
+            sketch.var_context['key_pressed'](symbol, modifier)
 
     @sketch.window.event
     def on_mouse_motion(x, y, dx, dy):
-        mouse_moved(x, y)
+        sketch._mouse_pos = np.array([x, sketch.window_height-y])
+        #print((x, y, dx, dy))
+        if 'mouse_moved' in sketch.var_context:
+            sketch.var_context['mouse_moved']()
+
+    @sketch.window.event
+    def on_mouse_drag(x, y, dx, dy, buttons, modifiers):
+        sketch._mouse_pos = np.array([x, sketch.window_height-y])
+        sketch.mouse_pressed = True
+        if 'mouse_dragged' in sketch.var_context:
+            sketch.var_context['mouse_dragged']()
+
+    @sketch.window.event
+    def on_mouse_press(x, y, button, modifiers):
+        print("press")
+        sketch.mouse_pressed = True
+        sketch.mouse_button = button
+        sketch._mouse_pos = np.array([x, sketch.window_height-y])
+
+    @sketch.window.event
+    def on_mouse_release(x, y, button, modifiers):
+        print("release")
+        sketch.mouse_pressed = False
+        sketch._mouse_pos = np.array([x, sketch.window_height-y])
 
     sketch.reload(locals())
+    key_pressed(0, 0)
 
     # on draw event
     @sketch.window.event
