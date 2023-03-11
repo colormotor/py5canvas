@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 """A simple p5-inspired interface to the Canvas object
+© Daniel Berio (@colormotor) 2023 - ...
+
 NOTE: this is highly unoptimized, since it uses pycairo for rendering and copies all the screen at each frame
 It will probably be significantly slow when using a large canvas size
 """

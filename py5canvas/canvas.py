@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Simplistic utilty to mimic [P5js](https://p5js.org) in Python/Jupyter notebooks.
+© Daniel Berio (@colormotor) 2023 - ...
 
 ## Dependencies
 This module depends on matplotlib, numpy and and pycairo.
