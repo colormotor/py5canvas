@@ -13,6 +13,8 @@ import numpy as np
 import os, sys, time
 from py5canvas import canvas
 import traceback
+import importlib
+import threading
 
 args = lambda: None
 args.program = './../examples/basic_animation.py'
@@ -33,6 +35,16 @@ class perf_timer:
         if self.name and self.verbose:
             print('%s: elapsed time %.3f milliseconds'%(self.name, self.elapsed))
 
+def load_json(path):
+    import json, codecs
+    try:
+        with codecs.open(path, encoding='utf8') as fp:
+            data = json.load(fp)
+        return data
+    except IOError as err:
+        print(err)
+        print ("Unable to load json file:" + path)
+        return {}
 
 class FileWatcher:
     """Checks if a file has been modified"""
@@ -84,6 +96,23 @@ class Sketch:
         self.mouse_moving = False
 
         self.var_context = {}
+
+        # Check if OSC is available
+        osc_loader = importlib.find_loader('pythonosc')
+        if osc_loader is not None:
+            self.server_address = '0.0.0.0' # Will listen from all IPs
+            self.server_port = 9999
+            self.client_address = '127.0.0.1'
+            self.client_port = 9998
+            self.dispatcher = None
+            self.oscserver = None
+            self.oscclient = None
+            self.server_thread = None
+            self.osc_enabled = True
+            self.start_osc()
+        else:
+            print('pythonosc not installed')
+            self.osc_enabled = False
 
     def create_canvas(self, w, h, fullscreen=False):
         print('setting window size')
@@ -194,6 +223,63 @@ class Sketch:
         pyglet.clock.unschedule(self._update)
         pyglet.clock.schedule_interval(self._update, 1.0/fps)
 
+    def start_osc(self):
+        # Load server/client data from json
+        # startup
+        # if 'osc_message' in self.var_context:
+        print('starting up OSC')
+
+        from pythonosc import udp_client
+        from pythonosc.dispatcher import Dispatcher
+        from pythonosc import osc_server
+
+        # Check if OSC setup file exists
+        path = os.path.dirname(self.path)
+        path = os.path.join(path, 'osc.json')
+        oscsetup = load_json(path)
+        if oscsetup:
+            print('Reading json OSC setup')
+            if 'client address' in oscsetup:
+                self.client_address = oscsetup['client address']
+                print('Setting client address to ' + self.client_address)
+            if 'client port' in oscsetup:
+                self.client_port = oscsetup['client port']
+                print('Setting client port to ' + str(self.client_port))
+            if 'server port' in oscsetup:
+                self.server_port = oscsetup['server port']
+                print('Setting server port to ' + str(self.server_port))
+
+        if self.client_address == 'localhost':
+            self.client_address = '127.0.0.1'
+
+        self.dispatcher = Dispatcher()
+        self.dispatcher.set_default_handler(self._handle_osc)
+
+        print("Starting OSC Server")
+        self.oscserver = osc_server.ThreadingOSCUDPServer((self.server_address, self.server_port), self.dispatcher)
+        self.server_thread = threading.Thread(target=self.oscserver.serve_forever)
+        self.server_thread.start()
+
+        print("Initializing OSC client")
+        self.oscclient = udp_client.SimpleUDPClient(self.client_address, self.client_port)
+
+    def send_osc(self, addr, val):
+        ''' Send an OSC message'''
+        self.oscclient.send_message(addr, val)
+
+    def _handle_osc(self, addr, args):
+        print('received: ' + addr)
+        print(args)
+        if 'received_osc' in self.var_context:
+            print('Forwarding')
+            self.var_context['received_osc'](addr, args)
+
+    def cleanup(self):
+        if self.server_thread is not None:
+            print("Stopping server")
+            self.oscserver.shutdown()
+            self.server_thread.join()
+            print("Stopped")
 
 def main():
     from importlib import reload
@@ -270,7 +356,8 @@ def main():
 
     print("Starting loop")
     pyglet.app.run()
-
+    print("Exit")
+    sketch.cleanup()
 
 if __name__ == '__main__':
     main()
