@@ -16,8 +16,17 @@ import traceback
 import importlib
 import threading
 
+# Optionally import imgui
+imgui_loader = importlib.find_loader('imgui')
+if imgui_loader is not None:
+    import imgui
+    from imgui.integrations.pyglet import create_renderer
+else:
+    imgui = None
+
 args = lambda: None
 args.program = './../examples/basic_animation.py'
+
 
 class perf_timer:
     def __init__(self, name='', verbose=False): # Set verbose to true for debugging
@@ -113,6 +122,13 @@ class Sketch:
         else:
             print('pythonosc not installed')
             self.osc_enabled = False
+            self.oscserver = None
+            self.oscclient = None
+            self.server_thread = None
+            self.osc_enabled = False
+
+        # For IMGUI use
+        self.impl = None
 
     def create_canvas(self, w, h, fullscreen=False):
         print('setting window size')
@@ -183,6 +199,14 @@ class Sketch:
         self.delta_time = dt
         self._update_mouse()
 
+
+        if imgui is not None:
+            if self.impl is None:
+                imgui.create_context()
+                self.impl = create_renderer(self.window)
+
+            imgui.new_frame()
+
         with perf_timer('update'):
             if not self.runtime_error or self.frame_count==0:
                 try:
@@ -218,6 +242,18 @@ class Sketch:
             print("File modified, reloading")
             # Reload in global namespace
             self.reload(self.var_context)
+
+        # Draw to window
+        self.window.clear()
+        self.image.blit(0, 0)
+
+        if self.startup_error or self.runtime_error:
+            self.error_label.draw()
+
+        if imgui is not None:
+            imgui.render()
+            self.impl.render(imgui.get_draw_data())
+
 
     def frame_rate(self, fps):
         pyglet.clock.unschedule(self._update)
@@ -280,6 +316,8 @@ class Sketch:
             self.oscserver.shutdown()
             self.server_thread.join()
             print("Stopped")
+        if imgui is not None:
+            self.impl.shutdown()
 
 def main():
     from importlib import reload
@@ -309,50 +347,59 @@ def main():
     # Create our sketch context and load script
     sketch = Sketch(sys.argv[1], 512, 512)
 
-    @sketch.window.event
+    #@sketch.window.event
     def on_key_press(symbol, modifier):
         # print('Key pressed')
         if 'key_pressed' in sketch.var_context:
             sketch.var_context['key_pressed'](symbol, modifier)
 
-    @sketch.window.event
+    #@sketch.window.event
     def on_mouse_motion(x, y, dx, dy):
         sketch._mouse_pos = np.array([x, sketch.window_height-y])
         #print((x, y, dx, dy))
         if 'mouse_moved' in sketch.var_context:
             sketch.var_context['mouse_moved']()
 
-    @sketch.window.event
+    #@sketch.window.event
     def on_mouse_drag(x, y, dx, dy, buttons, modifiers):
         sketch._mouse_pos = np.array([x, sketch.window_height-y])
         sketch.mouse_pressed = True
         if 'mouse_dragged' in sketch.var_context:
             sketch.var_context['mouse_dragged']()
 
-    @sketch.window.event
+    #@sketch.window.event
     def on_mouse_press(x, y, button, modifiers):
         print("press")
         sketch.mouse_pressed = True
         sketch.mouse_button = button
         sketch._mouse_pos = np.array([x, sketch.window_height-y])
 
-    @sketch.window.event
+    #@sketch.window.event
     def on_mouse_release(x, y, button, modifiers):
         print("release")
         sketch.mouse_pressed = False
         sketch._mouse_pos = np.array([x, sketch.window_height-y])
 
+    sketch.window.push_handlers(on_key_press,
+                                on_mouse_motion,
+                                on_mouse_drag,
+                                on_mouse_press,
+                                on_mouse_release)
     sketch.reload(locals())
-    key_pressed(0, 0)
+    # key_pressed(0, 0)
 
-    # on draw event
-    @sketch.window.event
-    def on_draw():
-        # clearing the window
-        sketch.window.clear()
-        sketch.image.blit(0, 0) #, width=sketch.window_width, height=sketch.window_height) #*window.get_size())
-        if sketch.startup_error or sketch.runtime_error:
-            sketch.error_label.draw()
+    # # on draw event
+    # @sketch.window.event
+    # def on_draw():
+    #     # clearing the window
+    #     sketch.window.clear()
+    #     sketch.image.blit(0, 0) #, width=sketch.window_width, height=sketch.window_height) #*window.get_size())
+    #     if sketch.startup_error or sketch.runtime_error:
+    #         sketch.error_label.draw()
+
+    #     if imgui is not None:
+    #         imgui.render()
+    #         sketch.impl.render(imgui.get_draw_data())
 
     print("Starting loop")
     pyglet.app.run()
