@@ -201,6 +201,7 @@ class Sketch:
 
 
         if imgui is not None:
+            # For some reason this only works here and not in the constructor.
             if self.impl is None:
                 imgui.create_context()
                 self.impl = create_renderer(self.window)
@@ -386,20 +387,6 @@ def main():
                                 on_mouse_press,
                                 on_mouse_release)
     sketch.reload(locals())
-    # key_pressed(0, 0)
-
-    # # on draw event
-    # @sketch.window.event
-    # def on_draw():
-    #     # clearing the window
-    #     sketch.window.clear()
-    #     sketch.image.blit(0, 0) #, width=sketch.window_width, height=sketch.window_height) #*window.get_size())
-    #     if sketch.startup_error or sketch.runtime_error:
-    #         sketch.error_label.draw()
-
-    #     if imgui is not None:
-    #         imgui.render()
-    #         sketch.impl.render(imgui.get_draw_data())
 
     print("Starting loop")
     pyglet.app.run()
