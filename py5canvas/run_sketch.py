@@ -55,6 +55,7 @@ def load_json(path):
         print ("Unable to load json file:" + path)
         return {}
 
+
 class FileWatcher:
     """Checks if a file has been modified"""
     def __init__(self, path):
@@ -244,16 +245,22 @@ class Sketch:
             # Reload in global namespace
             self.reload(self.var_context)
 
-        # Draw to window
-        self.window.clear()
-        self.image.blit(0, 0)
-
-        if self.startup_error or self.runtime_error:
-            self.error_label.draw()
-
         if imgui is not None:
-            imgui.render()
-            self.impl.render(imgui.get_draw_data())
+            # Required for render to work in draw callback
+            imgui.end_frame()
+
+        # NB need to check pyglet's draw loop, but clearing here will break when the frame-rate
+        # is low or in other cases?
+        # # Draw to window
+        # self.window.clear()
+        # self.image.blit(0, 0)
+
+        # if self.startup_error or self.runtime_error:
+        #     self.error_label.draw()
+
+        # if imgui is not None:
+        #     imgui.render()
+        #     self.impl.render(imgui.get_draw_data())
 
 
     def frame_rate(self, fps):
@@ -387,6 +394,19 @@ def main():
                                 on_mouse_press,
                                 on_mouse_release)
     sketch.reload(locals())
+
+    # on draw event
+    @sketch.window.event
+    def on_draw():
+        # clearing the window
+        sketch.window.clear()
+        sketch.image.blit(0, 0) #, width=sketch.window_width, height=sketch.window_height) #*window.get_size())
+        if sketch.startup_error or sketch.runtime_error:
+            sketch.error_label.draw()
+
+        if imgui is not None:
+            imgui.render()
+            sketch.impl.render(imgui.get_draw_data())
 
     print("Starting loop")
     pyglet.app.run()
