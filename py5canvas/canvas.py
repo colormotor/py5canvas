@@ -235,7 +235,7 @@ class Canvas:
             
     def _fillstroke(self):
         if self.no_draw: # we are in a begin_shape end_shape pair
-            return
+           return
 
         if self.cur_fill is not None:
             self.ctx.set_source_rgba(*self.cur_fill)
@@ -532,7 +532,8 @@ class Canvas:
         
         To close the polyline set the named closed argument to `True`, e.g. `c.polyline(points, closed=True)`.
         '''
-        self.ctx.new_path()
+        self.ctx.new_sub_path()
+        #self.ctx.new_path()
         if len(args)==1:
             points = args[0]
         else:

@@ -78,6 +78,8 @@ class Sketch:
                        height,
                        title="Sketch"):
         self.window = pyglet.window.Window(width, height, title)
+        self.window.set_vsync(False)
+
         self.width, self.height = width, height
         self.create_canvas(self.width, self.height)
         self.frame_rate(60)
@@ -195,11 +197,17 @@ class Sketch:
         #     print(self.mouse_delta)
 
 
-    # internal update
     def _update(self, dt):
+        # Almost a dummy function.
+        # Scheduling this should force window redraw every frame
+        # So we can sync update and drawing by calling frame() in the @draw callback
+        # see https://stackoverflow.com/questions/39089578/pyglet-synchronise-event-with-frame-drawing
         self.delta_time = dt
-        self._update_mouse()
+        print('update')
 
+    # internal update
+    def frame(self):
+        self._update_mouse()
 
         if imgui is not None:
             # For some reason this only works here and not in the constructor.
@@ -208,6 +216,13 @@ class Sketch:
                 self.impl = create_renderer(self.window)
 
             imgui.new_frame()
+            # print('New frame')
+            # # For some reason this only works here and not in the constructor.
+            # if self.impl is None:
+            #     imgui.create_context()
+            #     self.impl = create_renderer(self.window)
+
+            # imgui.new_frame()
 
         with perf_timer('update'):
             if not self.runtime_error or self.frame_count==0:
@@ -264,8 +279,10 @@ class Sketch:
 
 
     def frame_rate(self, fps):
-        pyglet.clock.unschedule(self._update)
-        pyglet.clock.schedule_interval(self._update, 1.0/fps)
+        print('sketch.frame_rate is deprecated for the moment, the function will have no effect')
+        # pyglet.clock.unschedule(self._update)
+        # pyglet.clock.schedule_interval(self._update, 1.0/fps)
+
 
     def start_osc(self):
         # Load server/client data from json
@@ -377,14 +394,12 @@ def main():
 
     #@sketch.window.event
     def on_mouse_press(x, y, button, modifiers):
-        print("press")
         sketch.mouse_pressed = True
         sketch.mouse_button = button
         sketch._mouse_pos = np.array([x, sketch.window_height-y])
 
     #@sketch.window.event
     def on_mouse_release(x, y, button, modifiers):
-        print("release")
         sketch.mouse_pressed = False
         sketch._mouse_pos = np.array([x, sketch.window_height-y])
 
@@ -398,6 +413,8 @@ def main():
     # on draw event
     @sketch.window.event
     def on_draw():
+        # Updates input and calls draw in the sketch
+        sketch.frame()
         # clearing the window
         sketch.window.clear()
         sketch.image.blit(0, 0) #, width=sketch.window_width, height=sketch.window_height) #*window.get_size())

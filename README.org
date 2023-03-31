@@ -69,7 +69,6 @@ Let's look at a simple example (~basic_animation.py~) that generates a rotating 
 #+begin_src python
 def setup():
     sketch.create_canvas(512, 512)
-    sketch.frame_rate(60)
 
 def draw():
     c = sketch.canvas # Get the base canvas

@@ -1,6 +1,6 @@
 def setup():
     sketch.create_canvas(512, 512)
-    sketch.frame_rate(60)
+    
 
 def draw():
     c = sketch.canvas # Get the base canvas
