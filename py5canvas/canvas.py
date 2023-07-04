@@ -96,14 +96,14 @@ class Canvas:
         self.color_scale = 255.0
 
         ctx.set_fill_rule(cairo.FILL_RULE_EVEN_ODD)
-
+        ctx.set_line_join(cairo.LINE_JOIN_MITER)
         ctx.set_source_rgba(0.0, 0.0, 0.0, 255.0)
         ctx.rectangle(0,0,width,height)
         ctx.fill()
 
         self._color_mode = 'rgb'
-        self.width = width
-        self.height = height
+        self._width = width
+        self._height = height
         self.surf = surf
         self.ctx = ctx
         self.cur_fill = self._convert_rgba([255.0])
@@ -123,6 +123,14 @@ class Canvas:
         or if the colors are in the `0`-`1` range, scale will be `1`"""
 
         self.color_scale = scale
+
+    @property
+    def width(self):
+        return self._width
+
+    @property
+    def height(self):
+        return self._height
 
     @property
     def surface(self):
@@ -563,7 +571,7 @@ class Canvas:
 
     def get_image(self):
         ''' Get canvas image as a numpy array '''
-        img = np.ndarray (shape=(self.height, self.width,4), dtype=np.uint8, buffer=self.surf.get_data())[:,:,:3].copy()
+        img = np.ndarray (shape=(self.height, self.width, 4), dtype=np.uint8, buffer=self.surf.get_data())[:,:,:3].copy()
         img = img[:,:,::-1]
         return img
 

@@ -69,6 +69,12 @@ class FileWatcher:
             return True
         return False
 
+def wrap_method(obj, func):
+    # print('wrapping ' + func)
+    def wrapper(*args, **kwargs):
+        return getattr(obj, func)(*args, **kwargs)
+    return wrapper
+
 
 class Sketch:
     """Contains our canvas and the pyglet window.
@@ -81,6 +87,8 @@ class Sketch:
         self.window.set_vsync(False)
 
         self.width, self.height = width, height
+        self.var_context = {}
+
         self.create_canvas(self.width, self.height)
         self.frame_rate(60)
         self.startup_error = False
@@ -96,8 +104,8 @@ class Sketch:
         self.watcher = None
         self.path = path
 
-        self.frame_count = 0
-        self.delta_time = 0.0
+        self._frame_count = 0
+        self._delta_time = 0.0
 
         self._mouse_pos = None #np.zeros(2)
         self.mouse_pos = np.zeros(2)
@@ -106,8 +114,6 @@ class Sketch:
         self.mouse_button = 0
         self.mouse_pressed = False
         self.mouse_moving = False
-
-        self.var_context = {}
 
         # Check if OSC is available
         osc_loader = importlib.find_loader('pythonosc')
@@ -133,6 +139,14 @@ class Sketch:
         # For IMGUI use
         self.impl = None
 
+    @property
+    def frame_count(self):
+        return self._frame_count
+
+    @property
+    def delta_time(self):
+        return self._delta_time
+
     def create_canvas(self, w, h, fullscreen=False):
         print('setting window size')
         self.is_fullscreen = fullscreen
@@ -141,7 +155,9 @@ class Sketch:
         self.width, self.height = w, h
         self.canvas = canvas.Canvas(w, h)
         self.window_width, self.window_height = self.window.get_size()
-
+        # Expose canvas globally
+        if self.var_context:
+            self.var_context['c'] = self.canvas
         # Create image and copy initial canvas buffer to it
         buf = self.canvas.get_buffer()
         buf = (pyglet.gl.GLubyte * len(buf))(*buf)
@@ -159,15 +175,25 @@ class Sketch:
         print("Reloading sketch code")
         self.var_context = var_context
 
-        self.frame_count = 0
+        self._frame_count = 0
         if self.watcher is None:
             print("Creating file watcher for " + self.path)
             self.watcher = FileWatcher(self.path)
         try:
             print("Compiling")
             prog = compile(open(self.path).read(), self.path, 'exec')
+            # Expose canvas to the sketch
+            print('exposing vars')
+            for func in dir(self.canvas):
+                if '__' not in func and callable(getattr(self.canvas, func)):
+                    var_context[func] = wrap_method(self.canvas, func)
+            # And basic functions from sketch
+            var_context['create_canvas'] = wrap_method(self, 'create_canvas')
+            # And also expose canvas as 'c' since the functions in the canvas are quite common names and
+            # might be easily overwritten
+            var_context['c'] = self.canvas
             exec(prog, var_context)
-                # Once we loaded script setup
+            # Once we loaded script setup
             var_context['setup']()
             self.startup_error = False
             print("Success")
@@ -177,7 +203,6 @@ class Sketch:
             self.startup_error = True
             self.error_label.text = str(e)
             traceback.print_exc()
-
 
     def _update_mouse(self):
         if self._mouse_pos is None:
@@ -202,7 +227,11 @@ class Sketch:
         # Scheduling this should force window redraw every frame
         # So we can sync update and drawing by calling frame() in the @draw callback
         # see https://stackoverflow.com/questions/39089578/pyglet-synchronise-event-with-frame-drawing
-        self.delta_time = dt
+        self._delta_time = dt
+        self.var_context['delta_time'] = dt
+        self.var_context['frame_count'] = self._frame_count
+        # Expose canvas globally
+        self.var_context['c'] = self.canvas
         print('update')
 
     # internal update
@@ -225,7 +254,7 @@ class Sketch:
             # imgui.new_frame()
 
         with perf_timer('update'):
-            if not self.runtime_error or self.frame_count==0:
+            if not self.runtime_error or self._frame_count==0:
                 try:
                     if 'draw' in self.var_context:
                         self.var_context['draw']()
@@ -253,7 +282,7 @@ class Sketch:
 
         with perf_timer('update count'):
             # Update timers etc
-            self.frame_count += 1
+            self._frame_count += 1
 
         if self.watcher.modified(): # Every frame check for file modification
             print("File modified, reloading")
