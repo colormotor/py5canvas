@@ -22,6 +22,12 @@ If you want OpenSoundControl (OSC) support, you will need to also install [[http
 pip install python-osc
 #+end_example
 
+If you want to use a GUI and save/load parameters install [[https://pypi.org/project/imgui/][PyImGui]] and [[https://pypi.org/project/easydict/][EasyDict]] with
+#+begin_example
+pip install imgui[pyglet]
+pip install easydict
+#+end_example
+
 ** Install Py5Canvas
 To install Py5Canvas clone the repository in a given directory, e.g. with
 #+begin_example
@@ -68,21 +74,19 @@ Let's look at a simple example (~basic_animation.py~) that generates a rotating 
 
 #+begin_src python
 def setup():
-    sketch.create_canvas(512, 512)
+    create_canvas(512, 512)
 
 def draw():
-    c = sketch.canvas # Get the base canvas
-
-    c.background(0, 0, 0, 8) # Clear with alpha will create the "trail effect"
-    c.push()
+    background(0, 0, 0, 8) # Clear with alpha will create the "trail effect"
+    push()
     # Center of screen
-    c.translate(c.width/2, c.height/2)
+    translate(c.width/2, c.height/2)
     # Draw rotating circle
-    c.fill(255, 0, 0)
-    c.stroke(255)
-    c.rotate(sketch.frame_count*0.05)
-    c.circle(100, 0, 20)
-    c.pop()
+    fill(255, 0, 0)
+    stroke(255)
+    rotate(sketch.frame_count*0.05)
+    circle(100, 0, 20)
+    pop()
 #+end_src
 
 To run this script navigate to the directory where it is located and from the command line run
@@ -93,31 +97,63 @@ py5sketch basic_animation.py
 This will open a window with the sketch.
 
 Similarly to P5js and Processing, the sketch revolves around two functions: ~setup~ and a ~draw~. The first is called once and can be used to setup the sketch. The second is called every frame and can be used to update our animation.
+
 *** Main differences with JS/Java
-While the structure of a sketch is similar to P5js or Processing there are a number of differences to take into account.
+In general the structure and syntax of a sketch is very similar to P5js or Processing. The main difference is the "snake_case" convention, so function and variable names have words separated by underscores and not capitals. As an example the function ~createCanvas~ will be ~create_canvas~ instead.
 
-**** The ~sketch~ object
-First, you will note that setup refers to a ~sketch~ object. This is automatically exposed to the script and takes care of functionalities such as, creating our ~Canvas~ object and window with ~sketch.create_canvas~, setting up the desired frame rate or getting interactive information as the number of frames since the script has been launched (~sketch.frame_count~).
+However, there are a number of differences to take into account.
 
-and that we explicitly need to refer to the ~Canvas~ contained in it to draw things. The ~sketch~ object takes care exposes functionalities such as setting up the window and interactive information such as the number of frames since the sketch has been launched. It is automatically inserted into the scope of the script by the ~py5sketch~ program.
-
-Also, note that in the ~draw~ function we have the line
+**** Globals
+Differently from Javascript or Java, Python does not allow modifications to globals from within a function by default. For example this code snippet
+#+BEGIN_SRC python
+foo = 10
+def draw():
+    print(foo)
+    foo += 1
+#+END_SRC
+will print the value of ~foo~ but incrementing the variable will not work. To make this work we need to explicitly declare
+~foo~ as a global. In the following example we declare two variables as globals allowing the function to modify both.
 #+begin_src python
-c = sketch.canvas
+foo = 10
+bar = 20
+def draw():
+    global foo, bar
+    foo += 1
+    bar -= 1
 #+end_src
 
-**** The sketch Canvas
-In order to draw things in the window we need to use a ~Canvas~ object that has been created inside the ~sketch~ instance. The canvas is accessible as ~sketch.canvas~.
+**** The ~sketch~ and ~canvas~ objects
+Behind the hood a sketch uses two main components: A ~sketch~ instance that handles the script running and updates and a ~sketch.canvas~ object, which handles drawing 2d graphics.
 
-In the the ~draw~ function you will notice the line
+By default, the ~py5sketch~ program exposes the methods of these objects as globals, so it is not necessary to reference these objects explicitly. However, while easy to remember, function names like ~scale~, ~rotate~ etc, are quite common words and it is easy to overwrite them by mistake while writing a script. For example this sketch won't work:
 #+begin_src python
-c = sketch.canvas
+scale = 1.0
+
+def setup():
+    create_canvas(512, 512)
+
+def draw():
+    background(0)
+    translate(width/2, height/2)
+    scale(0.5)
+    circle(0, 0, 100)
 #+end_src
-this assigns the canvas to a local variable called ~c~ to make the code less verbose and for consistency with the other examples that use the Canvas API in a non-interactive setting.
 
+Since we have overridden the function ~scale~ with a variable ~scale~. We can avoid these situations by referring to the canvas (or sketch explicitly), with a variable ~c~ automatically set to refer to the ~sketch.canvas~ object (for brevity). So the following will work:
+#+begin_src python
+scale = 1.0
 
-**** Why do we need these extra objects?
-It would be possible to create an interface that does not require referring to a ~sketch~ or to the canvas similarly to Processing. However I've decided to not do that as this would result in additional complexity and internal boilerplate code, and would result in an API that is different for non-interactive and interactive uses of the ~Canvas~ object.
+def setup():
+    sketch.create_canvas(512, 512)
+
+def draw():
+    c.background(0)
+    c.translate(c.width/2, c.height/2)
+    c.scale(0.5)
+    c.circle(0, 0, 100)
+#+end_src
+We could identically refer to ~c~ as ~sketch.canvas~.
+
 *** OSC support
 If [[https://pypi.org/project/python-osc/][python-osc]] is installed, py5sketch automatically initializes an OSC server and client.
 By default, the client will run on localhost address (127.0.0.1) with port 9998,
