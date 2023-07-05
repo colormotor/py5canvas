@@ -434,7 +434,6 @@ class Sketch:
             print("Stopped")
         if imgui is not None:
             self.impl.shutdown()
-        print(self.params)
         if self.params is not None:
             self.params.save()
 

@@ -163,11 +163,19 @@ if imgui is not None:
                             _, params[key] = imgui.slider_float(name, params[key], opts['min'], opts['max'])
                         elif param_type == 'checkbox':
                             _, params[key] = imgui.checkbox(name, params[key])
+                        elif param_type == 'color':
+                            clr = np.array(params[key]) / self.sketch.canvas.color_scale
+                            if len(clr) == 3:
+                                _, clr = imgui.color_edit3(name, *clr) #, imgui.COLOR_EDIT_DISPLAY_HSV)
+                            else:
+                                _, clr = imgui.color_edit4(name, *clr) #, imgui.COLOR_EDIT_DISPLAY_HSV)
+                            params[key] = np.array(clr)*self.sketch.canvas.color_scale
                     except KeyError as e:
                         print("Key mismatch for parameter", name)
                         print(e)
 
         def from_params(self, sketch):
+            self.sketch = sketch
             imgui.set_next_window_size(self.width, sketch.height)
             imgui.set_next_window_position(sketch.window_width - self.width, 0)
             imgui.begin("Parameters", True, imgui.WINDOW_NO_RESIZE | imgui.WINDOW_NO_TITLE_BAR)

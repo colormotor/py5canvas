@@ -177,3 +177,27 @@ If a ~received_osc(addr, value)~ function is defined in the sketch, this will be
 To send an osc message at any time, use the ~sketch.send_osc(addr, value)~.
 
 See the [[./examples/osc_example.py]] script and the [[./examples/osc_example.maxpat]] Max MSP patch for a usage example.
+
+*** GUI support and parameters
+The ~py5sketch~ program can be used in combination with the [[https://pypi.org/project/imgui/#files][Python bindings]] of [[https://github.com/ocornut/imgui][Dear ImGui]], an [[https://pyimgui.readthedocs.io/en/latest/guide/first-steps.html#what-is-immediate-mode-gui]["immediate mode" UI]] built on top of OpenGL. A basic usage example can be found in the ~imgui_test.py~ example.
+
+**** Parameters and automatic GUI
+While one can use the immediate mode paradigm to create a dynamic UI in the ~draw~ function, it is also possible to automatically create an UI for a given number of parameters.
+The parameters are defined by passing a dictionary to the ~sketch.parameters~ function, e.g.:
+#+begin_src python
+params = {'width': (100, {'min': 10, 'max': 200}),
+          'height': (100, {'min': 10, 'max': 200}),
+          'color': ([255, 0, 0], {'type':'color'})}
+params = sketch.parameters(params)
+#+end_src
+
+This syntax defines the parameters and then uses the ~sketch.parameters~ function to tell ~py5sketch~ that we will be using these. The function returns a new dictionary that can be used more conveniently by the sketch. If [[https://pypi.org/project/easydict/][EasyDict]] is installed, the parameters can be conveniently accessed with the dot notation, e.g. ~params.width~ or ~params.color~.
+
+To automatically visualize the GUI, you will need to use the ~create_canvas_gui~ function instead of ~create_canvas~ in ~setup~, e.g.:
+#+begin_src python
+def setup():
+    create_canvas_gui(512, 512)
+#+end_src
+
+**** Auto saving
+Creating parameters in this way will automatically save them when reloading or exiting a sketch. The parameters will be saved to a JSON file having the same name and directory as the sketch script.
