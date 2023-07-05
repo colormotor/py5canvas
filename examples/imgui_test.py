@@ -12,7 +12,7 @@ a = new_points()
 b = new_points()
 
 radius = 2.0
-circle_color = [1, 0, 0, 1]
+circle_color = [255, 0, 0, 255]
 
 frame_interval = 60
 
@@ -48,6 +48,6 @@ def draw():
     # See https://pyimgui.readthedocs.io/en/latest/reference/imgui.core.html
     imgui.text("Hello world")
     changed, radius = imgui.slider_float("Radius", radius, 0.5, 60.0)
-    changed, circle_color = imgui.color_edit4("Circle Color", *circle_color) #, imgui.COLOR_EDIT_HSV)
+    changed, circle_color = imgui.color_edit4("Circle Color", *circle_color, imgui.COLOR_EDIT_DISPLAY_HSV)
     print(circle_color)
     imgui.end()
