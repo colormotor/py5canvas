@@ -1,17 +1,14 @@
 def setup():
-    sketch.create_canvas(512, 512)
-    
+    create_canvas(512, 512)
 
 def draw():
-    c = sketch.canvas # Get the base canvas
-
-    c.background(0, 0, 0, 8) # Clear with alpha will create the "trail effect"
-    c.push()
+    background(0, 0, 0, 8) # Clear with alpha will create the "trail effect"
+    push()
     # Center of screen
-    c.translate(c.width/2, c.height/2)
+    translate(width/2, height/2)
     # Draw rotating circle
-    c.fill(255, 0, 0)
-    c.stroke(255)
-    c.rotate(sketch.frame_count*0.05)
-    c.circle(100, 0, 20)
-    c.pop()
+    fill(255, 0, 0)
+    stroke(255)
+    rotate(frame_count*0.05)
+    circle(100, 0, 20)
+    pop()

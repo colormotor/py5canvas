@@ -7,12 +7,13 @@ cmap = matplotlib.cm.get_cmap('turbo')
 scale = 60.0
 
 def setup():
-    sketch.create_canvas(512, 512)
-    sketch.frame_rate(30)
+    create_canvas(512, 512)
 
 def draw():
     global scale
-    c = sketch.canvas
+    # Here we will use `c` to reference to the sketch canvas
+    # since we redefined `scale` as a global variable and the corresponding
+    # global function would not work anymore
     c.background(0)
 
     iterations = 200

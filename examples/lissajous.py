@@ -5,13 +5,15 @@ def lissajous(t, a, b, omega, delta):
                       b*np.sin(t)]).T
 
 def setup():
-    sketch.create_canvas(800, 600)
+    create_canvas(800, 600)
     
 
 def draw():
-    c = sketch.canvas # Get the base canvas
-    global a, b # we are modifying these
+    global a, b # we are modifying these, so we need to declare them as globals
 
+    # To increase similarity to p5, the canvas functions can be called as globals, but
+    # the function names are quite common and it is easy to ovveride them by mistake.
+    # As a result, we can always access them through a global Canvas instance `c`
     c.background(0) 
     # Center of screen
     c.translate(c.width/2, c.height/2)

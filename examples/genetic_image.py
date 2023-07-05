@@ -20,7 +20,7 @@ def setup():
     global population, fitness, img
 
     img = io.imread('images/frida128.png')
-    sketch.create_canvas(512, 512)
+    create_canvas(512, 512)
     # create initial population
     for i in range(population_size):
         dna = np.random.uniform(0, 1, num_rects*num_parameters)
@@ -32,7 +32,6 @@ def setup():
 def draw():
     global population, fitness
 
-    c = sketch.canvas
     c.background(255)
 
     # evolve new generation

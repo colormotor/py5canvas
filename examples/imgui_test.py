@@ -1,3 +1,6 @@
+''' Simple example demonstrating how to manually create
+a UI with pyImgui'''
+
 import numpy as np
 import imgui
 
@@ -14,13 +17,10 @@ circle_color = [1, 0, 0, 1]
 frame_interval = 60
 
 def setup():
-    sketch.create_canvas(800, 600)
-    sketch.frame_rate(60)
-    sketch.canvas.color_mode('rgb', 1.0)
-
+    create_canvas(800, 600)
+    color_mode('rgb', 1.0)
 
 def draw():
-    c = sketch.canvas # Get the base canvas
     global a, b, radius, circle_color # we are modifying these
 
     c.background(0, 0, 0, 0.02) # Clear with alpha will create the "trail effect"
@@ -48,6 +48,6 @@ def draw():
     # See https://pyimgui.readthedocs.io/en/latest/reference/imgui.core.html
     imgui.text("Hello world")
     changed, radius = imgui.slider_float("Radius", radius, 0.5, 60.0)
-    changed, circle_color = imgui.color_edit4("Circle Color", *circle_color, imgui.COLOR_EDIT_HSV)
+    changed, circle_color = imgui.color_edit4("Circle Color", *circle_color) #, imgui.COLOR_EDIT_HSV)
     print(circle_color)
     imgui.end()

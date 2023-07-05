@@ -8,12 +8,11 @@ scale = 300
 target = complex(-0.1930840493097, -0.080000106)
 
 def setup():
-    sketch.create_canvas(800, 600)
+    create_canvas(800, 600)
     
 
 def draw():
     global scale, target
-    c = sketch.canvas
     c.background(0)
 
     iterations = 300
