@@ -203,6 +203,10 @@ class Sketch:
         self.window.set_fullscreen(flag)
         self.window_width, self.window_height = self.window.get_size()
 
+    def set_gui_theme(self, hue):
+        if self.gui is not None:
+            sketch_params.set_theme(hue)
+
     def reload(self, var_context):
         print("Reloading sketch code")
         self.var_context = var_context
@@ -297,6 +301,7 @@ class Sketch:
             if self.impl is None:
                 imgui.create_context()
                 self.impl = create_renderer(self.window)
+                sketch_params.set_theme()
             try:
                 imgui.new_frame()
             except imgui.core.ImGuiError as e:
@@ -317,7 +322,8 @@ class Sketch:
                     if 'draw' in self.var_context:
                         self.var_context['draw']()
                     else:
-                        print('no draw in var context')
+                        pass
+                        #print('no draw in var context')
                     self.runtime_error = False
                 except Exception as e:
                     print('Error in sketch draw')
@@ -341,7 +347,7 @@ class Sketch:
         # Update timers etc
         self._frame_count += 1
 
-        if self.watcher.modified(): # Every frame check for file modification
+        if self.path and self.watcher.modified(): # Every frame check for file modification
             print("File modified, reloading")
             # Reload in global namespace
             self.reload(self.var_context)
@@ -457,13 +463,17 @@ def main():
     def mouse_dragged():
         pass
 
-    if len(sys.argv) < 2:
-        print('You need to specify a python sketch file in the arguments')
-        assert(0)
+    # if len(sys.argv) < 2:
+    #     print('You need to specify a python sketch file in the arguments')
+    #     assert(0)
 
-    print("Starting up sketch " + sys.argv[1])
+    if len(sys.argv) > 1:
+        path = sys.argv[1]
+    else:
+        path = ""
+    print("Starting up sketch " + path)
     # Create our sketch context and load script
-    sketch = Sketch(sys.argv[1], 512, 512)
+    sketch = Sketch(path, 512, 512)
 
     #@sketch.window.event
     def on_key_press(symbol, modifier):
@@ -501,7 +511,8 @@ def main():
                                 on_mouse_drag,
                                 on_mouse_press,
                                 on_mouse_release)
-    sketch.reload(locals())
+    if sketch.path:
+        sketch.reload(locals())
 
     # on draw event
     @sketch.window.event

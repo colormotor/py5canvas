@@ -115,12 +115,113 @@ class SketchParams:
 
 
 if imgui is not None:
+    def set_theme(hue=0.127):
+        sat_mul = 0.5
+        col_main_sat = (sat_mul*120) / 255
+        col_main_val = 161 / 255
+        col_area_sat = (sat_mul*104) / 255
+        col_area_val = 100 / 255
+        col_back_sat = (sat_mul*59) / 255
+        col_back_val = 40 / 255
+
+        col_text = imgui.color_convert_hsv_to_rgb(hue, 20 / 255, 235 / 255)
+        col_main = imgui.color_convert_hsv_to_rgb(hue, col_main_sat, col_main_val)
+        col_back = imgui.color_convert_hsv_to_rgb(hue, col_back_sat, col_back_val)
+        col_area = imgui.color_convert_hsv_to_rgb(hue, col_area_sat, col_area_val)
+
+        style = imgui.get_style() # override active style
+        imgui.style_colors_dark(style) # optional: set base colors from "Dark" (or any other) style
+
+        style.window_rounding = 0.0
+        style.indent_spacing = 5
+
+        style.colors[imgui.COLOR_TEXT] = \
+        [col_text[0], col_text[1], col_text[2], 1.00]
+        style.colors[imgui.COLOR_TEXT_DISABLED] = \
+        [col_text[0], col_text[1], col_text[2], 0.58]
+        style.colors[imgui.COLOR_WINDOW_BACKGROUND] = \
+        [col_back[0], col_back[1], col_back[2], 1.00]
+        style.colors[imgui.COLOR_CHILD_BACKGROUND] = \
+        [col_back[0] * 0.7, col_back[1] * 0.7, col_back[2] * 0.7, 1.0]
+        style.colors[imgui.COLOR_BORDER] = \
+        [col_text[0], col_text[1], col_text[2], 0.30]
+        style.colors[imgui.COLOR_BORDER_SHADOW] = \
+        [0.0, 0.0, 0.0, 0.0]
+        style.colors[imgui.COLOR_FRAME_BACKGROUND] = \
+        [col_area[0], col_area[1], col_area[2], 1.00]
+        style.colors[imgui.COLOR_FRAME_BACKGROUND_HOVERED] = \
+        [col_main[0], col_main[1], col_main[2], 0.68]
+        style.colors[imgui.COLOR_FRAME_BACKGROUND_ACTIVE] = \
+        [col_main[0], col_main[1], col_main[2], 1.00]
+        style.colors[imgui.COLOR_TITLE_BACKGROUND] = \
+        [col_main[0], col_main[1], col_main[2], 0.45]
+        style.colors[imgui.COLOR_TITLE_BACKGROUND_COLLAPSED] = \
+        [col_main[0], col_main[1], col_main[2], 0.35]
+        style.colors[imgui.COLOR_TITLE_BACKGROUND_ACTIVE] = \
+        [col_main[0], col_main[1], col_main[2], 0.78]
+        style.colors[imgui.COLOR_MENUBAR_BACKGROUND] = \
+        [col_area[0], col_area[1], col_area[2], 0.57]
+        style.colors[imgui.COLOR_SCROLLBAR_BACKGROUND] = \
+        [col_area[0], col_area[1], col_area[2], 1.00]
+        style.colors[imgui.COLOR_SCROLLBAR_GRAB] = \
+        [col_main[0], col_main[1], col_main[2], 0.31]
+        style.colors[imgui.COLOR_SCROLLBAR_GRAB_HOVERED] = \
+        [col_main[0], col_main[1], col_main[2], 0.78]
+        style.colors[imgui.COLOR_SCROLLBAR_GRAB_ACTIVE] = \
+        [col_main[0], col_main[1], col_main[2], 1.00]
+        style.colors[imgui.COLOR_POPUP_BACKGROUND] = \
+        [col_area[0], col_area[1], col_area[2], 1.00]
+        style.colors[imgui.COLOR_CHECK_MARK] = \
+        [col_main[0], col_main[1], col_main[2], 0.80]
+        style.colors[imgui.COLOR_SLIDER_GRAB] = \
+        [col_main[0], col_main[1], col_main[2], 0.24]
+        style.colors[imgui.COLOR_SLIDER_GRAB_ACTIVE] = \
+        [col_main[0], col_main[1], col_main[2], 1.00]
+        style.colors[imgui.COLOR_BUTTON] = \
+        [col_main[0], col_main[1], col_main[2], 0.44]
+        style.colors[imgui.COLOR_BUTTON_HOVERED] = \
+        [col_main[0], col_main[1], col_main[2], 0.86]
+        style.colors[imgui.COLOR_BUTTON_ACTIVE] = \
+        [col_main[0], col_main[1], col_main[2], 1.00]
+        style.colors[imgui.COLOR_HEADER] = \
+        [col_main[0], col_main[1], col_main[2], 0.76]
+        style.colors[imgui.COLOR_HEADER_HOVERED] = \
+        [col_main[0], col_main[1], col_main[2], 0.86]
+        style.colors[imgui.COLOR_HEADER_ACTIVE] = \
+        [col_main[0], col_main[1], col_main[2], 1.00]
+        style.colors[imgui.COLOR_SEPARATOR] = \
+        [col_text[0], col_text[1], col_text[2], 0.32]
+        style.colors[imgui.COLOR_SEPARATOR_HOVERED] = \
+        [col_text[0], col_text[1], col_text[2], 0.78]
+        style.colors[imgui.COLOR_SEPARATOR_ACTIVE] = \
+        [col_text[0], col_text[1], col_text[2], 1.00]
+        style.colors[imgui.COLOR_RESIZE_GRIP] = \
+        [col_main[0], col_main[1], col_main[2], 0.20]
+        style.colors[imgui.COLOR_RESIZE_GRIP_HOVERED] = \
+        [col_main[0], col_main[1], col_main[2], 0.78]
+        style.colors[imgui.COLOR_RESIZE_GRIP_ACTIVE] = \
+        [col_main[0], col_main[1], col_main[2], 1.00]
+        style.colors[imgui.COLOR_PLOT_LINES] = \
+        [col_text[0], col_text[1], col_text[2], 0.63]
+        style.colors[imgui.COLOR_PLOT_LINES_HOVERED] = \
+        [col_main[0], col_main[1], col_main[2], 1.00]
+        style.colors[imgui.COLOR_PLOT_HISTOGRAM] = \
+        [col_text[0], col_text[1], col_text[2], 0.63]
+        style.colors[imgui.COLOR_PLOT_HISTOGRAM_HOVERED] = \
+        [col_main[0], col_main[1], col_main[2], 1.00]
+        style.colors[imgui.COLOR_TEXT_SELECTED_BACKGROUND] = \
+        [col_main[0], col_main[1], col_main[2], 0.43]
+        style.colors[imgui.COLOR_MODAL_WINDOW_DIM_BACKGROUND] = \
+        [0.20, 0.20, 0.20, 0.35]
+
     def get_param_type(val, opts):
         if isinstance(val, bool):
             return 'checkbox'
         elif isinstance(val, int):
             if 'min' in opts and 'max' in opts:
                 return 'int_slider'
+            elif 'selection' in opts:
+                return 'selection'
             return 'int'
         elif isinstance(val, float):
             if 'min' in opts and 'max' in opts:
@@ -131,23 +232,30 @@ if imgui is not None:
         elif callable(val):
             return 'button'
         elif not np.isscalar(val): # Assume array
-            if 'type' in opts and opts['type'] == 'color':
-                return 'color'
+            if 'type' in opts:
+                if opts['type'] == 'color':
+                    return 'color'
+            else:
+                if isinstance(val[0], int):
+                    return 'int_array'
+                elif isinstance(val[0], float):
+                    return 'float_array'
+
         return ''
 
     class SketchGui:
         def __init__(self, width):
             self.width = width
-            pass
+            self.changed = set()
 
-        def show_params(self, params, gui_params, depth=0):
+        def show_params(self, params, gui_params, parent='', depth=0):
             for name, val in gui_params.items():
                 if name == '__key__':
                     continue
                 if type(val) == dict: # A dict marks a group
                     key = val['__key__'] # Assume this has been filled automatically
                     if imgui.tree_node(name, imgui.TREE_NODE_DEFAULT_OPEN):
-                        self.show_params(params[key], val, depth+1)
+                        self.show_params(params[key], val, parent + key + '.', depth+1)
                         imgui.tree_pop()
                 else:
                     val, opts = val
@@ -159,27 +267,54 @@ if imgui is not None:
                     if not param_type:
                         continue
                     try:
+                        changed = False
+                        if param_type == 'int':
+                            changed, params[key] = imgui.input_int(name, params[key])
+                        if param_type == 'text':
+                            buf_length = 1024
+                            if 'buf_length' in opts:
+                                buf_length = opts['buf_length']
+                            if 'multiline' in opts and opts['multiline']:
+                                changed, params[key] = imgui.input_text_multiline(name, params[key], buf_length)
+                            else:
+                                changed, params[key] = imgui.input_text(name, params[key], buf_length)
+                        if param_type == 'selection':
+                            changed, params[key] = imgui.combo(name, params[key], opts['selection'])
+                        if param_type == 'float':
+                            changed, params[key] = imgui.input_float(name, params[key])
                         if param_type == 'float_slider':
-                            _, params[key] = imgui.slider_float(name, params[key], opts['min'], opts['max'])
+                            changed, params[key] = imgui.slider_float(name, params[key], opts['min'], opts['max'])
+                        if param_type == 'int_slider':
+                            changed, params[key] = imgui.slider_int(name, params[key], opts['min'], opts['max'])
                         elif param_type == 'checkbox':
-                            _, params[key] = imgui.checkbox(name, params[key])
+                            changed, params[key] = imgui.checkbox(name, params[key])
                         elif param_type == 'color':
                             clr = np.array(params[key]) / self.sketch.canvas.color_scale
                             if len(clr) == 3:
-                                _, clr = imgui.color_edit3(name, *clr) #, imgui.COLOR_EDIT_DISPLAY_HSV)
+                                changed, clr = imgui.color_edit3(name, *clr) #, imgui.COLOR_EDIT_DISPLAY_HSV)
                             else:
-                                _, clr = imgui.color_edit4(name, *clr) #, imgui.COLOR_EDIT_DISPLAY_HSV)
+                                changed, clr = imgui.color_edit4(name, *clr) #, imgui.COLOR_EDIT_DISPLAY_HSV)
                             params[key] = np.array(clr)*self.sketch.canvas.color_scale
+                        if changed:
+                            self.changed.add(parent + key)
                     except KeyError as e:
                         print("Key mismatch for parameter", name)
                         print(e)
 
         def from_params(self, sketch):
             self.sketch = sketch
+            self.changed = set()
             imgui.set_next_window_size(self.width, sketch.height)
             imgui.set_next_window_position(sketch.window_width - self.width, 0)
             imgui.begin("Parameters", True, imgui.WINDOW_NO_RESIZE | imgui.WINDOW_NO_TITLE_BAR)
+            script_name = os.path.basename(sketch.path)
+            imgui.push_style_color(imgui.COLOR_TEXT, 0.5, 0.5, 0.5)
+            imgui.text('Sketch: ' + script_name)
+            imgui.pop_style_color(1)
             if sketch.params is not None:
                 self.show_params(sketch.params.params, sketch.params.gui_params)
             imgui.end()
 
+            # imgui.begin("Style editor")
+            # imgui.show_style_editor()
+            # imgui.end()
