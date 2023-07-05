@@ -274,6 +274,9 @@ class Sketch:
         self.var_context['height'] = self.height
         # Expose canvas globally
         self.var_context['c'] = self.canvas
+        self.var_context['mouse_pressed'] = self.mouse_pressed
+        self.var_context['mouse_delta'] = self.mouse_delta
+        self.var_context['mouse_pos'] = self.mouse_pos
 
     def _update(self, dt):
         # Almost a dummy function.
