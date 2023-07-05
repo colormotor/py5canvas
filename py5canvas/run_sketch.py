@@ -11,7 +11,7 @@ import pyglet
 from pyglet.window import key
 import numpy as np
 import os, sys, time
-from py5canvas import canvas
+from py5canvas import canvas, sketch_params
 import traceback
 import importlib
 import threading
@@ -23,6 +23,12 @@ if imgui_loader is not None:
     from imgui.integrations.pyglet import create_renderer
 else:
     imgui = None
+# Optionally import easydict
+edict_loader = importlib.find_loader('easydict')
+if edict_loader is not None:
+    from easydict import EasyDict as edict
+else:
+    edict = None
 
 args = lambda: None
 args.program = './../examples/basic_animation.py'
@@ -88,6 +94,8 @@ class Sketch:
 
         self.width, self.height = width, height
         self.var_context = {}
+        self.params = None
+        self.gui = None
 
         self.create_canvas(self.width, self.height)
         self.frame_rate(60)
@@ -147,13 +155,22 @@ class Sketch:
     def delta_time(self):
         return self._delta_time
 
-    def create_canvas(self, w, h, fullscreen=False):
-        print('setting window size')
+    def parameters(self, params):
+        self.params = sketch_params.SketchParams(params, self.path)
+        print('Setting params', self.params)
+        return self.params.params
+
+    def create_canvas(self, w, h, canvas_size=None, fullscreen=False):
+
         self.is_fullscreen = fullscreen
         self.window.set_size(w, h)
         self.window.set_fullscreen(fullscreen)
-        self.width, self.height = w, h
-        self.canvas = canvas.Canvas(w, h)
+        # Note, the canvas size may be different from the sketch size
+        # for example when automatically creating a UI...
+        if canvas_size is None:
+            canvas_size = (w, h)
+        self.width, self.height = canvas_size #w, h
+        self.canvas = canvas.Canvas(*canvas_size)
         self.window_width, self.window_height = self.window.get_size()
         # Expose canvas globally
         if self.var_context:
@@ -161,7 +178,14 @@ class Sketch:
         # Create image and copy initial canvas buffer to it
         buf = self.canvas.get_buffer()
         buf = (pyglet.gl.GLubyte * len(buf))(*buf)
-        self.image = pyglet.image.ImageData(w, h, "BGRA", buf)
+        self.image = pyglet.image.ImageData(*canvas_size, "BGRA", buf)
+
+    def create_canvas_gui(self, w, h, width=300, fullscreen=False):
+        if imgui is None:
+            print('Install ImGui to run UI')
+            return self.create_canvas(w, h, fullscreen)
+        self.gui = sketch_params.SketchGui(width)
+        self.create_canvas(w + width, h, (w, h), fullscreen)
 
     def toggle_fullscreen(self):
         self.fullscreen(not self.is_fullscreen)
@@ -176,9 +200,17 @@ class Sketch:
         self.var_context = var_context
 
         self._frame_count = 0
+
+        # Save params if they exist
+        if self.params is not None:
+            self.params.save()
+        # And reset
+        self.params = None
+        # Create filewatcher on first load
         if self.watcher is None:
             print("Creating file watcher for " + self.path)
             self.watcher = FileWatcher(self.path)
+        # Attempt to compile script
         try:
             print("Compiling")
             prog = compile(open(self.path).read(), self.path, 'exec')
@@ -193,7 +225,11 @@ class Sketch:
             # might be easily overwritten
             var_context['c'] = self.canvas
             exec(prog, var_context)
-            # Once we loaded script setup
+            print('params: ', self.params)
+            # Once we loaded script first load parameters if available:
+            if self.params is not None:
+                self.params.load()
+            # and call setup
             var_context['setup']()
             self.startup_error = False
             print("Success")
@@ -243,8 +279,12 @@ class Sketch:
             if self.impl is None:
                 imgui.create_context()
                 self.impl = create_renderer(self.window)
+            try:
+                imgui.new_frame()
+            except imgui.core.ImGuiError as e:
+                print('Error in imgui new_frame')
+                print(e)
 
-            imgui.new_frame()
             # print('New frame')
             # # For some reason this only works here and not in the constructor.
             # if self.impl is None:
@@ -290,8 +330,13 @@ class Sketch:
             self.reload(self.var_context)
 
         if imgui is not None:
+            if self.gui is not None:
+                self.gui.from_params(self)
             # Required for render to work in draw callback
-            imgui.end_frame()
+            try:
+                imgui.end_frame()
+            except imgui.core.ImGuiError as e:
+                print(e)
 
         # NB need to check pyglet's draw loop, but clearing here will break when the frame-rate
         # is low or in other cases?
@@ -372,6 +417,9 @@ class Sketch:
             print("Stopped")
         if imgui is not None:
             self.impl.shutdown()
+        print(self.params)
+        if self.params is not None:
+            self.params.save()
 
 def main():
     from importlib import reload
@@ -446,13 +494,18 @@ def main():
         sketch.frame()
         # clearing the window
         sketch.window.clear()
-        sketch.image.blit(0, 0) #, width=sketch.window_width, height=sketch.window_height) #*window.get_size())
+        sketch.image.blit(0, 0, width=sketch.canvas.width, height=sketch.canvas.height) #, width=sketch.window_width, height=sketch.window_height) #*window.get_size())
         if sketch.startup_error or sketch.runtime_error:
             sketch.error_label.draw()
 
         if imgui is not None:
-            imgui.render()
-            sketch.impl.render(imgui.get_draw_data())
+            try:
+                imgui.render()
+                sketch.impl.render(imgui.get_draw_data())
+            except imgui.core.ImGuiError as e:
+                print('Error in imgui render')
+                print(e)
+
 
     print("Starting loop")
     pyglet.app.run()
