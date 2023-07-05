@@ -1,35 +1,14 @@
-import numpy as np
-
-def new_points():
-    points = np.random.uniform(-200, 200, (10, 2))*2
-    return points
-
-a = new_points()
-b = new_points()
-
-frame_interval = 60
-
+params = {'width': (100, {'min': 10, 'max': 200}),
+          'height': (100, {'min': 10, 'max': 200}),
+          'color': ([255, 0, 0], {'type':'color'})}
+params = sketch.parameters(params)
 
 def setup():
-    create_canvas(800, 600)
-
+    create_canvas_gui(512, 512)
 
 def draw():
-    global a, b # we are modifying these
-
-    background(0, 0, 0, 8) # Clear with alpha will create the "trail effect"
+    background(0)
     # Center of screen
-    translate(c.width/2, c.height/2)
-
-    # Every cycle update points
-    if sketch.frame_count%frame_interval == 0:
-        a, b = b, a
-        b = new_points()
-
-    # interpolation step
-    t = (sketch.frame_count%frame_interval)/frame_interval
-    points = a + (b - a)*t
-
-    stroke(255)
-    no_fill()
-    polyline(points)
+    translate(width/2, height/2)
+    fill(params.color)
+    rectangle(-params.width/2, -params.height/2, params.width, params.height)
