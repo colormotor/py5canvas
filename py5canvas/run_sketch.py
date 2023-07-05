@@ -78,9 +78,16 @@ class FileWatcher:
 def wrap_method(obj, func):
     # print('wrapping ' + func)
     def wrapper(*args, **kwargs):
+        # print('calling wrapped ', func, args)
         return getattr(obj, func)(*args, **kwargs)
     return wrapper
 
+def wrap_canvas_method(sketch, func):
+    # print('wrapping ' + func)
+    def wrapper(*args, **kwargs):
+        # print('calling wrapped ', func, args)
+        return getattr(sketch.canvas, func)(*args, **kwargs)
+    return wrapper
 
 class Sketch:
     """Contains our canvas and the pyglet window.
@@ -174,7 +181,8 @@ class Sketch:
         self.window_width, self.window_height = self.window.get_size()
         # Expose canvas globally
         if self.var_context:
-            self.var_context['c'] = self.canvas
+            self.update_globals()
+
         # Create image and copy initial canvas buffer to it
         buf = self.canvas.get_buffer()
         buf = (pyglet.gl.GLubyte * len(buf))(*buf)
@@ -200,6 +208,7 @@ class Sketch:
         self.var_context = var_context
 
         self._frame_count = 0
+        self._delta_time = 0.0
 
         # Save params if they exist
         if self.params is not None:
@@ -218,14 +227,15 @@ class Sketch:
             print('exposing vars')
             for func in dir(self.canvas):
                 if '__' not in func and callable(getattr(self.canvas, func)):
-                    var_context[func] = wrap_method(self.canvas, func)
+                    var_context[func] = wrap_canvas_method(self, func)
             # And basic functions from sketch
             var_context['create_canvas'] = wrap_method(self, 'create_canvas')
+            var_context['create_canvas_gui'] = wrap_method(self, 'create_canvas_gui')
             # And also expose canvas as 'c' since the functions in the canvas are quite common names and
             # might be easily overwritten
-            var_context['c'] = self.canvas
+            self.update_globals()
+            # var_context['c'] = self.canvas
             exec(prog, var_context)
-            print('params: ', self.params)
             # Once we loaded script first load parameters if available:
             if self.params is not None:
                 self.params.load()
@@ -257,6 +267,13 @@ class Sketch:
         #     print(self.mouse_pos)
         #     print(self.mouse_delta)
 
+    def update_globals(self):
+        self.var_context['delta_time'] = self._delta_time
+        self.var_context['frame_count'] = self._frame_count
+        self.var_context['width'] = self.width
+        self.var_context['height'] = self.height
+        # Expose canvas globally
+        self.var_context['c'] = self.canvas
 
     def _update(self, dt):
         # Almost a dummy function.
@@ -264,15 +281,13 @@ class Sketch:
         # So we can sync update and drawing by calling frame() in the @draw callback
         # see https://stackoverflow.com/questions/39089578/pyglet-synchronise-event-with-frame-drawing
         self._delta_time = dt
-        self.var_context['delta_time'] = dt
-        self.var_context['frame_count'] = self._frame_count
-        # Expose canvas globally
-        self.var_context['c'] = self.canvas
+
         print('update')
 
     # internal update
     def frame(self):
         self._update_mouse()
+        self.update_globals()
 
         if imgui is not None:
             # For some reason this only works here and not in the constructor.
@@ -320,9 +335,8 @@ class Sketch:
 
         self.image.set_data("BGRA", -pitch, buf) # Looks like negative sign takes care of C-contiguity
 
-        with perf_timer('update count'):
-            # Update timers etc
-            self._frame_count += 1
+        # Update timers etc
+        self._frame_count += 1
 
         if self.watcher.modified(): # Every frame check for file modification
             print("File modified, reloading")
