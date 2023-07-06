@@ -42,7 +42,7 @@ pip install -e .
 * Usage
 ** Canvas API
 Once installed you can use the canvas API in a notebook (or Python program) by simply importing it. This is a simple example that will save an image and show it with Matplotlib:
-#+BEGIN_SRC jupyter-python :session py :file canvas.png :output-dir images/
+#+BEGIN_SRC jupyter-python :session py :results none
 from py5canvas import canvas
 
 # Create our canvas object
@@ -64,8 +64,7 @@ c.save_image('./images/canvas.png')
 c.show()
 #+end_src
 
-#+RESULTS:
-[[file:images/canvas.png]]
+[[./images/canvas.png]]
 
 In general, the syntax is very similar to P5js but it uses ~snake_case~ as a syntax convention, and it requires explicitly referencing a ~Canvas~ object rather than exposing this functionality globally. For more detailed instructions refer to [[https://github.com/colormotor/py5canvas/blob/main/examples/canvas_tutorial.ipynb][this notebook]].
 
