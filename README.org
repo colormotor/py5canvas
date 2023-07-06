@@ -121,6 +121,30 @@ def draw():
     foo += 1
     bar -= 1
 #+end_src
+***** Avoiding globals with a container
+One way to avoid haing to declare globals every time is to put the parameters that can be modified within a function inside a container. As an example, we could use an anonymous function or an [[https://pypi.org/project/easydict/][EasyDict]] dictionary. The anonymous function trick would be as follows:
+#+begin_src python
+params = lambda: None
+params.foo = 10
+params.bar = 20
+
+def draw():
+    params.foo += 1
+    params.bar -= 1
+#+end_src
+An alternative, that is also useful to automatically create a GUI and save/load parameters is using [[https://pypi.org/project/easydict/][EasyDict]], which allows accessing elements of a dictionary without using quotes:
+#+begin_src python
+from easydict import EasyDict as edict
+params = edict({
+    'foo': 10,
+    'bar': 20 })
+
+def draw():
+    params.foo += 1
+    params.bar -= 1
+#+end_src
+Refer to the section on GUI and parameters to see how this can also be used to handle sketch parameters.
+
 
 **** The ~sketch~ and ~canvas~ objects
 Behind the hood a sketch uses two main components: A ~sketch~ instance that handles the script running and updates and a ~sketch.canvas~ object, which handles drawing 2d graphics.
@@ -185,19 +209,60 @@ The ~py5sketch~ program can be used in combination with the [[https://pypi.org/p
 While one can use the immediate mode paradigm to create a dynamic UI in the ~draw~ function, it is also possible to automatically create an UI for a given number of parameters.
 The parameters are defined by passing a dictionary to the ~sketch.parameters~ function, e.g.:
 #+begin_src python
-params = {'width': (100, {'min': 10, 'max': 200}),
-          'height': (100, {'min': 10, 'max': 200}),
-          'color': ([255, 0, 0], {'type':'color'})}
+params = {'Width': (100, {'min': 10, 'max': 200}),
+          'Height': (100, {'min': 10, 'max': 200}),
+          'rectangle color': ([255, 0, 0], {'type':'color'})}
 params = sketch.parameters(params)
 #+end_src
 
-This syntax defines the parameters and then uses the ~sketch.parameters~ function to tell ~py5sketch~ that we will be using these. The function returns a new dictionary that can be used more conveniently by the sketch. If [[https://pypi.org/project/easydict/][EasyDict]] is installed, the parameters can be conveniently accessed with the dot notation, e.g. ~params.width~ or ~params.color~.
+This syntax defines the parameters and then uses the ~sketch.parameters~ function to tell ~py5sketch~ that we will be using these. The function returns a new dictionary that can be used more conveniently by the sketch. If [[https://pypi.org/project/easydict/][EasyDict]] is installed, the parameters can be more conveniently accessed with the dot notation, e.g. ~params.width~ or ~params.rectangle_color~. Note that the parameter names we defined contain spaces and capitals. These will be automatically converted to names that are all lower-case and with spaces replaced by underscores. The names originally specified will instead appear by deault as labels when the GUI is created.
 
+You can create groups/subparameters (also in the GUI) by adding an entry to the dictionary that is a dictionary itself. See the ~parameters.py~ script for an example.
+
+***** Showing the GUI
 To automatically visualize the GUI, you will need to use the ~create_canvas_gui~ function instead of ~create_canvas~ in ~setup~, e.g.:
 #+begin_src python
 def setup():
     create_canvas_gui(512, 512)
 #+end_src
 
+***** Parameter widget types
+When automatically creating a GUI, the ~py5sketch~ program uses the type of the parmameter and options to infer what widget will be visualized:
+
+****** Boolean
+   - Widget: *Checkbox*
+   - Options: None
+****** Integer
+   - Widget: Integer input field, Integer slider or Combo (dropdown selection).
+   - Options:
+     - *Value box* (no options specified)
+     - *Slider* (~min~ and ~max~ options are specified)
+     - *Combo* (~selection~ is specified with a list of strings)
+****** Float
+   - Widget: Float input field or Float slider
+   - Options:
+     - *Value box* (no options specified)
+     - *Slider* (~min~ and ~max~ options are specified)
+****** String
+   - Widget: Single-line or multi-line text input field
+   - Options:
+     - Maximum buffer length, ~buf_length~ key in opts (default to: ~1024~)
+     - *Multiline text input* if the ~multiline:True~ option is defined.
+****** Callable (the name of a function)
+   - Widget: *Button*
+   - Options: None
+****** Float Array
+   - Widget: Value boxes, sliders or a color picker
+   - Options:
+     - *Color selector* if the ~type='color'~ option is specified. The length of the array must be 3 or 4.
+     - *Sliders* if the ~min~ and ~max~ options are specified
+     - *Value boxes* if no options are specified
+
+****** Integer Array
+   - Widget: Value boxes, sliders or a color picker
+   - Options:
+     - *Sliders* if the ~min~ and ~max~ options are specified
+     - *Value boxes* if no options are specified
+
 **** Auto saving
-Creating parameters in this way will automatically save them when reloading or exiting a sketch. The parameters will be saved to a JSON file having the same name and directory as the sketch script.
+Creating parameters as described above will result in the parameters being automatically saved and loaded every time a sketch is reloaded. The parameters will be saved to a JSON file having the same name and directory as the sketch script.
