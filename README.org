@@ -206,6 +206,7 @@ See the [[./examples/osc_example.py]] script and the [[./examples/osc_example.ma
 The ~py5sketch~ program can be used in combination with the [[https://pypi.org/project/imgui/#files][Python bindings]] of [[https://github.com/ocornut/imgui][Dear ImGui]], an [[https://pyimgui.readthedocs.io/en/latest/guide/first-steps.html#what-is-immediate-mode-gui]["immediate mode" UI]] built on top of OpenGL. A basic usage example can be found in the ~imgui_test.py~ example.
 
 **** Parameters and automatic GUI
+
 While one can use the immediate mode paradigm to create a dynamic UI in the ~draw~ function, it is also possible to automatically create an UI for a given number of parameters.
 The parameters are defined by passing a dictionary to the ~sketch.parameters~ function, e.g.:
 #+begin_src python
@@ -215,6 +216,8 @@ params = {'Width': (100, {'min': 10, 'max': 200}),
 params = sketch.parameters(params)
 #+end_src
 
+[[./images/params.jpg]]
+
 This syntax defines the parameters and then uses the ~sketch.parameters~ function to tell ~py5sketch~ that we will be using these. The function returns a new dictionary that can be used more conveniently by the sketch. If [[https://pypi.org/project/easydict/][EasyDict]] is installed, the parameters can be more conveniently accessed with the dot notation, e.g. ~params.width~ or ~params.rectangle_color~. Note that the parameter names we defined contain spaces and capitals. These will be automatically converted to names that are all lower-case and with spaces replaced by underscores. The names originally specified will instead appear by deault as labels when the GUI is created.
 
 You can create groups/subparameters (also in the GUI) by adding an entry to the dictionary that is a dictionary itself. See the ~parameters.py~ script for an example.
@@ -223,9 +226,9 @@ You can create groups/subparameters (also in the GUI) by adding an entry to the 
 To automatically visualize the GUI, you will need to use the ~create_canvas_gui~ function instead of ~create_canvas~ in ~setup~, e.g.:
 #+begin_src python
 def setup():
-    create_canvas_gui(512, 512)
+    create_canvas_gui(512, 512, 300)
 #+end_src
-
+The third parameter determines the width of the GUI, and the window that will be created will be the canvas width plus the speciied GUI width (in the example above ~815~ pixels).
 ***** Parameter widget types
 When automatically creating a GUI, the ~py5sketch~ program uses the type of the parmameter and options to infer what widget will be visualized:
 
