@@ -17,16 +17,19 @@ Then install the latest version of Pyglet with
 pip install pyglet
 #+end_example
 
+** Optional (but suggested) extensions
 If you want OpenSoundControl (OSC) support, you will need to also install [[https://pypi.org/project/python-osc/][python-osc]] with:
 #+begin_example
 pip install python-osc
 #+end_example
 
-If you want to use a GUI and save/load parameters install [[https://pypi.org/project/imgui/][PyImGui]] and [[https://pypi.org/project/easydict/][EasyDict]] with
+If you want to use a GUI and save/load parameters install [[https://pypi.org/project/imgui/][PyImGui]], [[https://pypi.org/project/easydict/][EasyDict]] and [[https://github.com/xMGZx/xdialog][xdialog]] with:
 #+begin_example
 pip install imgui[pyglet]
 pip install easydict
+pip install xdialog
 #+end_example
+
 
 ** Install Py5Canvas
 To install Py5Canvas clone the repository in a given directory, e.g. with
