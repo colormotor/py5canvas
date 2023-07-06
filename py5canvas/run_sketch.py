@@ -15,6 +15,9 @@ from py5canvas import canvas, sketch_params
 import traceback
 import importlib
 import threading
+import tkinter
+#master = tkinter.Tk()
+#from tkinter import filedialog
 
 # Optionally import imgui
 imgui_loader = importlib.find_loader('imgui')
@@ -29,9 +32,6 @@ if edict_loader is not None:
     from easydict import EasyDict as edict
 else:
     edict = None
-
-args = lambda: None
-args.program = './../examples/basic_animation.py'
 
 
 class perf_timer:
@@ -89,6 +89,7 @@ def wrap_canvas_method(sketch, func):
         return getattr(sketch.canvas, func)(*args, **kwargs)
     return wrapper
 
+
 class Sketch:
     """Contains our canvas and the pyglet window.
     Takes care of window management and copying the canvas data to the appropriate pyglet image"""
@@ -103,7 +104,7 @@ class Sketch:
         self.var_context = {}
         self.params = None
         self.gui = None
-
+        self.toolbar_height = 30
         self.create_canvas(self.width, self.height)
         self.frame_rate(60)
         self.startup_error = False
@@ -118,6 +119,7 @@ class Sketch:
 
         self.watcher = None
         self.path = path
+        self.must_reload = False
 
         self._frame_count = 0
         self._delta_time = 0.0
@@ -167,7 +169,25 @@ class Sketch:
         print('Setting params', self.params)
         return self.params.params
 
-    def create_canvas(self, w, h, canvas_size=None, fullscreen=False):
+    def open_file_dialog(self, exts, title='Open file...'):
+        # See https://github.com/xMGZx/xdialog
+        import xdialog
+        if np.isscalar(exts):
+            exts = [exts]
+        filetypes = [(ext, "*." + ext) for ext in exts]
+        return xdialog.open_file(title, filetypes=filetypes, multiple=False)
+
+    def save_file_dialog(self, exts, title='Open file...'):
+        import xdialog
+        if np.isscalar(exts):
+            exts = [exts]
+        filetypes = [(ext, "*." + ext) for ext in exts]
+        return xdialog.save_file(title, filetypes=filetypes)
+
+    def open_folder_dialog(self, title='Open folder...'):
+        return xdialog.directory(title)
+
+    def _create_canvas(self, w, h, canvas_size=None, fullscreen=False):
 
         self.is_fullscreen = fullscreen
         self.window.set_size(w, h)
@@ -188,12 +208,22 @@ class Sketch:
         buf = (pyglet.gl.GLubyte * len(buf))(*buf)
         self.image = pyglet.image.ImageData(*canvas_size, "BGRA", buf)
 
+    def create_canvas(self, w, h, gui_width=300, fullscreen=False):
+        if imgui is None:
+            self._create_canvas(w, h, fullscreen=fullscreen)
+            return
+        if self.params:
+            self.create_canvas_gui(w, h, gui_width, fullscreen)
+        else:
+            self.gui = sketch_params.SketchGui(gui_width)
+            self._create_canvas(w, h + self.toolbar_height, (w, h), fullscreen)
+
     def create_canvas_gui(self, w, h, width=300, fullscreen=False):
         if imgui is None:
             print('Install ImGui to run UI')
             return self.create_canvas(w, h, fullscreen)
         self.gui = sketch_params.SketchGui(width)
-        self.create_canvas(w + width, h, (w, h), fullscreen)
+        self._create_canvas(w + width, h + self.toolbar_height, (w, h), fullscreen)
 
     def toggle_fullscreen(self):
         self.fullscreen(not self.is_fullscreen)
@@ -206,6 +236,11 @@ class Sketch:
     def set_gui_theme(self, hue):
         if self.gui is not None:
             sketch_params.set_theme(hue)
+
+    def load(self, path):
+        self.gui = None
+        self.path = path
+        self.must_reload = True
 
     def reload(self, var_context):
         print("Reloading sketch code")
@@ -347,14 +382,18 @@ class Sketch:
         # Update timers etc
         self._frame_count += 1
 
-        if self.path and self.watcher.modified(): # Every frame check for file modification
-            print("File modified, reloading")
-            # Reload in global namespace
-            self.reload(self.var_context)
+        if self.path:
+            if self.must_reload or self.watcher.modified(): # Every frame check for file modification
+                print("reloading")
+                # Reload in global namespace
+                self.reload(self.var_context)
+                self.must_reload = False
 
         if imgui is not None:
             if self.gui is not None:
-                self.gui.from_params(self)
+                if self.params:
+                    self.gui.from_params(self)
+                self.gui.toolbar(self)
             # Required for render to work in draw callback
             try:
                 imgui.end_frame()
@@ -513,6 +552,8 @@ def main():
                                 on_mouse_release)
     if sketch.path:
         sketch.reload(locals())
+    else:
+        sketch.var_context = locals()
 
     # on draw event
     @sketch.window.event

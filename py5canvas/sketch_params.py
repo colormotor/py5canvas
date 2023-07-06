@@ -71,6 +71,15 @@ def fetch_params(gui_params):
             params[key] = val
     return params
 
+def filter_params(params):
+    res = {}
+    for key, val in params.items():
+        if isinstance(val, dict):
+            res[key] = filter_params(val)
+        else:
+            if not callable(val):
+                res[key] = val
+    return res
 
 class SketchParams:
     ''' Handle the parameters of a sketch.
@@ -98,7 +107,7 @@ class SketchParams:
         print('Saving parameters to ' + path)
         print(self.params)
         with open(path, 'w') as fp:
-            json.dump(self.params, fp, indent=4, sort_keys=False, cls=encoder)
+            json.dump(filter_params(self.params), fp, indent=4, sort_keys=False, cls=encoder)
 
     def load(self, path='', encoder=NumpyEncoder):
         if not path:
@@ -270,7 +279,10 @@ if imgui is not None:
                         changed = False
                         if param_type == 'int':
                             changed, params[key] = imgui.input_int(name, params[key])
-                        if param_type == 'text':
+                        elif param_type == 'button':
+                            if imgui.button(name):
+                                val()
+                        elif param_type == 'text':
                             buf_length = 1024
                             if 'buf_length' in opts:
                                 buf_length = opts['buf_length']
@@ -278,13 +290,13 @@ if imgui is not None:
                                 changed, params[key] = imgui.input_text_multiline(name, params[key], buf_length)
                             else:
                                 changed, params[key] = imgui.input_text(name, params[key], buf_length)
-                        if param_type == 'selection':
+                        elif param_type == 'selection':
                             changed, params[key] = imgui.combo(name, params[key], opts['selection'])
-                        if param_type == 'float':
+                        elif param_type == 'float':
                             changed, params[key] = imgui.input_float(name, params[key])
-                        if param_type == 'float_slider':
+                        elif param_type == 'float_slider':
                             changed, params[key] = imgui.slider_float(name, params[key], opts['min'], opts['max'])
-                        if param_type == 'int_slider':
+                        elif param_type == 'int_slider':
                             changed, params[key] = imgui.slider_int(name, params[key], opts['min'], opts['max'])
                         elif param_type == 'checkbox':
                             changed, params[key] = imgui.checkbox(name, params[key])
@@ -301,18 +313,43 @@ if imgui is not None:
                         print("Key mismatch for parameter", name)
                         print(e)
 
+        def toolbar(self, sketch):
+            self.sketch = sketch
+            # Top bar
+            imgui.set_next_window_size(sketch.window_width, sketch.toolbar_height)
+            imgui.set_next_window_position(0, 0)
+            imgui.begin("Toolbar", True, (imgui.WINDOW_NO_RESIZE |
+                                            imgui.WINDOW_NO_TITLE_BAR |
+                                            imgui.WINDOW_NO_SAVED_SETTINGS |
+                                            imgui.WINDOW_NO_SCROLLBAR))
+
+            if imgui.button('Load sketch...'):
+                path = sketch.open_file_dialog('py')
+                if path:
+                    sketch.load(path)
+            imgui.same_line()
+            imgui.push_style_color(imgui.COLOR_TEXT, 0.5, 0.5, 0.5)
+            script_name = os.path.basename(sketch.path)
+            imgui.text('Sketch: ' + script_name)
+            imgui.pop_style_color(1)
+            imgui.end()
+
         def from_params(self, sketch):
             self.sketch = sketch
             self.changed = set()
-            imgui.set_next_window_size(self.width, sketch.height)
-            imgui.set_next_window_position(sketch.window_width - self.width, 0)
-            imgui.begin("Parameters", True, imgui.WINDOW_NO_RESIZE | imgui.WINDOW_NO_TITLE_BAR)
-            script_name = os.path.basename(sketch.path)
-            imgui.push_style_color(imgui.COLOR_TEXT, 0.5, 0.5, 0.5)
-            imgui.text('Sketch: ' + script_name)
-            imgui.pop_style_color(1)
-            if sketch.params is not None:
-                self.show_params(sketch.params.params, sketch.params.gui_params)
+
+
+            imgui.set_next_window_size(self.width, sketch.window_height - sketch.toolbar_height)
+            imgui.set_next_window_position(sketch.window_width - self.width, sketch.toolbar_height)
+            imgui.begin("Py5sketch", True, (imgui.WINDOW_NO_RESIZE |
+                                            imgui.WINDOW_NO_TITLE_BAR |
+                                            imgui.WINDOW_NO_SAVED_SETTINGS))
+            imgui.begin_child("Sketch")
+
+            if imgui.collapsing_header("Parameters", None, imgui.TREE_NODE_DEFAULT_OPEN)[0]:
+                if sketch.params is not None:
+                    self.show_params(sketch.params.params, sketch.params.gui_params)
+            imgui.end_child()
             imgui.end()
 
             # imgui.begin("Style editor")
