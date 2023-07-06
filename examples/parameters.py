@@ -3,10 +3,9 @@ import numpy as np
 params = {'Width': (100.0, {'min': 10, 'max': 200}),
           'Height': (100.0, {'min': 10, 'max': 200}),
           'Color': ([255, 0, 0], {'type':'color'}),
-          'Maria': ([0, 255, 128], {'type':'color'}),
           'Hue': (0.0, {'min': 0, 'max': 1}),
           'Show' : True,
-          'Other': {
+          'Other': { # Unused parameters for demo purposes
                 'A text' : ('Hello World', {'multiline': True, 'buf_length': 2024}),
                 'Selection' : (0, {'selection': ['First option', 'Second option', 'Third option']}),
                 'A real number': 0.0,
