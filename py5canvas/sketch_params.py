@@ -129,7 +129,7 @@ if imgui is not None:
         col_main_sat = (sat_mul*120) / 255
         col_main_val = 161 / 255
         col_area_sat = (sat_mul*104) / 255
-        col_area_val = 100 / 255
+        col_area_val = 60 / 255
         col_back_sat = (sat_mul*59) / 255
         col_back_val = 40 / 255
 
@@ -183,7 +183,7 @@ if imgui is not None:
         style.colors[imgui.COLOR_CHECK_MARK] = \
         [col_main[0], col_main[1], col_main[2], 0.80]
         style.colors[imgui.COLOR_SLIDER_GRAB] = \
-        [col_main[0], col_main[1], col_main[2], 0.24]
+        [col_main[0]*0.7, col_main[1]*0.7, col_main[2]*0.7, 1.0]
         style.colors[imgui.COLOR_SLIDER_GRAB_ACTIVE] = \
         [col_main[0], col_main[1], col_main[2], 1.00]
         style.colors[imgui.COLOR_BUTTON] = \
@@ -222,6 +222,7 @@ if imgui is not None:
         [col_main[0], col_main[1], col_main[2], 0.43]
         style.colors[imgui.COLOR_MODAL_WINDOW_DIM_BACKGROUND] = \
         [0.20, 0.20, 0.20, 0.35]
+
 
     def get_param_type(val, opts):
         if isinstance(val, bool):

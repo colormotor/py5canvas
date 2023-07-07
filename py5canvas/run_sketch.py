@@ -238,6 +238,7 @@ class Sketch:
             sketch_params.set_theme(hue)
 
     def load(self, path):
+        self.watcher = None
         self.gui = None
         self.path = path
         self.must_reload = True
