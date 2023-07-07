@@ -18,7 +18,7 @@ else:
 
 
 import numpy as np
-import json, codecs, os
+import json, codecs, os, copy, shutil
 
 
 class NumpyEncoder(json.JSONEncoder):
@@ -35,6 +35,19 @@ class NumpyEncoder(json.JSONEncoder):
             return obj.tolist()
         return json.JSONEncoder.default(self, obj)
 
+def load_json(path, encoder=NumpyEncoder):
+    try:
+        with codecs.open(path, encoding='utf8') as fp:
+            data = json.load(fp)
+            return data
+    except IOError as err:
+        print(err)
+        print ("Unable to load json file:" + path)
+        return {}
+
+def save_json(data, path, encoder=NumpyEncoder):
+    with open(path, 'w') as fp:
+        json.dump(data, fp, indent=4, sort_keys=False, cls=encoder)
 
 def preprocess_guiparams(_gui_params):
     ''' Makes sure options are available for all parameters
@@ -99,28 +112,47 @@ class SketchParams:
             self.params = edict(self.params)
         # Set default parameter path at same level as sketch
         self.param_path = os.path.splitext(path)[0] + '.json'
+        self.presets = {}
+        self.aux = {}
+        self.current_preset = -1
 
-    def save(self, path='', encoder=NumpyEncoder):
+    def save(self, path=''):
         if not path:
             path = self.param_path
 
-        print('Saving parameters to ' + path)
-        print(self.params)
-        with open(path, 'w') as fp:
-            json.dump(filter_params(self.params), fp, indent=4, sort_keys=False, cls=encoder)
+        data = {'params': filter_params(self.params),
+                'presets': filter_params(self.presets),
+                'aux': self.aux}
+        save_json(data, path)
 
-    def load(self, path='', encoder=NumpyEncoder):
+    def load(self, path=''):
         if not path:
             path = self.param_path
         print('Loading parameters from ' + path)
-        try:
-            with codecs.open(path, encoding='utf8') as fp:
-                data = json.load(fp)
-                # Update so we don't overwrite reference
-                self.params.update(data)
-        except IOError as err:
-            print(err)
-            print ("Unable to load json file:" + path)
+        data = load_json(path)
+        if not data:
+            return
+        self.params.update(data['params'])
+        self.presets = data['presets']
+        self.aux.update(data['aux'])
+        self.current_preset = -1
+
+    def preset_index(self, name):
+        for i, k in enumerate(self.presets.keys()):
+            if k == name:
+                return i
+        return -1
+
+    def apply_preset(self, name):
+        if name in self.presets:
+            self.params.update(self.presets[name])
+
+    def add_preset(self, name):
+        self.presets[name] = copy.deepcopy(self.params)
+
+    def delete_preset(self, name):
+        if name in self.presets:
+            self.presets.pop(name)
 
 
 if imgui is not None:
@@ -257,6 +289,7 @@ if imgui is not None:
         def __init__(self, width):
             self.width = width
             self.changed = set()
+            self.cur_preset_name = ''
 
         def show_params(self, params, gui_params, parent='', depth=0):
             for name, val in gui_params.items():
@@ -288,9 +321,9 @@ if imgui is not None:
                             if 'buf_length' in opts:
                                 buf_length = opts['buf_length']
                             if 'multiline' in opts and opts['multiline']:
-                                changed, params[key] = imgui.input_text_multiline(name, params[key], buf_length)
+                                changed, params[key] = imgui.input_text_multiline(name, params[key], buf_length, 0, 0, imgui.INPUT_TEXT_ENTER_RETURNS_TRUE)
                             else:
-                                changed, params[key] = imgui.input_text(name, params[key], buf_length)
+                                changed, params[key] = imgui.input_text(name, params[key], buf_length, imgui.INPUT_TEXT_ENTER_RETURNS_TRUE)
                         elif param_type == 'selection':
                             changed, params[key] = imgui.combo(name, params[key], opts['selection'])
                         elif param_type == 'float':
@@ -329,16 +362,29 @@ if imgui is not None:
                 if path:
                     sketch.load(path)
             imgui.same_line()
+            if imgui.button('Backup...'):
+                path = sketch.save_file_dialog('py')
+                if path:
+                    shutil.copy(sketch.path, path)
+                    json_path = sketch.path.replace('.py', '.json')
+                    if os.path.isfile(json_path):
+                        shutil.copy(json_path, path.replace('.py', '.json'))
+            if imgui.is_item_hovered():
+                with imgui.begin_tooltip():
+                    imgui.text('Save a copy of the current sketch')
+                    imgui.text('and its parameters')
+            imgui.same_line()
+
             imgui.push_style_color(imgui.COLOR_TEXT, 0.5, 0.5, 0.5)
             script_name = os.path.basename(sketch.path)
             imgui.text('Sketch: ' + script_name)
             imgui.pop_style_color(1)
             imgui.end()
 
+
         def from_params(self, sketch):
             self.sketch = sketch
             self.changed = set()
-
 
             imgui.set_next_window_size(self.width, sketch.window_height - sketch.toolbar_height)
             imgui.set_next_window_position(sketch.window_width - self.width, sketch.toolbar_height)
@@ -350,6 +396,62 @@ if imgui is not None:
             if imgui.collapsing_header("Parameters", None, imgui.TREE_NODE_DEFAULT_OPEN)[0]:
                 if sketch.params is not None:
                     self.show_params(sketch.params.params, sketch.params.gui_params)
+            # Presets
+            imgui.spacing()
+            imgui.spacing()
+
+            if imgui.collapsing_header("Presets", None, imgui.TREE_NODE_DEFAULT_OPEN):
+                preset_names = [k for k in sketch.params.presets.keys()]
+                clicked, sketch.params.current_preset = imgui.listbox("Presets", sketch.params.current_preset, preset_names)
+
+                if clicked:
+                    sketch.params.apply_preset(preset_names[sketch.params.current_preset])
+                    self.cur_preset_name = preset_names[sketch.params.current_preset]
+
+                preset_name = ''
+                if 0 <= sketch.params.current_preset < len(preset_names):
+                    preset_name = preset_names[sketch.params.current_preset]
+
+                buttons = False
+                if self.cur_preset_name:
+                    buttons = True
+                    if imgui.button('+'):
+                        sketch.params.add_preset(self.cur_preset_name)
+                        preset_names = [k for k in sketch.params.presets.keys()]
+                        sketch.current_preset = sketch.params.preset_index(self.cur_preset_name)
+                        preset_name = self.cur_preset_name
+                    if imgui.is_item_hovered():
+                        with imgui.begin_tooltip():
+                            if self.cur_preset_name == preset_name:
+                                imgui.text('Update preset')
+                            else:
+                                imgui.text('Add new preset')
+
+                if preset_name:
+                    if buttons:
+                        imgui.same_line()
+                    buttons = True
+                    if imgui.button('-'):
+                        sketch.params.delete_preset(preset_name)
+                        sketch.params.current_preset = -1
+                    if imgui.is_item_hovered():
+                        with imgui.begin_tooltip():
+                            imgui.text('Delete selected preset')
+
+                if buttons:
+                    imgui.same_line()
+                changed, self.cur_preset_name = imgui.input_text('Name', self.cur_preset_name, 512, imgui.INPUT_TEXT_ENTER_RETURNS_TRUE)
+                if preset_name:
+                    if imgui.is_item_hovered():
+                        with imgui.begin_tooltip():
+                            imgui.text('Press enter to update preset name')
+
+                if changed:
+                    if preset_name: #self.cur_preset_name in sketch.params.presets:
+                        sketch.params.presets[self.cur_preset_name] = sketch.params.presets.pop(preset_name)
+                        sketch.params.current_preset = sketch.params.preset_index(self.cur_preset_name)
+                        preset_names = [k for k in sketch.params.presets.keys()]
+
             imgui.end_child()
             imgui.end()
 
