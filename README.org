@@ -1,9 +1,9 @@
 #+title: Py5Canvas - A(nother) simple processing-like interface for Python
 
 Py5Canvas is a simple library that allows to draw 2d graphics in Python with an interface that is designed for users that are familiar to Processing and P5js.
-It is designed to work in Python notebooks, as a replacement to Matplotlib for creative coding prototypes and for simple interactive applications.
+The library is designed to work inside Python notebooks, as a replacement to Matplotlib and within an appositely built sandbox, for creative coding of simple interactive applications.
 
-The library consists of two main components. The ~canvas~ API and a command line program ~py5sketch~ that allows to run interactive programs based on the same API. The ~canvas~ API exposes functionalities similar to Processing and P5js, facilitating the composition and generation of 2d graphics. It uses [[https://pycairo.readthedocs.io/en/latest/][pyCairo]] as a graphics backend and uses [[https://matplotlib.org][Matplotlib]] to visualize graphics in Python notebooks. The ~py5sketch~ program allows to run and view a Python script (the "sketch") that uses the ~canvas~ API in an interactive window, and automatically reloads the script whenever it is saved. It uses [[https://pyglet.readthedocs.io/en/latest/][Pyglet]] as a backend.
+The library consists of two main components: The ~canvas~ API for generating 2d graphics and a command line program ~py5sketch~ that allows to run the same API interactively. The ~canvas~ API exposes functionalities similar to Processing and P5js, thus facilitating the composition and generation of 2d graphics. It uses [[https://pycairo.readthedocs.io/en/latest/][pyCairo]] as a graphics backend and uses [[https://matplotlib.org][Matplotlib]] to visualize graphics witin Python notebooks. The ~py5sketch~ program allows to run and view a Python script (the "sketch") that uses the ~canvas~ API in an interactive window. The program will automatically reload the script whenever it is saved. It uses [[https://pyglet.readthedocs.io/en/latest/][Pyglet]] as a backend.
 
 The main idea behind this system is to facilitate the development of creative and interactive machine learning applications.
 
@@ -63,7 +63,7 @@ c.fill(255, 0, 0)
 c.text_size(30)
 c.text([c.width/2, 40], "Hello world", center=True)
 # Save image
-c.save_image('./images/canvas.png')
+# c.save_image('./images/canvas.png')
 c.show()
 #+end_src
 
@@ -71,6 +71,9 @@ c.show()
 
 In general, the syntax is very similar to P5js but it uses ~snake_case~ as a syntax convention, and it requires explicitly referencing a ~Canvas~ object rather than exposing this functionality globally. For more detailed instructions refer to [[https://github.com/colormotor/py5canvas/blob/main/examples/canvas_tutorial.ipynb][this notebook]].
 
+#+begin_quote
+The Canvas object is intended to be a simple interface on top of [[https://pycairo.readthedocs.io/en/latest/][pyCairo]], but it does not expose all the functionalities of the API. If necessary, these can be accessed with the ~ctx~ class variable.
+#+end_quote
 ** py5sketch
 While the Canvas API alone does not supprt interactivity, the ~py5sketch~ program allows to create simple "sketches" that can be run interactively in a window.
 
@@ -152,7 +155,7 @@ Refer to the section on GUI and parameters to see how this can also be used to h
 
 
 **** The ~sketch~ and ~canvas~ objects
-Behind the hood a sketch uses two main components: A ~sketch~ instance that handles the script running and updates and a ~sketch.canvas~ object, which handles drawing 2d graphics.
+Behind the hood a sketch uses two main components: A ~sketch~ object that handles the script running and updates and a ~sketch.canvas~ object that handles drawing 2d graphics.
 
 By default, the ~py5sketch~ program exposes the methods of these objects as globals, so it is not necessary to reference these objects explicitly. However, while easy to remember, function names like ~scale~, ~rotate~ etc, are quite common words and it is easy to overwrite them by mistake while writing a script. For example this sketch won't work:
 #+begin_src python
