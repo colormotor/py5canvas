@@ -363,7 +363,8 @@ if imgui is not None:
                     sketch.load(path)
             imgui.same_line()
             if imgui.button('Backup...'):
-                path = sketch.save_file_dialog('py')
+                name = os.path.splitext(os.path.basename(sketch.path))[0]
+                path = sketch.save_file_dialog('py', filename=name+'_backup')
                 if path:
                     shutil.copy(sketch.path, path)
                     json_path = sketch.path.replace('.py', '.json')

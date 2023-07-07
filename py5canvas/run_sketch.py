@@ -177,11 +177,11 @@ class Sketch:
         filetypes = [(ext, "*." + ext) for ext in exts]
         return xdialog.open_file(title, filetypes=filetypes, multiple=False)
 
-    def save_file_dialog(self, exts, title='Open file...'):
+    def save_file_dialog(self, exts, title='Open file...', filename='untitled'):
         import xdialog
         if np.isscalar(exts):
             exts = [exts]
-        filetypes = [(ext, "*." + ext) for ext in exts]
+        filetypes = [(filename, "*." + ext) for ext in exts]
         return xdialog.save_file(title, filetypes=filetypes)
 
     def open_folder_dialog(self, title='Open folder...'):
