@@ -104,6 +104,7 @@ class Sketch:
         self.var_context = {}
         self.params = None
         self.gui = None
+        self.gui_callback = None
         self.toolbar_height = 30
         self.create_canvas(self.width, self.height)
         self.frame_rate(60)
@@ -212,7 +213,7 @@ class Sketch:
         if imgui is None:
             self._create_canvas(w, h, fullscreen=fullscreen)
             return
-        if self.params:
+        if self.params or self.gui_callback is not None:
             self.create_canvas_gui(w, h, gui_width, fullscreen)
         else:
             self.gui = sketch_params.SketchGui(gui_width)
@@ -236,6 +237,9 @@ class Sketch:
     def set_gui_theme(self, hue):
         if self.gui is not None:
             sketch_params.set_theme(hue)
+
+    def set_gui_callback(self, func):
+        self.gui_callback = func
 
     def load(self, path):
         self.watcher = None
@@ -392,8 +396,9 @@ class Sketch:
 
         if imgui is not None:
             if self.gui is not None:
-                if self.params:
-                    self.gui.from_params(self)
+                if self.params or self.gui_callback is not None:
+                    self.gui.from_params(self, self.gui_callback)
+
                 self.gui.toolbar(self)
             # Required for render to work in draw callback
             try:
@@ -492,6 +497,9 @@ def main():
         pass
 
     def draw():
+        pass
+
+    def gui():
         pass
 
     def key_pressed(k, modifier):

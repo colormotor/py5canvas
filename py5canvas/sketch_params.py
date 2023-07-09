@@ -383,7 +383,8 @@ if imgui is not None:
             imgui.end()
 
 
-        def from_params(self, sketch):
+
+        def from_params(self, sketch, callback=None):
             self.sketch = sketch
             self.changed = set()
 
@@ -397,61 +398,67 @@ if imgui is not None:
             if imgui.collapsing_header("Parameters", None, imgui.TREE_NODE_DEFAULT_OPEN)[0]:
                 if sketch.params is not None:
                     self.show_params(sketch.params.params, sketch.params.gui_params)
+
+            if callback is not None:
+                if imgui.collapsing_header("Custom", None, imgui.TREE_NODE_DEFAULT_OPEN)[0]:
+                    callback()
+
             # Presets
             imgui.spacing()
             imgui.spacing()
 
-            if imgui.collapsing_header("Presets", None, imgui.TREE_NODE_DEFAULT_OPEN):
-                preset_names = [k for k in sketch.params.presets.keys()]
-                clicked, sketch.params.current_preset = imgui.listbox("Presets", sketch.params.current_preset, preset_names)
+            if sketch.params is not None:
+                if imgui.collapsing_header("Presets", None, imgui.TREE_NODE_DEFAULT_OPEN):
+                    preset_names = [k for k in sketch.params.presets.keys()]
+                    clicked, sketch.params.current_preset = imgui.listbox("Presets", sketch.params.current_preset, preset_names)
 
-                if clicked:
-                    sketch.params.apply_preset(preset_names[sketch.params.current_preset])
-                    self.cur_preset_name = preset_names[sketch.params.current_preset]
+                    if clicked:
+                        sketch.params.apply_preset(preset_names[sketch.params.current_preset])
+                        self.cur_preset_name = preset_names[sketch.params.current_preset]
 
-                preset_name = ''
-                if 0 <= sketch.params.current_preset < len(preset_names):
-                    preset_name = preset_names[sketch.params.current_preset]
+                    preset_name = ''
+                    if 0 <= sketch.params.current_preset < len(preset_names):
+                        preset_name = preset_names[sketch.params.current_preset]
 
-                buttons = False
-                if self.cur_preset_name:
-                    buttons = True
-                    if imgui.button('+'):
-                        sketch.params.add_preset(self.cur_preset_name)
-                        preset_names = [k for k in sketch.params.presets.keys()]
-                        sketch.current_preset = sketch.params.preset_index(self.cur_preset_name)
-                        preset_name = self.cur_preset_name
-                    if imgui.is_item_hovered():
-                        with imgui.begin_tooltip():
-                            if self.cur_preset_name == preset_name:
-                                imgui.text('Update preset')
-                            else:
-                                imgui.text('Add new preset')
+                    buttons = False
+                    if self.cur_preset_name:
+                        buttons = True
+                        if imgui.button('+'):
+                            sketch.params.add_preset(self.cur_preset_name)
+                            preset_names = [k for k in sketch.params.presets.keys()]
+                            sketch.current_preset = sketch.params.preset_index(self.cur_preset_name)
+                            preset_name = self.cur_preset_name
+                        if imgui.is_item_hovered():
+                            with imgui.begin_tooltip():
+                                if self.cur_preset_name == preset_name:
+                                    imgui.text('Update preset')
+                                else:
+                                    imgui.text('Add new preset')
 
-                if preset_name:
+                    if preset_name:
+                        if buttons:
+                            imgui.same_line()
+                        buttons = True
+                        if imgui.button('-'):
+                            sketch.params.delete_preset(preset_name)
+                            sketch.params.current_preset = -1
+                        if imgui.is_item_hovered():
+                            with imgui.begin_tooltip():
+                                imgui.text('Delete selected preset')
+
                     if buttons:
                         imgui.same_line()
-                    buttons = True
-                    if imgui.button('-'):
-                        sketch.params.delete_preset(preset_name)
-                        sketch.params.current_preset = -1
-                    if imgui.is_item_hovered():
-                        with imgui.begin_tooltip():
-                            imgui.text('Delete selected preset')
+                    changed, self.cur_preset_name = imgui.input_text('Name', self.cur_preset_name, 512, imgui.INPUT_TEXT_ENTER_RETURNS_TRUE)
+                    if preset_name:
+                        if imgui.is_item_hovered():
+                            with imgui.begin_tooltip():
+                                imgui.text('Press enter to update preset name')
 
-                if buttons:
-                    imgui.same_line()
-                changed, self.cur_preset_name = imgui.input_text('Name', self.cur_preset_name, 512, imgui.INPUT_TEXT_ENTER_RETURNS_TRUE)
-                if preset_name:
-                    if imgui.is_item_hovered():
-                        with imgui.begin_tooltip():
-                            imgui.text('Press enter to update preset name')
-
-                if changed:
-                    if preset_name: #self.cur_preset_name in sketch.params.presets:
-                        sketch.params.presets[self.cur_preset_name] = sketch.params.presets.pop(preset_name)
-                        sketch.params.current_preset = sketch.params.preset_index(self.cur_preset_name)
-                        preset_names = [k for k in sketch.params.presets.keys()]
+                    if changed:
+                        if preset_name: #self.cur_preset_name in sketch.params.presets:
+                            sketch.params.presets[self.cur_preset_name] = sketch.params.presets.pop(preset_name)
+                            sketch.params.current_preset = sketch.params.preset_index(self.cur_preset_name)
+                            preset_names = [k for k in sketch.params.presets.keys()]
 
             imgui.end_child()
             imgui.end()
