@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import importlib
+import traceback
 
 # Optionally import imgui
 imgui_loader = importlib.find_loader('imgui')
@@ -399,9 +400,13 @@ if imgui is not None:
                 if sketch.params is not None:
                     self.show_params(sketch.params.params, sketch.params.gui_params)
 
-            if callback is not None:
-                if imgui.collapsing_header("Custom", None, imgui.TREE_NODE_DEFAULT_OPEN)[0]:
-                    callback()
+            try:
+                if callback is not None:
+                    if imgui.collapsing_header("Custom", None, imgui.TREE_NODE_DEFAULT_OPEN)[0]:
+                        callback()
+            except Exception as e:
+                print(e)
+                traceback.print_exc()
 
             # Presets
             imgui.spacing()

@@ -111,6 +111,12 @@ class Sketch:
         self.startup_error = False
         self.runtime_error = False
 
+        self.grabbing = ''
+        self.num_grab_frames = 0
+        self.cur_grab_frame = 0
+        self.video_writer = None
+        self.video_fps = 30
+
         self.error_label = pyglet.text.Label('Error',
                            font_name='Arial',
                            font_size=12,
@@ -247,6 +253,56 @@ class Sketch:
         self.path = path
         self.must_reload = True
 
+    def grab_image_sequence(self, path, num_frames, reload=True):
+        if '~' in path:
+            path = os.path.expanduser(path)
+        path = os.path.abspath(path)
+        try:
+            os.makedirs(path)
+        except OSError:
+            if not os.path.isdir(path):
+                raise OSError
+        self.grabbing = path
+        self.must_reload=reload
+        self.num_grab_frames = num_frames
+
+    def grab_movie(self, path, num_frames, framerate=30, reload=True):
+        path = os.path.abspath(path)
+        self.grabbing = path
+        self.must_reload=reload
+        self.num_grab_frames = num_frames
+        self.video_fps = framerate
+        print('Saving video to ' + path)
+
+    def stop_grabbing(self):
+        self.num_grab_frames = self.current_grab_frame
+
+    def grab(self):
+        if not self.grabbing:
+            return
+
+        if 'mp4' in self.grabbing:
+            # Grap mp4 frame
+            if self.video_writer is None:
+                print('Creating video writer')
+                import cv2
+                fmt = cv2.VideoWriter_fourcc(*'mp4v') #cv2.cv.CV_FOURCC(*'mp4v')
+                self.video_writer = cv2.VideoWriter(self.grabbing, fmt, self.video_fps, (self.canvas.width,
+                                                                                         self.canvas.height))
+            self.video_writer.write(self.canvas.get_image())
+        else:
+            path = self.grabbing
+            self.canvas.save_image(os.path.join(path, '%d.png'%(self.cur_grab_frame+1)))
+        print('Saving frame %d' % (self.cur_grab_frame+1))
+        self.cur_grab_frame += 1
+        if self.cur_grab_frame >= self.num_grab_frames:
+            print("Stopping grab")
+            self.grabbing = ''
+            self.cur_grab_frame = 0
+            if self.video_writer is not None:
+                self.video_writer.release()
+                self.video_writer = None
+
     def reload(self, var_context):
         print("Reloading sketch code")
         self.var_context = var_context
@@ -338,6 +394,14 @@ class Sketch:
         self._update_mouse()
         self.update_globals()
 
+        if self.path:
+            if self.must_reload or self.watcher.modified(): # Every frame check for file modification
+                print("reloading")
+                # Reload in global namespace
+                self.reload(self.var_context)
+                self.must_reload = False
+
+
         if imgui is not None:
             # For some reason this only works here and not in the constructor.
             if self.impl is None:
@@ -386,22 +450,19 @@ class Sketch:
 
         self.image.set_data("BGRA", -pitch, buf) # Looks like negative sign takes care of C-contiguity
 
+        if self.grabbing:
+            self.grab()
+
         # Update timers etc
         self._frame_count += 1
 
-        if self.path:
-            if self.must_reload or self.watcher.modified(): # Every frame check for file modification
-                print("reloading")
-                # Reload in global namespace
-                self.reload(self.var_context)
-                self.must_reload = False
 
         if imgui is not None:
             if self.gui is not None:
                 if self.params or self.gui_callback is not None:
                     self.gui.from_params(self, self.gui_callback)
+            self.gui.toolbar(self)
 
-                self.gui.toolbar(self)
             # Required for render to work in draw callback
             try:
                 imgui.end_frame()

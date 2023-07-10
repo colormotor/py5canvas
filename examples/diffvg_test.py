@@ -99,10 +99,12 @@ def gui():
             imgui.text('Loss: %.4f' % losses[-1])
             imgui.tree_pop()
 
+        if imgui.button('Save video'):
+            sketch.save_movie('./test.mp4', 200)
+            # sketch.grab_image_sequence('./test_seq', 30)
 
 def draw():
     c.background(255)
-
     # Optimize
     im = render()
     opt.zero_grad()
@@ -119,7 +121,7 @@ def draw():
     # Anneal learning rate
     for g in opt.param_groups:
         g['lr'] = g['lr']*0.999
-        print(g['lr'])
+
     # Keep track of them losses
     losses.append(loss.item())
 
@@ -129,7 +131,7 @@ def draw():
     scale_amt = c.width/im.shape[1]
     c.scale(scale_amt)
 
-
+    # Draw the image
     c.image((img.cpu().numpy() + np.ones(img.shape))/2)
     c.no_fill()
     c.stroke(0)
