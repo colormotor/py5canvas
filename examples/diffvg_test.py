@@ -86,9 +86,9 @@ opt = torch.optim.Adam(parameters, lr=3.0)
 
 
 def setup():
-    create_canvas(512, 512)
     # Here we tell the UI that we build a custom UI
     sketch.set_gui_callback(gui)
+    create_canvas(512, 512)
 
 
 def gui():
