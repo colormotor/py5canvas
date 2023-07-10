@@ -37,7 +37,7 @@ def numpy_image(img):
 
 # Setup diffvg primitives
 img = to_tensor(img)
-n = 4
+n = 5
 degree = 2
 num_control_points = to_tensor([degree-1 for _ in range(n-1)], torch.int32)
 num_points = (n-1) * degree + 1
@@ -47,7 +47,7 @@ losses = []
 
 stroke_color = to_tensor(np.array([0.0, 0.0, 0.0, 1.0]))
 fill_color = None
-num_primitives = 15
+num_primitives = 20
 
 for i in range(num_primitives):
     points = np.vstack([np.random.uniform(0, img.shape[1], num_points),
@@ -82,7 +82,7 @@ def render(seed=0):
 
 # Setup optimizer
 parameters = [path.points for path in primitives]
-opt = torch.optim.Adam(parameters, lr=1.0)
+opt = torch.optim.Adam(parameters, lr=3.0)
 
 
 def setup():
@@ -110,8 +110,16 @@ def draw():
     loss.backward()
     opt.step()
     im = numpy_image(im)
-    # im = (im[:,:,0] + img.cpu().numpy())/2
+    #im = (im[:,:,0] + img.cpu().numpy())/2
 
+    # Clamp points to image size (assuming square)
+    for points in parameters:
+        points.data.clamp_(0, img.shape[0])
+
+    # Anneal learning rate
+    for g in opt.param_groups:
+        g['lr'] = g['lr']*0.999
+        print(g['lr'])
     # Keep track of them losses
     losses.append(loss.item())
 
@@ -121,7 +129,8 @@ def draw():
     scale_amt = c.width/im.shape[1]
     c.scale(scale_amt)
 
-    #c.image(im, 0, 0)
+
+    c.image((img.cpu().numpy() + np.ones(img.shape))/2)
     c.no_fill()
     c.stroke(0)
     c.stroke_weight(1.5)
