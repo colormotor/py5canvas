@@ -299,7 +299,9 @@ if imgui is not None:
                 if type(val) == dict: # A dict marks a group
                     key = val['__key__'] # Assume this has been filled automatically
                     if imgui.tree_node(name, imgui.TREE_NODE_DEFAULT_OPEN):
+                        imgui.push_id(name)
                         self.show_params(params[key], val, parent + key + '.', depth+1)
+                        imgui.pop_id()
                         imgui.tree_pop()
                 else:
                     val, opts = val

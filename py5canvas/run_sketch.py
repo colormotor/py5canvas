@@ -33,6 +33,10 @@ if edict_loader is not None:
 else:
     edict = None
 
+app_path = os.path.dirname(os.path.realpath(__file__))
+print('Running in ' + app_path)
+
+app_settings = {'script': ''}
 
 class perf_timer:
     def __init__(self, name='', verbose=False): # Set verbose to true for debugging
@@ -316,6 +320,12 @@ class Sketch:
         # And reset
         self.params = None
         self.gui_callback = None
+
+        # Set current directory to script dir
+        if self.path:
+            path = os.path.abspath(self.path)
+            os.chdir(os.path.dirname(path))
+            app_settings['script'] = path
 
         # Create filewatcher on first load
         if self.watcher is None:
@@ -622,6 +632,15 @@ def main():
                                 on_mouse_drag,
                                 on_mouse_press,
                                 on_mouse_release)
+
+    # Load settings if they exist
+    settings = sketch_params.load_json(os.path.join(app_path, 'settings.json'))
+    if settings:
+        app_settings.update(settings)
+
+    if not sketch.path:
+        sketch.path = app_settings['script']
+
     if sketch.path:
         sketch.reload(locals())
     else:
@@ -650,6 +669,8 @@ def main():
     print("Starting loop")
     pyglet.app.run()
     print("Exit")
+    print("Saving settings")
+    sketch_params.save_json(app_settings, os.path.join(app_path, 'settings.json'))
     sketch.cleanup()
 
 if __name__ == '__main__':
