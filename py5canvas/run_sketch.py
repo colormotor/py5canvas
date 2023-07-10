@@ -259,6 +259,8 @@ class Sketch:
             self.params.save()
         # And reset
         self.params = None
+        self.gui_callback = None
+
         # Create filewatcher on first load
         if self.watcher is None:
             print("Creating file watcher for " + self.path)
