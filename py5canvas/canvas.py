@@ -118,6 +118,9 @@ class Canvas:
         self.PI = pi
         self.TWO_PI = pi*2
 
+        # Utils
+        self._cur_point = []
+
     def set_color_scale(self, scale):
         """Set color scale, e.g. if we want to specify colors in the `0`-`255` range, scale would be `255`,
         or if the colors are in the `0`-`1` range, scale will be `1`"""
@@ -411,7 +414,6 @@ class Canvas:
             self.ctx.set_source_rgba(*self.cur_stroke)
             self.ctx.stroke()
 
-
     def line(self, *args):
         """Draw a line between given its end points.
 
@@ -439,6 +441,105 @@ class Canvas:
         ''' End drawing a compound shape'''
         self.no_draw = False
         self._fillstroke()
+
+    def begin_contour(self):
+        ''' Begin drawing a contour'''
+        self.ctx.new_sub_path()
+        self._first_point = True
+
+    def end_contour(self, close=False):
+        ''' End drawing a contour'''
+        if close:
+            self.ctx.close_path()
+        self._fillstroke()
+
+    def vertex(self, x, y=None):
+        ''' Add a vertex to current contour
+        Args:
+        Input arguments can be in the following formats:
+         `[x, y]'
+         `x, y`
+        '''
+        if y is None:
+            x, y = x
+        if not self._cur_point:
+            self.ctx.move_to(x, y)
+        else:
+            self.ctx.line_to(x, y)
+        self._cur_point = [x, y]
+
+    def cubic(self, *args):
+        ''' Draw a cubic bezier curve
+        Args:
+        Input arguments can be in the following formats:
+         `[x1, y1], [x2, y2], [x3, y3]`
+         `x1, y1, x2, y2, x3, y3`
+        '''
+        if len(args) == 3:
+            p1, p2, p3 = args
+        else:
+            p1 = args[:2]
+            p2 = args[2:4]
+            p3 = args[4:6]
+        self._cur_point = [*p3]
+        self.ctx.curve_to(*p1, *p2, *p3)
+    cvertex = cubic
+
+    def quadratic(self, *args):
+        ''' Draw a quadratic bezier curve
+        Args:
+        Input arguments can be in the following formats:
+            `[x1, y1], [x2, y2]`
+            `x1, y1, x2, y2`
+        '''
+        if len(args) == 2:
+            (x1, y1), (x2, y2) = args
+        else:
+            x1, y1, x2, y2 = args
+
+        if not self._cur_point:
+            print("Need an inital point to construct quadratic bezier curve")
+            raise ValueError
+
+        x0, y0 = self._cur_point
+        self.ctx.curve_to(
+            (2 * x1 + x0) / 3,
+            (2 * y1 + y0) / 3,
+            (2 * x1 + x2) / 3,
+            (2 * y1 + y2) / 3,
+            x2, y2)
+
+        self._cur_point = [x2, y2]
+    qvertex = quadratic
+
+    def quadratic_to_cubic(self, x1, y1, x2, y2):
+        ''' Convert a quadratic bezier curve to a cubic bezier curve
+        Args:
+        Input arguments can be in the following formats:
+            `x1, y1, x2, y2`
+        '''
+        x0, y0 = self._cur_point
+        self.ctx.curve_to(
+                            2.0 / 3.0 * x1 + 1.0 / 3.0 * x0,
+                            2.0 / 3.0 * y1 + 1.0 / 3.0 * y0,
+                            2.0 / 3.0 * x1 + 1.0 / 3.0 * x2,
+                            2.0 / 3.0 * y1 + 1.0 / 3.0 * y2,
+                            y1, y2)
+
+    def bezier(self, *args):
+        ''' Draws a bezier curve segment from current point
+            The degree of the curve (2 or 3) depends on the input arguments
+        Args:
+        Input arguments can be in the following formats:
+            `[x1, y1], [x2, y2], [x3, y3]` is cubic
+            `x1, y1, x2, y2, x3, y3` is cubic
+            `[x1, y1], [x2, y2]` is quadratic
+            `x1, y1, x2, y2` is quadratic
+        '''
+        if len(args) == 3 or len(args)==6:
+            self.cubic(*args)
+        else:
+            self.quadratic(*args)
 
     def load_image(self, path):
         '''Load an image from disk. Currently only supports png! Use external

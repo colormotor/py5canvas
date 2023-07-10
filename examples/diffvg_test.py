@@ -1,6 +1,10 @@
 '''
-Using py5sketch with diffvg to reconstruct an image.
+Using py5sketch with differentiable rasterization to approximate an image.
+Uses diffvg https://github.com/BachiLi/diffvg and pytorch
 '''
+from importlib import reload
+from py5canvas import canvas
+reload(canvas)
 
 from skimage import io
 import numpy as np
@@ -10,7 +14,7 @@ from array import array
 
 img = None
 
-# Load grayscale
+# Load grayscale image
 img = io.imread('images/frida128.png')
 img = img[:, :, 0]
 img = img / 255.0
@@ -31,10 +35,10 @@ def rearrange_image(img):
 def numpy_image(img):
     return rearrange_image(img.detach().cpu().numpy()[0])
 
-
+# Setup diffvg primitives
 img = to_tensor(img)
 n = 4
-degree = 3
+degree = 2
 num_control_points = to_tensor([degree-1 for _ in range(n-1)], torch.int32)
 num_points = (n-1) * degree + 1
 primitives = []
@@ -63,8 +67,7 @@ group = pydiffvg.ShapeGroup(shape_ids=torch.tensor(list(range(num_primitives))),
                             stroke_color=stroke_color)
 
 background_image = torch.ones(w, h, 3, device=device)
-parameters = [path.points for path in primitives]
-opt = torch.optim.Adam(parameters, lr=1.0)
+
 
 def render(seed=0):
     scene_args = pydiffvg.RenderFunction.serialize_scene(w, h, primitives, [group],
@@ -76,15 +79,26 @@ def render(seed=0):
     img = img.permute(0, 3, 1, 2) # NHWC -> NCHW
     return img
 
+
+# Setup optimizer
+parameters = [path.points for path in primitives]
+opt = torch.optim.Adam(parameters, lr=1.0)
+
+
 def setup():
     create_canvas(512, 512)
     # Here we tell the UI that we build a custom UI
     sketch.set_gui_callback(gui)
 
+
 def gui():
     # Visualize losses
     if losses:
-        imgui.plot_lines("Losses", array('f', losses), graph_size=(300, 100))
+        if imgui.tree_node("Loss", imgui.TREE_NODE_DEFAULT_OPEN):
+            imgui.plot_lines("Losses", array('f', losses), graph_size=(300, 100))
+            imgui.text('Loss: %.4f' % losses[-1])
+            imgui.tree_pop()
+
 
 def draw():
     c.background(255)
@@ -96,8 +110,9 @@ def draw():
     loss.backward()
     opt.step()
     im = numpy_image(im)
+    # im = (im[:,:,0] + img.cpu().numpy())/2
 
-    # Keep track of losses
+    # Keep track of them losses
     losses.append(loss.item())
 
     # Draw
@@ -105,5 +120,16 @@ def draw():
     c.push()
     scale_amt = c.width/im.shape[1]
     c.scale(scale_amt)
-    c.image(im, 0, 0)
+
+    #c.image(im, 0, 0)
+    c.no_fill()
+    c.stroke(0)
+    c.stroke_weight(1.5)
+    for path in primitives:
+        pts = path.points.detach().cpu().numpy()
+        c.begin_contour()
+        c.vertex(pts[0])
+        for i in range(1, len(pts), degree):
+            c.bezier(*pts[i:i+degree])
+        c.end_contour()
     c.pop()
