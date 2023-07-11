@@ -215,14 +215,15 @@ class Sketch:
         self.width, self.height = canvas_size #w, h
         self.canvas = canvas.Canvas(*canvas_size) #, clear_callback=self.clear_callback)
         # When createing a canvas we create a recording surface
-        # This will record drawing commands in setup if any
-        # and then thatwe can pass these into a svg if we save one
-        print('setting up setup recording surface')
+        # This will enable recording of drawing commands that are called in setup, if any,
+        # and then we can pass these into a svg if we want to save one
+        print('Setting up recording surface')
         self.setup_surface = cairo.RecordingSurface(cairo.CONTENT_COLOR_ALPHA, None)
         self.setup_ctx = cairo.Context(self.setup_surface)
         self.canvas.ctx.push_context(self.setup_ctx)
 
         self.window_width, self.window_height = self.window.get_size()
+
         # Expose canvas globally
         if self.var_context:
             self.update_globals()
@@ -254,12 +255,12 @@ class Sketch:
         if '~' in path:
             path = os.path.expanduser(path)
         self.saving_svg = os.path.abspath(path)
-        self.done_svg_drawing = False
         print('saving svg to', self.saving_svg)
+        # Since this can be called in frame, we need to make sure we don't save svg righ after
+        self.done_svg_drawing = False
+        # Create a recording surface and context and add it to canvas
         self.recording_surface = cairo.RecordingSurface(cairo.CONTENT_COLOR_ALPHA, None)
-        #self.svg_surface = cairo.PDFSurface(path, self.canvas.width, self.canvas.height)
         self.recording_context = cairo.Context(self.recording_surface)
-        print('adding svg context')
         self.canvas.ctx.push_context(self.recording_context)
 
     def toggle_fullscreen(self):
@@ -299,7 +300,7 @@ class Sketch:
     def grab_movie(self, path, num_frames, framerate=30, reload=True):
         path = os.path.abspath(path)
         self.grabbing = path
-        self.must_reload=reload
+        self.must_reload = reload
         self.num_grab_frames = num_frames
         self.video_fps = framerate
         print('Saving video to ' + path)
@@ -322,6 +323,7 @@ class Sketch:
             img = img[:,:,::-1]
             self.video_writer.write(img)
         else:
+            # Grab png frame
             path = self.grabbing
             self.canvas.save_image(os.path.join(path, '%d.png'%(self.cur_grab_frame+1)))
         print('Saving frame %d' % (self.cur_grab_frame+1))
