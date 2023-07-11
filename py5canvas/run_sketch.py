@@ -15,7 +15,8 @@ from py5canvas import canvas, sketch_params
 import traceback
 import importlib
 import threading
-import tkinter
+import cairo
+
 #master = tkinter.Tk()
 #from tkinter import filedialog
 
@@ -121,6 +122,11 @@ class Sketch:
         self.video_writer = None
         self.video_fps = 30
 
+        self.saving_svg = ''
+        self.recording_context = None
+        self.recording_surface = None
+        self.done_svg_drawing = False
+
         self.error_label = pyglet.text.Label('Error',
                            font_name='Arial',
                            font_size=12,
@@ -199,7 +205,6 @@ class Sketch:
         return xdialog.directory(title)
 
     def _create_canvas(self, w, h, canvas_size=None, fullscreen=False):
-
         self.is_fullscreen = fullscreen
         self.window.set_size(w, h)
         self.window.set_fullscreen(fullscreen)
@@ -208,7 +213,15 @@ class Sketch:
         if canvas_size is None:
             canvas_size = (w, h)
         self.width, self.height = canvas_size #w, h
-        self.canvas = canvas.Canvas(*canvas_size)
+        self.canvas = canvas.Canvas(*canvas_size) #, clear_callback=self.clear_callback)
+        # When createing a canvas we create a recording surface
+        # This will record drawing commands in setup if any
+        # and then thatwe can pass these into a svg if we save one
+        print('setting up setup recording surface')
+        self.setup_surface = cairo.RecordingSurface(cairo.CONTENT_COLOR_ALPHA, None)
+        self.setup_ctx = cairo.Context(self.setup_surface)
+        self.canvas.ctx.push_context(self.setup_ctx)
+
         self.window_width, self.window_height = self.window.get_size()
         # Expose canvas globally
         if self.var_context:
@@ -235,6 +248,19 @@ class Sketch:
             return self.create_canvas(w, h, fullscreen)
         self.gui = sketch_params.SketchGui(width)
         self._create_canvas(w + width, h + self.toolbar_height, (w, h), fullscreen)
+
+    def dump_svg(self, path):
+        ''' Tells the sketch to dump the next frame to an SVG file '''
+        if '~' in path:
+            path = os.path.expanduser(path)
+        self.saving_svg = os.path.abspath(path)
+        self.done_svg_drawing = False
+        print('saving svg to', self.saving_svg)
+        self.recording_surface = cairo.RecordingSurface(cairo.CONTENT_COLOR_ALPHA, None)
+        #self.svg_surface = cairo.PDFSurface(path, self.canvas.width, self.canvas.height)
+        self.recording_context = cairo.Context(self.recording_surface)
+        print('adding svg context')
+        self.canvas.ctx.push_context(self.recording_context)
 
     def toggle_fullscreen(self):
         self.fullscreen(not self.is_fullscreen)
@@ -284,7 +310,6 @@ class Sketch:
     def grab(self):
         if not self.grabbing:
             return
-
         if 'mp4' in self.grabbing:
             # Grap mp4 frame
             if self.video_writer is None:
@@ -293,7 +318,9 @@ class Sketch:
                 fmt = cv2.VideoWriter_fourcc(*'mp4v') #cv2.cv.CV_FOURCC(*'mp4v')
                 self.video_writer = cv2.VideoWriter(self.grabbing, fmt, self.video_fps, (self.canvas.width,
                                                                                          self.canvas.height))
-            self.video_writer.write(self.canvas.get_image())
+            img = self.canvas.get_image()
+            img = img[:,:,::-1]
+            self.video_writer.write(img)
         else:
             path = self.grabbing
             self.canvas.save_image(os.path.join(path, '%d.png'%(self.cur_grab_frame+1)))
@@ -306,6 +333,7 @@ class Sketch:
             if self.video_writer is not None:
                 self.video_writer.release()
                 self.video_writer = None
+
 
     def reload(self, var_context):
         print("Reloading sketch code")
@@ -351,6 +379,7 @@ class Sketch:
             # Once we loaded script first load parameters if available:
             if self.params is not None:
                 self.params.load()
+
             # and call setup
             var_context['setup']()
             self.startup_error = False
@@ -361,6 +390,10 @@ class Sketch:
             self.startup_error = True
             self.error_label.text = str(e)
             traceback.print_exc()
+        # create_canvas created and added a recording context so pop it in case (if no error)
+        if len(self.canvas.ctx.ctxs) > 1:
+            print('Removing setup recording context')
+            self.canvas.ctx.pop_context()
 
     def _update_mouse(self):
         if self._mouse_pos is None:
@@ -431,6 +464,8 @@ class Sketch:
             #     self.impl = create_renderer(self.window)
 
             # imgui.new_frame()
+        if self.saving_svg:
+            self.done_svg_drawing = True
 
         with perf_timer('update'):
             if not self.runtime_error or self._frame_count==0:
@@ -479,6 +514,21 @@ class Sketch:
             except imgui.core.ImGuiError as e:
                 print(e)
 
+        if self.saving_svg and self.done_svg_drawing:
+            print('saving svg')
+            svg_surf = cairo.SVGSurface(self.saving_svg, self.canvas.width, self.canvas.height)
+            svg_ctx = cairo.Context(svg_surf)
+            svg_ctx.set_source_surface(self.setup_surface)
+            svg_ctx.paint()
+            svg_ctx.set_source_surface(self.recording_surface)
+            svg_ctx.paint()
+            svg_surf.finish()
+            print('removing svg context')
+            self.canvas.ctx.pop_context()
+            self.recording_surface = None
+            self.recording_context = None
+            self.saving_svg = ''
+            self.done_svg_drawing = False
         # NB need to check pyglet's draw loop, but clearing here will break when the frame-rate
         # is low or in other cases?
         # # Draw to window

@@ -378,7 +378,22 @@ if imgui is not None:
                     imgui.text('Save a copy of the current sketch')
                     imgui.text('and its parameters')
             imgui.same_line()
+            if imgui.button('Reload'):
+                sketch.must_reload = True
+            if imgui.is_item_hovered():
+                with imgui.begin_tooltip():
+                    imgui.text('Force reload sketch')
+            imgui.same_line()
+            if imgui.button('Save SVG...'):
+                name = os.path.splitext(os.path.basename(sketch.path))[0]
+                path = sketch.save_file_dialog('svg', filename=name)
+                if path:
+                    sketch.dump_svg(path)
+            if imgui.is_item_hovered():
+                with imgui.begin_tooltip():
+                    imgui.text('Save sketch output as SVG')
 
+            imgui.same_line()
             imgui.push_style_color(imgui.COLOR_TEXT, 0.5, 0.5, 0.5)
             script_name = os.path.basename(sketch.path)
             imgui.text('Sketch: ' + script_name)

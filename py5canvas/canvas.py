@@ -79,20 +79,53 @@ import numpy as np
 import cairo
 import numbers
 from math import fmod, pi
-
+import types
 
 def is_number(x):
     return isinstance(x, numbers.Number)
 
 
+
+def wrapper(self, fn):
+    # print('wrapping ', fn)
+    def result(*args, **kwargs):
+        res = None
+        self.dirty = True
+        for ctx in self.ctxs: #[::-1]:
+            res = getattr(ctx, fn)(*args, **kwargs)
+        return res
+
+    return result
+
+
+class MultiContext:
+    ''' Workaround for TeeSurface not working on Mac (at least)
+    This should enable rendering to multiple surfaces (each with their own context)
+    '''
+    def __init__(self, surf):
+        self.surface = surf
+        self.dirty = False
+        self.ctxs = [cairo.Context(surf)]
+        for key, value in cairo.Context.__dict__.items( ):
+            if hasattr( value, '__call__' ):
+                self.__dict__[key] = wrapper(self, key) #types.MethodType(wrapper(key), self.__class__ )
+
+    def push_context(self, ctx):
+        self.ctxs.append(ctx)
+
+    def pop_context(self):
+        self.ctxs.pop()
+
 class Canvas:
     ''' Creates a a pycairo surface that behaves similarly to p5js'''
-    def __init__(self, width, height):
+    def __init__(self, width, height, clear_callback=lambda: None):
         """Initialize Canvas with given `width` and `height`
         """
         # See https://pycairo.readthedocs.io/en/latest/reference/context.html
         surf = cairo.ImageSurface(cairo.FORMAT_ARGB32, width, height)
-        ctx = cairo.Context(surf)
+        ctx = MultiContext(surf) #cairo.Context(surf)
+
+        # Create SVG surface for saving
         self.color_scale = 255.0
 
         ctx.set_fill_rule(cairo.FILL_RULE_EVEN_ODD)
@@ -100,6 +133,9 @@ class Canvas:
         ctx.set_source_rgba(0.0, 0.0, 0.0, 255.0)
         ctx.rectangle(0,0,width,height)
         ctx.fill()
+
+        # This is useful for py5sketch to reset SVG each time background is cleared
+        self.clear_callback = clear_callback
 
         self._color_mode = 'rgb'
         self._width = width
@@ -124,7 +160,6 @@ class Canvas:
     def set_color_scale(self, scale):
         """Set color scale, e.g. if we want to specify colors in the `0`-`255` range, scale would be `255`,
         or if the colors are in the `0`-`1` range, scale will be `1`"""
-
         self.color_scale = scale
 
     @property
@@ -233,6 +268,10 @@ class Canvas:
     def rotate(self, theta):
         ''' Rotate by `theta` radians'''
         self.ctx.rotate(theta)
+
+    def apply_matrix(self, mat):
+        matrix = cairo.Matrix(mat[0][0], mat[1][0], mat[0][1], mat[1][1], mat[0][2], mat[1][2])
+        self.ctx.transform(matrix)
 
     def rotate_deg(self, deg):
         ''' Rotate using degrees'''
@@ -660,15 +699,14 @@ class Canvas:
 
     def background(self, *args):
         ''' Clear the canvas with a given color '''
+        # self.clear_callback()
         self.ctx.identity_matrix()
         self.ctx.set_source_rgba(*self._apply_colormode(self._convert_rgba(args)))
         self.ctx.rectangle(0, 0, self.width, self.height)
         self.ctx.fill()
 
-
     def get_buffer(self):
         return self.surf.get_data()
-
 
     def get_image(self):
         ''' Get canvas image as a numpy array '''
@@ -685,6 +723,13 @@ class Canvas:
     def save_image(self, path):
         ''' Save the canvas to an image'''
         self.surf.write_to_png(path)
+
+    def save_svg(self, path):
+        ''' Save the canvas to an svg file'''
+        svg_surf = cairo.SVGSurface(path, self.width, self.height)
+        self.ctx.set_source_surface(svg_surf)
+        self.ctx.paint()
+        self.ctx.set_source_surface(self.surf)
 
     def show(self, size=None, title='', axis=False):
         import matplotlib.pyplot as plt
