@@ -1,4 +1,21 @@
 #!/usr/bin/env python3
+"""
+```
+             eeeee
+eeeee e    e 8     eeee eeeee eeeee ee   e eeeee eeeee
+8   8 8    8 8eeee 8  8 8   8 8   8 88   8 8   8 8   "
+8eee8 8eeee8     8 8e   8eee8 8e  8 88  e8 8eee8 8eeee
+88      88       8 88   88  8 88  8  8  8  88  8    88
+88      88   eeee8 88e8 88  8 88  8  8ee8  88  8 8ee88
+
+```
+A simple p5-inspired interface to the Canvas object
+© Daniel Berio (@colormotor) 2023 - ...
+
+NOTE: this is highly unoptimized, since it uses pycairo for rendering and copies all the screen at each frame
+It will probably be significantly slow when using a large canvas size
+"""
+
 import importlib
 import traceback
 

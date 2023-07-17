@@ -1,5 +1,15 @@
 #!/usr/bin/env python3
-"""A simple p5-inspired interface to the Canvas object
+"""
+```
+             eeeee
+eeeee e    e 8     eeee eeeee eeeee ee   e eeeee eeeee
+8   8 8    8 8eeee 8  8 8   8 8   8 88   8 8   8 8   "
+8eee8 8eeee8     8 8e   8eee8 8e  8 88  e8 8eee8 8eeee
+88      88       8 88   88  8 88  8  8  8  88  8    88
+88      88   eeee8 88e8 88  8 88  8  8ee8  88  8 8ee88
+
+```
+A simple p5-inspired interface to the Canvas object
 © Daniel Berio (@colormotor) 2023 - ...
 
 NOTE: this is highly unoptimized, since it uses pycairo for rendering and copies all the screen at each frame
@@ -186,6 +196,9 @@ class Sketch:
         print('Setting params', self.params)
         return self.params.params
 
+    def has_error(self):
+        return self.startup_error or self.runtime_error
+
     def open_file_dialog(self, exts, title='Open file...'):
         # See https://github.com/xMGZx/xdialog
         import xdialog
@@ -345,7 +358,7 @@ class Sketch:
         self._delta_time = 0.0
 
         # Save params if they exist
-        if self.params is not None:
+        if self.params is not None and not self.has_error():
             self.params.save()
         # And reset
         self.params = None
@@ -433,7 +446,6 @@ class Sketch:
         self._delta_time = dt
 
         print('update')
-
     # internal update
     def frame(self):
         self._update_mouse()
@@ -610,7 +622,7 @@ class Sketch:
             print("Stopped")
         if imgui is not None:
             self.impl.shutdown()
-        if self.params is not None:
+        if self.params is not None and not self.has_error():
             self.params.save()
 
 def main():
@@ -706,7 +718,7 @@ def main():
         # clearing the window
         sketch.window.clear()
         sketch.image.blit(0, 0, width=sketch.canvas.width, height=sketch.canvas.height) #, width=sketch.window_width, height=sketch.window_height) #*window.get_size())
-        if sketch.startup_error or sketch.runtime_error:
+        if sketch.has_error():
             sketch.error_label.draw()
 
         if imgui is not None:
