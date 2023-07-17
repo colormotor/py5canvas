@@ -1,5 +1,15 @@
 #!/usr/bin/env python3
-"""Simplistic utilty to mimic [P5js](https://p5js.org) in Python/Jupyter notebooks.
+"""
+```
+             eeeee
+eeeee e    e 8     eeee eeeee eeeee ee   e eeeee eeeee
+8   8 8    8 8eeee 8  8 8   8 8   8 88   8 8   8 8   "
+8eee8 8eeee8     8 8e   8eee8 8e  8 88  e8 8eee8 8eeee
+88      88       8 88   88  8 88  8  8  8  88  8    88
+88      88   eeee8 88e8 88  8 88  8  8ee8  88  8 8ee88
+
+```
+Simplistic utilty to mimic [P5js](https://p5js.org) in Python/Jupyter notebooks.
 © Daniel Berio (@colormotor) 2023 - ...
 
 ## Dependencies
