@@ -3,9 +3,17 @@
 Py5Canvas is a simple library that allows to draw 2d graphics in Python with an interface that is designed for users that are familiar to Processing and P5js.
 The library is designed to work inside Python notebooks, as a replacement to Matplotlib and within an appositely built sandbox, for creative coding of simple interactive applications.
 
-The library consists of two main components: The ~canvas~ API for generating 2d graphics and a command line program ~py5sketch~ that allows to run the same API interactively. The ~canvas~ API exposes functionalities similar to Processing and P5js, thus facilitating the composition and generation of 2d graphics. It uses [[https://pycairo.readthedocs.io/en/latest/][pyCairo]] as a graphics backend and uses [[https://matplotlib.org][Matplotlib]] to visualize graphics witin Python notebooks. The ~py5sketch~ program allows to run and view a Python script (the "sketch") that uses the ~canvas~ API in an interactive window. The program will automatically reload the script whenever it is saved. It uses [[https://pyglet.readthedocs.io/en/latest/][Pyglet]] as a backend.
+The library consists of two main components: The ~canvas~ API for generating 2d graphics and a command line program ~py5sketch~ that allows to run the same API interactively. The ~canvas~ API exposes functionalities similar to Processing and P5js, thus facilitating the composition and generation of 2d graphics. It uses [[https://pycairo.readthedocs.io/en/latest/][pyCairo]] as a graphics backend, [[https://matplotlib.org][Matplotlib]] to visualize graphics witin Python notebooks and [[https://numpy.org][NumPy]] for number-crunching. The ~py5sketch~ program allows to run and view a Python script (the "sketch") that uses the ~canvas~ API in an interactive window. The program will automatically reload the script whenever it is saved. It uses [[https://pyglet.readthedocs.io/en/latest/][Pyglet]] as a backend.
 
 The main idea behind this system is to facilitate the development of creative and interactive machine learning applications.
+
+* Similar projects
+This is one of many ways to develop "Processing-like" code in Python. There are a number of existing projects with a similar goal:
+- [[https://p5.readthedocs.io/en/latest/][p5py]] is perhaps the most similar and more mature than this project. It allows to write sketches with a syntax similar to processing in pure Python, and uses on [[https://numpy.org][NumPy]] and [[https://vispy.org][VisPy]] as backends.
+- Processing has a [[https://py.processing.org][Python mode]], but this deviates from the standard way of installing Python dependencies (e.g. Pip or Conda) and makes it more challenging to take full advantage of the big echosystem of Python packages/libraries.
+- [[https://www.drawbot.com][DrawBot]] uses a different syntax but has a similar goal of easily "sketching" 2d designs in Python. It currently only runs on MacOS.
+
+The main drive to develop this new system has been to provide a drawing interface in Python notebooks that is similar to Processing and to allow "live coding" (or more precicesely live-reloading) of interactive sketches for quicker prototyping of ideas. While the syntax of the sketches is similar to P5js or Processing, the aim of this system is to provide a platform similar to DrawBot for interactive editing of scripts.
 
 * Dependencies and installation
 The main requirements for Py5Canvas are [[https://numpy.org][NumPy]], [[https://matplotlib.org][Matplotlib]], [[https://pycairo.readthedocs.io/en/latest/][pyCairo]] and [[https://pyglet.readthedocs.io/en/latest/][Pyglet]]. Pyglet is only necessary if you want to use interactivity. It is recommended to use the [[Miniconda][https://docs.conda.io/en/latest/miniconda.html]] (or Anaconda) package manager to install the dependencies when possible. To fully use the Canvas API with video input, you will also need [[https://opencv.org][OpenCV]], The conda instructions below include it, but it is not essential.  Using conda you can rapidly install the dependencies with:
@@ -186,32 +194,16 @@ def draw():
 #+end_src
 We could identically refer to ~c~ as ~sketch.canvas~.
 
-*** OSC support
-If [[https://pypi.org/project/python-osc/][python-osc]] is installed, py5sketch automatically initializes an OSC server and client.
-By default, the client will run on localhost address (127.0.0.1) with port 9998,
-and the server will listen on port 9999 for any incoming OSC message.
-
-You can configure these parameters by creating an ~osc.json~ file that is located in the same directory as the script.
-A default setup would look like this
-#+begin_example
-{
-    'server port': 9999,
-    'client address': 'localhost',
-    'client port': '9998'
-}
-#+end_example
-
-These parameters will not change until you restart py5sketch.
-
-
-If a ~received_osc(addr, value)~ function is defined in the sketch, this will be automatically called any time an OSC message is received, with ~addr~ containing the messsage address (as a string) and ~value~ containing the message contents.
-
-To send an osc message at any time, use the ~sketch.send_osc(addr, value)~.
-
-See the [[./examples/osc_example.py]] script and the [[./examples/osc_example.maxpat]] Max MSP patch for a usage example.
-
 *** GUI support and parameters
-The ~py5sketch~ program can be used in combination with the [[https://pypi.org/project/imgui/#files][Python bindings]] of [[https://github.com/ocornut/imgui][Dear ImGui]], an [[https://pyimgui.readthedocs.io/en/latest/guide/first-steps.html#what-is-immediate-mode-gui]["immediate mode" UI]] built on top of OpenGL. A basic usage example can be found in the ~imgui_test.py~ example.
+The ~py5sketch~ program can be used in combination with the [[https://pypi.org/project/imgui/#files][Python bindings]] of [[https://github.com/ocornut/imgui][Dear ImGui]], an [[https://pyimgui.readthedocs.io/en/latest/guide/first-steps.html#what-is-immediate-mode-gui]["immediate mode" UI]] built on top of OpenGL. A basic usage example of IMGUI can be found in the ~imgui_test.py~ example.
+
+**** Default UI
+If pyImGui is installed, the ~py5sketch~ program will feature a basic toolbar. The toolbar allows to:
+- Load a sketch
+- Backup a sketch
+- Reload the current sketch
+- Save the output for the current sketch as a SVG file.
+"Backing up a sketch" means that the current sketch, and its parameters (see the following) will be saved with the name specified. This can be useful to save the current iteration of a sketch while continuing to work on the code. E.g. say you are working on a sketch and realize you like the results, but this is not the final result you where trying to achieve. You can "backup" the sketch and then eventually go back to the code later, while continue working on the current sketch and not risking to destroy the achieved result.
 
 **** Parameters and automatic GUI
 
@@ -230,13 +222,20 @@ This syntax defines the parameters and then uses the ~sketch.parameters~ functio
 
 You can create groups/subparameters (also in the GUI) by adding an entry to the dictionary that is a dictionary itself. See the ~parameters.py~ script for an example.
 
+***** Saving and loading
+The ~py5sketch~ program will automatically save and load the parameters when reloading a sketch or closing the program. However, note that the parameters will NOT be saved if the script has an error.
+
+***** Presets
+When parameters are defined as above, the UI will automatically show a "Presets" header. Typing a name in the "Name" input field will allow to save a presets with the given name.
+
 ***** Showing the GUI
-To automatically visualize the GUI, you will need to use the ~create_canvas_gui~ function instead of ~create_canvas~ in ~setup~, e.g.:
+If parameters are defined, an UI for the parameters will be visualized on the right of the canvas. The window will be resized so it can fit the canvas of the specified size together with the UI. You can specify the size of the UI (e.g. for accommodating longer parameter names) by specifying the optional ~gui_width~ parameter when calling ~create_canvas~. E.g.:
 #+begin_src python
 def setup():
-    create_canvas_gui(512, 512, 300)
+    create_canvas(512, 512, gui_width=300)
 #+end_src
-The third parameter determines the width of the GUI, and the window that will be created will be the canvas width plus the speciied GUI width (in the example above ~815~ pixels).
+Will add ~300~ pixels to the window width in order to show a column containing the parameter UI.
+
 ***** Parameter widget types
 When automatically creating a GUI, the ~py5sketch~ program uses the type of the parmameter and options to infer what widget will be visualized:
 
@@ -277,3 +276,27 @@ When automatically creating a GUI, the ~py5sketch~ program uses the type of the 
 
 **** Auto saving
 Creating parameters as described above will result in the parameters being automatically saved and loaded every time a sketch is reloaded. The parameters will be saved to a JSON file having the same name and directory as the sketch script.
+*** OSC support
+If [[https://pypi.org/project/python-osc/][python-osc]] is installed, py5sketch automatically initializes an OSC server and client.
+By default, the client will run on localhost address (127.0.0.1) with port 9998,
+and the server will listen on port 9999 for any incoming OSC message.
+
+You can configure these parameters by creating an ~osc.json~ file that is located in the same directory as the script.
+A default setup would look like this
+#+begin_example
+{
+    'server port': 9999,
+    'client address': 'localhost',
+    'client port': '9998'
+}
+#+end_example
+
+These parameters will not change until you restart py5sketch.
+
+
+If a ~received_osc(addr, value)~ function is defined in the sketch, this will be automatically called any time an OSC message is received, with ~addr~ containing the messsage address (as a string) and ~value~ containing the message contents.
+
+To send an osc message at any time, use the ~sketch.send_osc(addr, value)~.
+
+See the [[./examples/osc_example.py]] script and the [[./examples/osc_example.maxpat]] Max MSP patch for a usage example.
+
