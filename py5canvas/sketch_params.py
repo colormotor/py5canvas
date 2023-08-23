@@ -112,6 +112,15 @@ def filter_params(params):
                 res[key] = val
     return res
 
+def update_params(params, new_params):
+    for key, val in new_params.items():
+        if key not in params:
+            continue
+        if isinstance(val, dict) and isinstance(params[key], dict):
+            update_params(params[key], val)
+        else:
+            params[key] = val
+
 class SketchParams:
     ''' Handle the parameters of a sketch.
     Stores two dictionaries, one for easy access to sketch parameters,
@@ -146,13 +155,17 @@ class SketchParams:
     def load(self, path=''):
         if not path:
             path = self.param_path
+
         print('Loading parameters from ' + path)
+        print('Pre: ', self.params)
         data = load_json(path)
         if not data:
             return
-        self.params.update(data['params'])
+        update_params(self.params, data['params'])
+        #self.params.update(data['params'])
         self.presets = data['presets']
         self.aux.update(data['aux'])
+        print('Post: ', self.params)
         self.current_preset = -1
 
     def preset_index(self, name):
@@ -163,7 +176,8 @@ class SketchParams:
 
     def apply_preset(self, name):
         if name in self.presets:
-            self.params.update(self.presets[name])
+            update_params(self.params, self.presets[name])
+            #self.params.update(self.presets[name])
 
     def add_preset(self, name):
         self.presets[name] = copy.deepcopy(self.params)
@@ -309,7 +323,21 @@ if imgui is not None:
             self.changed = set()
             self.cur_preset_name = ''
 
+        def force_changed(self, params, gui_params, parent=''):
+            for name, val in gui_params.items():
+                if name == '__key__':
+                    continue
+
+                if type(val) == dict:
+                    key = val['__key__']
+                    self.force_changed(params[key], val, parent + key + '.')
+                else:
+                    val, opts = val
+                    key = opts['__key__']
+                    self.changed.add(parent + key)
+
         def show_params(self, params, gui_params, parent='', depth=0):
+
             for name, val in gui_params.items():
                 if name == '__key__':
                     continue
@@ -364,8 +392,11 @@ if imgui is not None:
                         if changed:
                             self.changed.add(parent + key)
                     except KeyError as e:
-                        print("Key mismatch for parameter", name)
                         print(e)
+                        print("Key mismatch for parameter", name)
+                        print(param_type)
+                        print(key)
+                        print(params)
 
         def toolbar(self, sketch):
             self.sketch = sketch
@@ -417,12 +448,9 @@ if imgui is not None:
             imgui.pop_style_color(1)
             imgui.end()
 
-
-
         def from_params(self, sketch, callback=None):
             self.sketch = sketch
             self.changed = set()
-
             imgui.set_next_window_size(self.width, sketch.window_height - sketch.toolbar_height)
             imgui.set_next_window_position(sketch.window_width - self.width, sketch.toolbar_height)
             imgui.begin("Py5sketch", True, (imgui.WINDOW_NO_RESIZE |
@@ -430,17 +458,18 @@ if imgui is not None:
                                             imgui.WINDOW_NO_SAVED_SETTINGS))
             imgui.begin_child("Sketch")
 
-            if imgui.collapsing_header("Parameters", None, imgui.TREE_NODE_DEFAULT_OPEN)[0]:
-                if sketch.params is not None:
-                    self.show_params(sketch.params.params, sketch.params.gui_params)
-
             try:
                 if callback is not None:
-                    if imgui.collapsing_header("Custom", None, imgui.TREE_NODE_DEFAULT_OPEN)[0]:
+                    if imgui.collapsing_header("Controls", None, imgui.TREE_NODE_DEFAULT_OPEN)[0]:
                         callback()
             except Exception as e:
                 print(e)
                 traceback.print_exc()
+
+            if imgui.collapsing_header("Parameters", None, imgui.TREE_NODE_DEFAULT_OPEN)[0]:
+                if sketch.params is not None:
+                    self.show_params(sketch.params.params, sketch.params.gui_params)
+
 
             # Presets
             imgui.spacing()
@@ -454,6 +483,7 @@ if imgui is not None:
                     if clicked:
                         sketch.params.apply_preset(preset_names[sketch.params.current_preset])
                         self.cur_preset_name = preset_names[sketch.params.current_preset]
+                        self.force_changed(sketch.params.params, sketch.params.gui_params)
 
                     preset_name = ''
                     if 0 <= sketch.params.current_preset < len(preset_names):

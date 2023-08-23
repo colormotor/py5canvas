@@ -315,10 +315,13 @@ class Canvas:
          - `[topleft_x, topleft_y], [width, height]`,
          - `[topleft_x, topleft_y], width, height`,
          - `topleft_x, topleft_y, width, height`
-
+         - '[[topleft_x, topleft_y], [bottomright_x, bottomright_y]]'
         """
 
-        if len(args) == 2:
+        if len(args) == 1:
+            p = args[0][0]
+            size = [args[0][1][0]-args[0][0][0], args[0][1][1]-args[0][0][1]]
+        elif len(args) == 2:
             p, size = args
         elif len(args) == 3:
             p = args[0]
