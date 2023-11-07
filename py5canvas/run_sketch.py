@@ -18,7 +18,7 @@ It will probably be significantly slow when using a large canvas size
 
 # importing pyglet module
 import pyglet
-from pyglet.window import key
+# from pyglet.window import key
 import numpy as np
 import os, sys, time
 from py5canvas import canvas, sketch_params
@@ -111,16 +111,26 @@ class Sketch:
     def __init__(self, path,
                        width,
                        height,
-                       title="Sketch"):
+                       title="Sketch",
+                       standalone=False):
+        # config = pyglet.gl.Config(major_version=2, minor_version=1,
+        #                           sample_buffers=1,
+        #                           samples=4,
+        #                           depth_size=16,
+        #                           double_buffer=True, )
+
         self.window = pyglet.window.Window(width, height, title)
         self.window.set_vsync(False)
-
+        self.standalone = standalone
         self.width, self.height = width, height
         self.var_context = {}
         self.params = None
         self.gui = None
         self.gui_callback = None
-        self.toolbar_height = 30
+        if standalone:
+            self.toolbar_height = 0
+        else:
+            self.toolbar_height = 30
         self.create_canvas(self.width, self.height)
         self.frame_rate(60)
         self.startup_error = False
@@ -360,6 +370,17 @@ class Sketch:
         # Save params if they exist
         if self.params is not None and not self.has_error():
             self.params.save()
+
+        # Call exit callback if any
+        if 'exit' in var_context:
+            try:
+                var_context['exit']()
+                var_context.pop('exit')
+            except Exception as e:
+                print('Error in exit')
+                print(e)
+                traceback.print_exc()
+
         # And reset
         self.params = None
         self.gui_callback = None
@@ -520,7 +541,8 @@ class Sketch:
             if self.gui is not None:
                 if self.params or self.gui_callback is not None:
                     self.gui.from_params(self, self.gui_callback)
-            self.gui.toolbar(self)
+            if not self.standalone:
+                self.gui.toolbar(self)
 
             # Required for render to work in draw callback
             try:
@@ -625,7 +647,7 @@ class Sketch:
         if self.params is not None and not self.has_error():
             self.params.save()
 
-def main():
+def main(path='', standalone=False):
     from importlib import reload
     mouse_moving = False
 
@@ -655,13 +677,16 @@ def main():
     #     print('You need to specify a python sketch file in the arguments')
     #     assert(0)
 
+
     if len(sys.argv) > 1:
         path = sys.argv[1]
-    else:
-        path = ""
+
+    # else:
+    #     path
+
     print("Starting up sketch " + path)
     # Create our sketch context and load script
-    sketch = Sketch(path, 512, 512)
+    sketch = Sketch(path, 512, 512, standalone=standalone)
 
     #@sketch.window.event
     def on_key_press(symbol, modifier):
@@ -726,6 +751,17 @@ def main():
         if sketch.has_error():
             sketch.error_label.draw()
 
+        if not sketch.runtime_error and 'draw_gl' in sketch.var_context:
+            try:
+                sketch.var_context['draw_gl']()
+            except Exception as e:
+                print('Error in draw_gl')
+                print(e)
+                sketch.error_label.text = str(e)
+                sketch.runtime_error = True
+                traceback.print_exc()
+
+
         if imgui is not None:
             try:
                 imgui.render()
@@ -736,7 +772,7 @@ def main():
 
 
     print("Starting loop")
-    pyglet.app.run()
+    pyglet.app.run(interval=1.0/60)
     print("Exit")
     if 'exit' in sketch.var_context:
         sketch.var_context['exit']()

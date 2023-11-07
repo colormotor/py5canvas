@@ -466,24 +466,6 @@ class Canvas:
             self.ctx.set_source_rgba(*self.cur_stroke)
             self.ctx.stroke()
 
-    def line(self, *args):
-        """Draw a line between given its end points.
-
-        Args:
-        Input arguments can be in the following formats:
-         `[x1, y1], [x2, y2]`,
-         `x1, y1, x2, y2`
-        """
-
-        if len(args) == 2:
-            a, b = args
-        if len(args) == 4:
-            a = args[:2]
-            b = args[2:]  
-        self.ctx.new_path()
-        self.ctx.move_to(*a)
-        self.ctx.line_to(*b)
-        self._fillstroke()
 
     def begin_shape(self):
         ''' Begin drawing a compound shape'''
