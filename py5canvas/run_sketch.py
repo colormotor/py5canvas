@@ -639,6 +639,9 @@ def main():
     def gui():
         pass
 
+    def exit():
+        pass
+
     def key_pressed(k, modifier):
         pass
 
@@ -706,6 +709,8 @@ def main():
         sketch.path = app_settings['script']
 
     if sketch.path:
+        if 'exit' in sketch.var_context:
+            sketch.var_context['exit']()
         sketch.reload(locals())
     else:
         sketch.var_context = locals()
@@ -733,6 +738,8 @@ def main():
     print("Starting loop")
     pyglet.app.run()
     print("Exit")
+    if 'exit' in sketch.var_context:
+        sketch.var_context['exit']()
     print("Saving settings")
     sketch_params.save_json(app_settings, os.path.join(app_path, 'settings.json'))
     sketch.cleanup()
