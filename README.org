@@ -114,6 +114,22 @@ This will open a window with the sketch.
 
 Similarly to P5js and Processing, the sketch revolves around two functions: ~setup~ and a ~draw~. The first is called once and can be used to setup the sketch. The second is called every frame and can be used to update our animation.
 
+**** Running a script standalone
+Running a script with the method above allows to edit a script and reload it every time it is saved. To run a script "standalone" and disable live reloading, add the following to the end of the script:
+#+begin_src python
+if __name__== '__main__':
+    import py5canvas
+    py5canvas.run()
+#+end_src
+
+And the run the script with
+#+begin_example
+python basci_animation.py
+#+end_example
+replacing `basic_animation.py` with your script name.
+
+This will result in a behavior similar to [[https://p5.readthedocs.io/en/latest/][p5py]] where you need to re-run a script every time edits are made.
+
 *** Main differences with JS/Java
 In general the structure and syntax of a sketch is very similar to P5js or Processing. The main difference is the "snake_case" convention, so function and variable names have words separated by underscores and not capitals. As an example the function ~createCanvas~ will be ~create_canvas~ instead.
 
