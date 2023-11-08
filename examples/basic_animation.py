@@ -12,3 +12,7 @@ def draw():
     rotate(frame_count*0.05)
     circle(100, 0, 20)
     pop()
+
+if __name__== '__main__':
+    import py5canvas
+    py5canvas.run()

@@ -13,10 +13,13 @@ params = {'Width': (100.0, {'min': 10, 'max': 200}),
                 'Int slider' : (0, {'min': 0, 'max': 10}),
                 }
           }
-params = sketch.parameters(params)
 
 def setup():
     create_canvas_gui(512, 512, 300)
+    # Note this needs to be here and not global to the script
+    # for a standalone script to work
+    global params
+    params = sketch.parameters(params)
 
 def draw():
     background(0)
@@ -34,3 +37,7 @@ def draw():
     if 'hue' in sketch.gui.changed:
         sketch.set_gui_theme(params.hue)
         print('Hue changed')
+
+if __name__== '__main__':
+    import py5canvas
+    py5canvas.run()

@@ -51,3 +51,7 @@ def draw():
     changed, circle_color = imgui.color_edit4("Circle Color", *circle_color, imgui.COLOR_EDIT_DISPLAY_HSV)
     print(circle_color)
     imgui.end()
+
+if __name__== '__main__':
+    import py5canvas
+    py5canvas.run()
