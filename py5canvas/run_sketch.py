@@ -412,12 +412,14 @@ class Sketch:
             self.update_globals()
             # var_context['c'] = self.canvas
             exec(prog, var_context)
-            # Once we loaded script first load parameters if available:
-            if self.params is not None:
-                self.params.load()
 
-            # and call setup
+            # call setup
             var_context['setup']()
+            # Once we have called setup load parameters if available:
+            print('Maybe load params')
+            if self.params is not None:
+                print('load params')
+                self.params.load()
             self.startup_error = False
             print("Success")
         except Exception as e:
@@ -766,12 +768,25 @@ def main(path='', standalone=False):
                 print(e)
 
 
+    def close():
+        # Save params if they exist
+        if sketch.params is not None and not sketch.has_error():
+            print('Saving params')
+            sketch.params.save()
+
+        print("Saving settings")
+        sketch_params.save_json(app_settings, os.path.join(app_path, 'settings.json'))
+        sketch.cleanup()
+
+    @sketch.window.event
+    def on_close():
+        close()
+
     print("Starting loop")
     pyglet.app.run(interval=1.0/60)
     print("Exit")
-    print("Saving settings")
-    sketch_params.save_json(app_settings, os.path.join(app_path, 'settings.json'))
-    sketch.cleanup()
+    close()
+
 
 if __name__ == '__main__':
     main()

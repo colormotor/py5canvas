@@ -88,6 +88,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import cairo
 import numbers
+import copy
 from math import fmod, pi
 import types
 
@@ -126,6 +127,12 @@ class MultiContext:
     def pop_context(self):
         self.ctxs.pop()
 
+class CanvasState:
+    def __init__(self, c):
+        self.cur_fill = c._convert_rgba([255.0])
+        self.cur_stroke = None
+
+
 class Canvas:
     ''' Creates a a pycairo surface that behaves similarly to p5js'''
     def __init__(self, width, height, clear_callback=lambda: None):
@@ -152,8 +159,13 @@ class Canvas:
         self._height = height
         self.surf = surf
         self.ctx = ctx
-        self.cur_fill = self._convert_rgba([255.0])
-        self.cur_stroke = None
+
+        self.draw_states = [CanvasState(self)]
+
+        # self.cur_fill = self._convert_rgba([255.0])
+        # self.cur_stroke = None
+
+
         self.no_draw = False
 
         self.ctx.select_font_face("sans-serif")
@@ -171,6 +183,27 @@ class Canvas:
         """Set color scale, e.g. if we want to specify colors in the `0`-`255` range, scale would be `255`,
         or if the colors are in the `0`-`1` range, scale will be `1`"""
         self.color_scale = scale
+
+    @property
+    def cur_fill(self):
+        return self.draw_states[-1].cur_fill
+    @cur_fill.setter
+    def cur_fill(self, value):
+        self.draw_states[-1].cur_fill = value
+
+    @property
+    def cur_stroke(self):
+        return self.draw_states[-1].cur_stroke
+    @cur_stroke.setter
+    def cur_stroke(self, value):
+        self.draw_states[-1].cur_stroke = value
+
+    def get_stroke_or_fill_color(self):
+        if self.cur_stroke is not None:
+            return np.array(self.cur_stroke)*self.color_scale
+        if self.cur_fill is not None:
+            return np.array(self.cur_fill)*self.color_scale
+        return None #self.cur_fill
 
     @property
     def width(self):
@@ -235,9 +268,11 @@ class Canvas:
 
     def push(self):
         self.ctx.save()
+        self.draw_states.append(copy.deepcopy(self.draw_states[-1]))
 
     def pop(self):
         self.ctx.restore()
+        self.draw_states.pop()
 
     def translate(self, *args):
         """Translate by specifying `x` and `y` offset.
@@ -357,6 +392,42 @@ class Canvas:
             self.polygon(args)
         else:
             self.polygon([[args[i*2], args[i*2+1]] for i in range(4)])
+
+    def line(self, *args):
+        self.push()
+        if self.cur_stroke is None:
+            if self.cur_fill is not None:
+                self.cur_stroke = self.cur_fill
+            else:
+                print('line: No color is set')
+        if len(args)==2:
+            self.polyline(args[0], args[1])
+        if len(args)==4:
+            self.polyline([[args[0], args[1]], [args[2], args[3]]])
+        self.pop()
+
+    def arrow(self, a, b, size=2.5, overhang=0.7, length=2.0):
+        w = self.ctx.get_line_width()*size
+        # Arrow width and 'height' (length)
+        h = w*length
+        a = np.array(a)
+        b = np.array(b)
+        # direction
+        d = b-a
+        l = np.linalg.norm(d)
+        d = d / (np.linalg.norm(d)+1e-10)
+        # Shift end of segment so arrow tip is at end
+        b = a+d*max(0.0, l-h)
+        p = np.array([-d[1], d[0]])
+        # arrow polygon
+        P = [b + p*w - d*w*overhang, b + d*h, b - p*w - d*w*overhang, b]
+        # draw
+        self.line(a, b)
+        self.push()
+        self.fill(self.get_stroke_or_fill_color())
+        self.no_stroke()
+        self.polygon(P)
+        self.pop()
 
     def triangle(self, *args):
         """Draws a triangle given three points
