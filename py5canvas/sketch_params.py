@@ -353,7 +353,8 @@ if imgui is not None:
                     key = opts['__key__'] # Assume this has been filled automatically
                     if 'hide' in opts and opts['hide']:
                         continue
-
+                    if 'sameline' in opts and opts['sameline']:
+                        imgui.same_line()
                     param_type = get_param_type(val, opts)
                     if not param_type:
                         continue
