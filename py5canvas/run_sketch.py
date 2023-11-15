@@ -18,6 +18,8 @@ It will probably be significantly slow when using a large canvas size
 
 # importing pyglet module
 import pyglet
+#pyglet.options['osx_alt_loop'] = True
+
 # from pyglet.window import key
 import numpy as np
 import os, sys, time
@@ -780,6 +782,7 @@ def main(path='', standalone=False):
 
     @sketch.window.event
     def on_close():
+        print('Close window event')
         close()
 
     print("Starting loop")
