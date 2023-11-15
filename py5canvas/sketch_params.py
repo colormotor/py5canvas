@@ -392,6 +392,9 @@ if imgui is not None:
                             params[key] = np.array(clr)*self.sketch.canvas.color_scale
                         if changed:
                             self.changed.add(parent + key)
+                            if parent:
+                                self.changed.add(parent[:-1])
+
                     except KeyError as e:
                         print(e)
                         print("Key mismatch for parameter", name)

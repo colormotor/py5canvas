@@ -665,6 +665,9 @@ def main(path='', standalone=False):
     def gui():
         pass
 
+    def exit():
+        pass
+
     def key_pressed(k, modifier):
         pass
 
@@ -735,6 +738,8 @@ def main(path='', standalone=False):
         sketch.path = app_settings['script']
 
     if sketch.path:
+        if 'exit' in sketch.var_context:
+            sketch.var_context['exit']()
         sketch.reload(locals())
     else:
         sketch.var_context = locals()
@@ -789,7 +794,6 @@ def main(path='', standalone=False):
     pyglet.app.run(interval=1.0/60)
     print("Exit")
     close()
-
 
 if __name__ == '__main__':
     main()
