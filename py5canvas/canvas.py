@@ -145,7 +145,7 @@ class Canvas:
         # Create SVG surface for saving
         self.color_scale = 255.0
 
-        ctx.set_fill_rule(cairo.FILL_RULE_EVEN_ODD)
+        ctx.set_fill_rule(cairo.FILL_RULE_WINDING) #EVEN_ODD)
         ctx.set_line_join(cairo.LINE_JOIN_MITER)
         ctx.set_source_rgba(0.0, 0.0, 0.0, 255.0)
         ctx.rectangle(0,0,width,height)
