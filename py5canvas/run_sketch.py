@@ -391,6 +391,7 @@ class Sketch:
         if self.path:
             path = os.path.abspath(self.path)
             os.chdir(os.path.dirname(path))
+            sys.path.append(os.path.dirname(path))
             app_settings['script'] = path
 
         # Create filewatcher on first load
