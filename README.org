@@ -243,7 +243,7 @@ One quick and dirty way to convert a p5js sketch to a Python py5sketch is to use
 Convert this code to Python using camel case instead of snake case, but keeping exactly the same function and variable names, don't capitalize variables:
 #+end_quote
 Followed by the p5js code.
-The [[https://github.com/colormotor/py5canvas/blob/main/examples/l_system.py][L-system]] and [[https://github.com/colormotor/py5canvas/blob/main/examples/spirogpraph.py][spirograph]] examples have been converted this way from the p5js example library, with little to no modifications.
+The [[https://github.com/colormotor/py5canvas/blob/main/examples/l_system.py][L-system]] and [[https://github.com/colormotor/py5canvas/blob/main/examples/spirograph.py][spirograph]] examples have been converted this way from the p5js example library, with little to no modifications.
 
 **** The ~sketch~ and ~canvas~ objects
 Behind the hood a sketch uses two main components: A ~sketch~ object that
