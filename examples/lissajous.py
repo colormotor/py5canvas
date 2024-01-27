@@ -40,3 +40,8 @@ def draw():
     c.stroke(255)
     c.no_fill()
     c.shape(paths)
+
+if __name__== '__main__':
+    # This gets automatically called when running with python rather than py5sketch
+    import py5canvas
+    py5canvas.run()
