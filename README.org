@@ -15,7 +15,8 @@ This is one of many ways to develop "Processing-like" code in Python. There are 
 
 The main drive to develop this new system has been to provide a drawing interface in Python notebooks that is similar to Processing and to allow "live coding" (or more precicesely live-reloading) of interactive sketches for quicker prototyping of ideas. While the syntax of the sketches is similar to P5js or Processing, the aim of this system is to provide a platform similar to DrawBot for interactive editing of scripts.
 
-* Dependencies and installation
+* Installation
+** Dependencies
 The main requirements for Py5Canvas are [[https://numpy.org][NumPy]], [[https://matplotlib.org][Matplotlib]], [[https://pycairo.readthedocs.io/en/latest/][pyCairo]] and [[https://pyglet.readthedocs.io/en/latest/][Pyglet]]. Pyglet is only necessary if you want to use interactivity. It is recommended to use the [[Miniconda][https://docs.conda.io/en/latest/miniconda.html]] (or Anaconda) package manager to install the dependencies when possible. To fully use the Canvas API with video input, you will also need [[https://opencv.org][OpenCV]], The conda instructions below include it, but it is not essential.  Using conda you can rapidly install the dependencies with:
 #+begin_example
 conda install -c conda-forge numpy matplotlib pycairo opencv
@@ -25,22 +26,36 @@ Then install the latest version of Pyglet with
 pip install pyglet
 #+end_example
 
-** Optional (but suggested) extensions
-If you want OpenSoundControl (OSC) support, you will need to also install [[https://pypi.org/project/python-osc/][python-osc]] with:
-#+begin_example
-pip install python-osc
-#+end_example
-
-If you want to use a GUI and save/load parameters install [[https://pypi.org/project/imgui/][PyImGui]], [[https://pypi.org/project/easydict/][EasyDict]] and [[https://github.com/xMGZx/xdialog][xdialog]] with:
+*** Optional (but suggested) extensions
+The py5sketch script runner is designed so it can work with the minimal dependencies described above. However, to get the "full experience", it is recommended to also install the following dependencies.
+These will enable a GUI and save/load parameters functionalities through the [[https://pypi.org/project/imgui/][PyImGui]], [[https://pypi.org/project/easydict/][EasyDict]] and [[https://github.com/xMGZx/xdialog][xdialog]] modules. You can install these with pip, using
 #+begin_example
 pip install imgui[pyglet]
 pip install easydict
 pip install xdialog
 #+end_example
 
+**** Open Sound Control (OSC)
+The sketch interface also provides optional OSC functionality through the  [[https://pypi.org/project/python-osc/][python-osc]] module. This enables communication with other software that supports the protocol. It can be installed with:
+#+begin_example
+pip install python-osc
+#+end_example
+See the relevant section below for usage details.
 
 ** Install Py5Canvas
-To install Py5Canvas clone the repository in a given directory, e.g. with
+py5canvas is still not on PyPi, so for the moment you can use one of the following to install:
+*** Pip installation
+To install using pip you can use
+#+begin_example
+pip install git+https://github.com/colormotor/py5canvas.git
+#+end_example
+To update the module to its latest version use
+#+begin_example
+pip install --upgrade  --force-reinstall --no-deps git+https://github.com/colormotor/py5canvas.git
+#+end_example
+
+*** Local installation
+To install Py5Canvas locally, clone the repository in a given directory, e.g. with
 #+begin_example
 git clone https://github.com/colormotor/py5canvas.git
 #+end_example
@@ -153,6 +168,7 @@ def draw():
     foo += 1
     bar -= 1
 #+end_src
+
 ***** Avoiding globals with a container
 One way to avoid haing to declare globals every time is to put the parameters that can be modified within a function inside a container. As an example, we could use an anonymous function or an [[https://pypi.org/project/easydict/][EasyDict]] dictionary. The anonymous function trick would be as follows:
 #+begin_src python
@@ -179,9 +195,15 @@ Refer to the section on GUI and parameters to see how this can also be used to h
 
 
 **** The ~sketch~ and ~canvas~ objects
-Behind the hood a sketch uses two main components: A ~sketch~ object that handles the script running and updates and a ~sketch.canvas~ object that handles drawing 2d graphics.
+Behind the hood a sketch uses two main components: A ~sketch~ object that
+handles the script running and updates and a ~sketch.canvas~ object that handles
+drawing 2d graphics.
 
-By default, the ~py5sketch~ program exposes the methods of these objects as globals, so it is not necessary to reference these objects explicitly. However, while easy to remember, function names like ~scale~, ~rotate~ etc, are quite common words and it is easy to overwrite them by mistake while writing a script. For example this sketch won't work:
+By default, the ~py5sketch~ program exposes the methods of these objects as
+globals, so it is not necessary to reference these objects explicitly. However,
+while easy to remember, function names like ~scale~, ~rotate~ etc, are quite
+common words and it is easy to overwrite them by mistake while writing a script.
+For example this sketch won't work:
 #+begin_src python
 scale = 1.0
 
@@ -195,7 +217,10 @@ def draw():
     circle(0, 0, 100)
 #+end_src
 
-Since we have overridden the function ~scale~ with a variable ~scale~. We can avoid these situations by referring to the canvas (or sketch explicitly), with a variable ~c~ automatically set to refer to the ~sketch.canvas~ object (for brevity). So the following will work:
+Since we have overridden the function ~scale~ with a variable ~scale~. We can
+avoid these situations by referring to the canvas (or sketch explicitly), with a
+variable ~c~ automatically set to refer to the ~sketch.canvas~ object (for
+brevity). So the following will work:
 #+begin_src python
 scale = 1.0
 
