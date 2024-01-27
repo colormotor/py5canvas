@@ -146,7 +146,7 @@ replacing `basic_animation.py` with your script name.
 This will result in a behavior similar to [[https://p5.readthedocs.io/en/latest/][p5py]] where you need to re-run a script every time edits are made.
 
 *** Main differences with JS/Java
-In general the structure and syntax of a sketch is very similar to P5js or Processing. The main difference is the "snake_case" convention, so function and variable names have words separated by underscores and not capitals. As an example the function ~createCanvas~ will be ~create_canvas~ instead.
+In general the structure and syntax of a sketch is very similar to P5js or Processing. The main difference is the "snake_case" convention, so function and variable names have words separated by underscores and not capitals. As an example the function ~createCanvas~ will be ~create_canvas~ instead. Similarly, you can equivalently use ~size~ instead of the ~createCanvas~ function.
 
 However, there are a number of differences to take into account.
 
@@ -192,7 +192,13 @@ def draw():
     params.bar -= 1
 #+end_src
 Refer to the section on GUI and parameters to see how this can also be used to handle sketch parameters.
-
+**** Converting a p5js sketch
+One quick and dirty way to convert a p5js sketch to a Python py5sketch is to use ChatGPT. This prompt seems to work relatively well
+#+begin_quote
+Convert this code to Python using camel case instead of snake case, but keeping exactly the same function and variable names, don't capitalize variables:
+#+end_quote
+Followed by the p5js code.
+The [[https://github.com/colormotor/py5canvas/blob/main/examples/l_system.py][L-system]] and [[https://github.com/colormotor/py5canvas/blob/main/examples/spirogpraph.py][spirograph]] examples have been converted this way from the p5js example library, with little to no modifications.
 
 **** The ~sketch~ and ~canvas~ objects
 Behind the hood a sketch uses two main components: A ~sketch~ object that
