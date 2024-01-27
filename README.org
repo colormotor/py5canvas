@@ -26,7 +26,7 @@ The main idea behind this system is to facilitate the development of creative an
     - [[#local-installation][Local installation]]
 - [[#usage][Usage]]
   - [[#canvas-api][Canvas API]]
-  - [[#py5sketch][py5sketch]]
+  - [[#interactive-sketches-py5sketch][Interactive sketches: py5sketch]]
     - [[#a-basic-example][A basic example]]
       - [[#running-a-script-standalone][Running a script standalone]]
     - [[#main-differences-with-jsjava][Main differences with JS/Java]]
@@ -34,6 +34,9 @@ The main idea behind this system is to facilitate the development of creative an
         - [[#avoiding-globals-with-a-container][Avoiding globals with a container]]
       - [[#converting-a-p5js-sketch][Converting a p5js sketch]]
       - [[#the-sketch-and-canvas-objects][The sketch and canvas objects]]
+    - [[#video-input-and-output][Video input and output]]
+      - [[#playing-video][Playing video]]
+    - [[#saving-svg-output][Saving SVG output]]
     - [[#gui-support-and-parameters][GUI support and parameters]]
       - [[#default-ui][Default UI]]
       - [[#parameters-and-automatic-gui][Parameters and automatic GUI]]
@@ -142,7 +145,7 @@ In general, the syntax is very similar to P5js but it uses ~snake_case~ as a syn
 #+begin_quote
 The Canvas object is intended to be a simple interface on top of [[https://pycairo.readthedocs.io/en/latest/][pyCairo]], but it does not expose all the functionalities of the API. If necessary, these can be accessed with the ~ctx~ class variable.
 #+end_quote
-** py5sketch
+** Interactive sketches: py5sketch
 While the Canvas API alone does not supprt interactivity, the ~py5sketch~ program allows to create simple "sketches" that can be run interactively in a window.
 
 *** A basic example
@@ -285,6 +288,13 @@ def draw():
     c.circle(0, 0, 100)
 #+end_src
 We could identically refer to ~c~ as ~sketch.canvas~.
+*** Video input and output
+With OpenCV installed, the py5sketch systems allows to read the webcam stream, play videos and to save videos of the sketch output.
+**** Playing video
+
+*** Saving SVG output
+All vector drawing operations for a given frame, can be exported to SVG by using the GUI (if [[https://pypi.org/project/imgui/#files][PyImGui]] is installed), or by using the ~sketch.save_svg(filename)~ function.
+Note that once called, the *next* frame will be saved.
 
 *** GUI support and parameters
 The ~py5sketch~ program can be used in combination with the [[https://pypi.org/project/imgui/#files][Python bindings]] of [[https://github.com/ocornut/imgui][Dear ImGui]], an [[https://pyimgui.readthedocs.io/en/latest/guide/first-steps.html#what-is-immediate-mode-gui]["immediate mode" UI]] built on top of OpenGL. A basic usage example of IMGUI can be found in the ~imgui_test.py~ example.

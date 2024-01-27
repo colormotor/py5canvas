@@ -288,6 +288,8 @@ class Sketch:
         self.recording_context = cairo.Context(self.recording_surface)
         self.canvas.ctx.push_context(self.recording_context)
 
+    save_svg = dump_svg
+
     def toggle_fullscreen(self):
         self.fullscreen(not self.is_fullscreen)
 
@@ -422,6 +424,8 @@ class Sketch:
             var_context['create_canvas'] = wrap_method(self, 'create_canvas')
             var_context['size'] = var_context['create_canvas'] # For compatibility
             var_context['create_canvas_gui'] = wrap_method(self, 'create_canvas_gui')
+            var_context['save_svg'] = wrap_method(self, 'dump_svg')
+            var_context['VideoInput'] = canvas.VideoInput
             # And also expose canvas as 'c' since the functions in the canvas are quite common names and
             # might be easily overwritten
             self.update_globals()
