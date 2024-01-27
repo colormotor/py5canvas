@@ -1,11 +1,56 @@
+:PROPERTIES:
+:TOC:      :include all :depth 3 :force ((depth)) :ignore ((nothing)) :local ((depth))
+:END:
 #+title: Py5Canvas - A(nother) simple processing-like interface for Python
 
-Py5Canvas is a simple library that allows to draw 2d graphics in Python with an interface that is designed for users that are familiar to Processing and P5js.
+Py5canvas is a simple library that allows to draw 2d graphics in Python with an interface that is designed for users that are familiar to Processing and P5js.
 The library is designed to work inside Python notebooks, as a replacement to Matplotlib and within an appositely built sandbox, for creative coding of simple interactive applications.
 
 The library consists of two main components: The ~canvas~ API for generating 2d graphics and a command line program ~py5sketch~ that allows to run the same API interactively. The ~canvas~ API exposes functionalities similar to Processing and P5js, thus facilitating the composition and generation of 2d graphics. It uses [[https://pycairo.readthedocs.io/en/latest/][pyCairo]] as a graphics backend, [[https://matplotlib.org][Matplotlib]] to visualize graphics witin Python notebooks and [[https://numpy.org][NumPy]] for number-crunching. The ~py5sketch~ program allows to run and view a Python script (the "sketch") that uses the ~canvas~ API in an interactive window. The program will automatically reload the script whenever it is saved. It uses [[https://pyglet.readthedocs.io/en/latest/][Pyglet]] as a backend.
 
 The main idea behind this system is to facilitate the development of creative and interactive machine learning applications.
+
+* Table of contents
+:PROPERTIES:
+:TOC:      :include all :force (nothing) :ignore (nothing) :local (nothing)
+:END:
+:CONTENTS:
+- [[#table-of-contents][Table of contents]]
+- [[#similar-projects][Similar projects]]
+- [[#installation][Installation]]
+  - [[#dependencies][Dependencies]]
+    - [[#optional-but-suggested-extensions][Optional (but suggested) extensions]]
+      - [[#open-sound-control-osc][Open Sound Control (OSC)]]
+  - [[#install-py5canvas][Install Py5Canvas]]
+    - [[#pip-installation][Pip installation]]
+    - [[#local-installation][Local installation]]
+- [[#usage][Usage]]
+  - [[#canvas-api][Canvas API]]
+  - [[#py5sketch][py5sketch]]
+    - [[#a-basic-example][A basic example]]
+      - [[#running-a-script-standalone][Running a script standalone]]
+    - [[#main-differences-with-jsjava][Main differences with JS/Java]]
+      - [[#globals][Globals]]
+        - [[#avoiding-globals-with-a-container][Avoiding globals with a container]]
+      - [[#converting-a-p5js-sketch][Converting a p5js sketch]]
+      - [[#the-sketch-and-canvas-objects][The sketch and canvas objects]]
+    - [[#gui-support-and-parameters][GUI support and parameters]]
+      - [[#default-ui][Default UI]]
+      - [[#parameters-and-automatic-gui][Parameters and automatic GUI]]
+        - [[#saving-and-loading][Saving and loading]]
+        - [[#presets][Presets]]
+        - [[#showing-the-gui][Showing the GUI]]
+        - [[#parameter-widget-types][Parameter widget types]]
+          - [[#boolean][Boolean]]
+          - [[#integer][Integer]]
+          - [[#float][Float]]
+          - [[#string][String]]
+          - [[#callable-the-name-of-a-function][Callable (the name of a function)]]
+          - [[#float-array][Float Array]]
+          - [[#integer-array][Integer Array]]
+      - [[#auto-saving][Auto saving]]
+    - [[#osc-support][OSC support]]
+:END:
 
 * Similar projects
 This is one of many ways to develop "Processing-like" code in Python. There are a number of existing projects with a similar goal:
