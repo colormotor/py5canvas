@@ -36,6 +36,7 @@ The main idea behind this system is to facilitate the development of creative an
       - [[#the-sketch-and-canvas-objects][The sketch and canvas objects]]
     - [[#video-input-and-output][Video input and output]]
       - [[#playing-video][Playing video]]
+      - [[#saving-video-or-image-sequences][Saving video or image sequences]]
     - [[#saving-svg-output][Saving SVG output]]
     - [[#gui-support-and-parameters][GUI support and parameters]]
       - [[#default-ui][Default UI]]
@@ -291,6 +292,10 @@ We could identically refer to ~c~ as ~sketch.canvas~.
 *** Video input and output
 With OpenCV installed, the py5sketch systems allows to read the webcam stream, play videos and to save videos of the sketch output.
 **** Playing video
+To show the webcam input or to play a video, you need to use the ~canvas.VideoInput~ object. It takes one optional parameter that is either the video input device number (~0~ is the default) or the name of a file to play. See [[https://github.com/colormotor/py5canvas/blob/main/examples/video_input.py][the video input example]] for details.
+**** Saving video or image sequences
+To save a specified number of frames as a video or as an image sequence, use the the
+~sketch.grab_movie(filename, num_frames, framerate)~ and ~sketch.grab_image_sequence(directory_name, num_frames)~ functions. As an example, calling ~sketch.grab_move("frames.mp4", 200, 30)~ will save a 30 FPS mp4 movie of 200 frames. Both functions have an optional argument ~reload~ that is set to ~True~. If ~reload~ is ~True~, the script is reloaded when saving so the video will start from the first frame. This is particularly useful when saving loops. If ~reload=False~, the video will start recording from the next frame without reloading.
 
 *** Saving SVG output
 All vector drawing operations for a given frame, can be exported to SVG by using the GUI (if [[https://pypi.org/project/imgui/#files][PyImGui]] is installed), or by using the ~sketch.save_svg(filename)~ function.
