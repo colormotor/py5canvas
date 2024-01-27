@@ -867,6 +867,8 @@ class Canvas:
                 x[2]/self.color_scale,
                 x[3]/self.color_scale)
 
+def map(value, start1, stop1, start2, stop2):
+    return start2 + (stop2 - start2) * ((value - start1) / (stop1 - start1))
 
 def radians(x):
     ''' Get radians given x degrees'''

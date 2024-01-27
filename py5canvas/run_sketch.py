@@ -416,8 +416,13 @@ class Sketch:
             var_context['random_seed'] = np.random.seed
             var_context['radians'] = canvas.radians
             var_context['degrees'] = canvas.degrees
+            var_context['map'] = canvas.map
             var_context['sin'] = np.sin
             var_context['cos'] = np.cos
+            var_context['floor'] = lambda x: np.floor(x).astype(int)
+            var_context['ceil'] = lambda x: np.ceil(x).astype(int)
+            var_context['round'] = lambda x: np.round(x).astype(int)
+
 
             # And basic functions from sketch
             var_context['frame_rate'] = wrap_method(self, 'frame_rate')
