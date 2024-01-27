@@ -134,7 +134,7 @@ class Sketch:
         else:
             self.toolbar_height = 30
         self.create_canvas(self.width, self.height)
-        self.frame_rate(60)
+        # self.frame_rate(60)
         self.startup_error = False
         self.runtime_error = False
 
@@ -408,6 +408,7 @@ class Sketch:
                 if '__' not in func and callable(getattr(self.canvas, func)):
                     var_context[func] = wrap_canvas_method(self, func)
             # And basic functions from sketch
+            var_context['frame_rate'] = wrap_method(self, 'frame_rate')
             var_context['create_canvas'] = wrap_method(self, 'create_canvas')
             var_context['create_canvas_gui'] = wrap_method(self, 'create_canvas_gui')
             # And also expose canvas as 'c' since the functions in the canvas are quite common names and
@@ -585,7 +586,19 @@ class Sketch:
 
 
     def frame_rate(self, fps):
-        print('sketch.frame_rate is deprecated for the moment, the function will have no effect')
+
+        try:
+            print('setting frame rate to ' + str(fps))
+        #print('sketch.frame_rate is deprecated for the moment, the function will have no effect')
+            event_loop = pyglet.app.event_loop
+            event_loop.clock.unschedule(event_loop._redraw_windows)
+            if fps > 0:
+                event_loop.clock.schedule_interval(event_loop._redraw_windows, 1.0/fps)
+            else:
+                event_loop.clock.schedule(event_loop._redraw_windows)
+        except AttributeError as e:
+            print(e)
+
         # pyglet.clock.unschedule(self._update)
         # pyglet.clock.schedule_interval(self._update, 1.0/fps)
 
@@ -792,9 +805,11 @@ def main(path='', standalone=False):
         close()
 
     print("Starting loop")
-    pyglet.app.run(interval=1.0/60)
+    pyglet.app.run(interval=0) # Default is max framerate
     print("Exit")
     close()
 
 if __name__ == '__main__':
     main()
+
+# santamonica and highland after 6pm

@@ -1,5 +1,6 @@
 def setup():
-    create_canvas(512, 512)
+    create_canvas(600, 512)
+    frame_rate(60)
 
 def draw():
     background(0, 0, 0, 8) # Clear with alpha will create the "trail effect"
@@ -14,5 +15,6 @@ def draw():
     pop()
 
 if __name__== '__main__':
+    # This gets automatically called when running with python rather than py5sketch
     import py5canvas
     py5canvas.run()
