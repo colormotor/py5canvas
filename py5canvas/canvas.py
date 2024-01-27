@@ -164,7 +164,7 @@ class Canvas:
 
         # self.cur_fill = self._convert_rgba([255.0])
         # self.cur_stroke = None
-
+        self._rect_mode = 'corner'
 
         self.no_draw = False
 
@@ -183,6 +183,13 @@ class Canvas:
         """Set color scale, e.g. if we want to specify colors in the `0`-`255` range, scale would be `255`,
         or if the colors are in the `0`-`1` range, scale will be `1`"""
         self.color_scale = scale
+
+    def rect_mode(self, mode):
+        if mode not in ['corner', 'center', 'radius']:
+            print('rect_mode: invalid mode')
+            print('choose one among: corner, center, radius')
+            return
+        self._rect_mode = mode
 
     @property
     def cur_fill(self):
@@ -364,6 +371,14 @@ class Canvas:
         elif len(args) == 4:
             p = args[:2]
             size = args[2:]
+        p = np.array(p).astype(float)
+        size = np.array(size).astype(float)
+        if self._rect_mode == 'center':
+            p -= size/2
+        elif self._rect_mode == 'radius':
+            p -= size
+            size *= 2
+
         self.ctx.rectangle(*p, *size)
         self._fillstroke()
 
@@ -692,6 +707,14 @@ class Canvas:
         else:
             print("Unexpected number of arguments for image")
             raise ValueError
+
+        pos = np.array(pos).astype(float)
+        size = np.array(size).astype(float)
+        if self._rect_mode == 'center':
+            pos -= size/2
+        elif self._rect_mode == 'radius':
+            pos -= size
+            size *= 2
 
         self.ctx.translate(pos[0], pos[1])
 
