@@ -321,6 +321,8 @@ class Canvas:
         ''' Rotate by `theta` radians'''
         self.ctx.rotate(theta)
 
+    rotate_rad = rotate
+
     def apply_matrix(self, mat):
         matrix = cairo.Matrix(mat[0][0], mat[1][0], mat[0][1], mat[1][1], mat[0][2], mat[1][2])
         self.ctx.transform(matrix)

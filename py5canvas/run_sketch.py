@@ -407,9 +407,20 @@ class Sketch:
             for func in dir(self.canvas):
                 if '__' not in func and callable(getattr(self.canvas, func)):
                     var_context[func] = wrap_canvas_method(self, func)
+            var_context['TWO_PI'] = 2*np.pi
+            var_context['PI'] = np.pi
+            var_context['random'] = np.random.uniform
+            var_context['random_seed'] = np.random.seed
+            var_context['random_seed'] = np.random.seed
+            var_context['radians'] = canvas.radians
+            var_context['degrees'] = canvas.degrees
+            var_context['sin'] = np.sin
+            var_context['cos'] = np.cos
+
             # And basic functions from sketch
             var_context['frame_rate'] = wrap_method(self, 'frame_rate')
             var_context['create_canvas'] = wrap_method(self, 'create_canvas')
+            var_context['size'] = var_context['create_canvas'] # For compatibility
             var_context['create_canvas_gui'] = wrap_method(self, 'create_canvas_gui')
             # And also expose canvas as 'c' since the functions in the canvas are quite common names and
             # might be easily overwritten
