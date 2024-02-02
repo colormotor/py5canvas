@@ -171,6 +171,8 @@ class Sketch:
         self.mouse_pressed = False
         self.mouse_moving = False
 
+        self.prog_uses_imgui = False
+        
         # Check if OSC is available
         osc_loader = importlib.find_loader('pythonosc')
         if osc_loader is not None:
@@ -403,7 +405,13 @@ class Sketch:
         # Attempt to compile script
         try:
             print("Compiling")
-            prog = compile(open(self.path).read(), self.path, 'exec')
+            prog_text = open(self.path).read()
+            if 'imgui.' in prog_text:
+                self.prog_uses_imgui = True
+            else:
+                self.prog_uses_imgui = False
+                
+            prog = compile(prog_text, self.path, 'exec')
             # Expose canvas to the sketch
             print('exposing vars')
             for func in dir(self.canvas):
@@ -528,6 +536,13 @@ class Sketch:
         if self.saving_svg:
             self.done_svg_drawing = True
 
+        if imgui is not None:
+            if self.gui is not None:
+                if (self.params or
+                    self.gui_callback is not None or
+                    self.prog_uses_imgui):
+                    self.gui.begin_gui(self)
+                    
         with perf_timer('update'):
             if not self.runtime_error or self._frame_count==0:
                 try:
@@ -565,8 +580,10 @@ class Sketch:
 
         if imgui is not None:
             if self.gui is not None:
-                if self.params or self.gui_callback is not None:
-                    self.gui.from_params(self, self.gui_callback)
+                if (self.params or
+                    self.gui_callback is not None or
+                    self.prog_uses_imgui):
+                    self.gui.from_params(self, self.gui_callback, init=False)
             if not self.standalone:
                 self.gui.toolbar(self)
 

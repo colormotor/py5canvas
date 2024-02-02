@@ -452,9 +452,8 @@ if imgui is not None:
             imgui.pop_style_color(1)
             imgui.end()
 
-        def from_params(self, sketch, callback=None):
+        def begin_gui(self, sketch):
             self.sketch = sketch
-            self.changed = set()
             imgui.set_next_window_size(self.width, sketch.window_height - sketch.toolbar_height)
             imgui.set_next_window_position(sketch.window_width - self.width, sketch.toolbar_height)
             imgui.begin("Py5sketch", True, (imgui.WINDOW_NO_RESIZE |
@@ -462,6 +461,12 @@ if imgui is not None:
                                             imgui.WINDOW_NO_SAVED_SETTINGS))
             imgui.begin_child("Sketch")
 
+        def from_params(self, sketch, callback=None, init=True):
+            self.sketch = sketch
+            self.changed = set()
+            if init:
+                self.begin_gui()
+            
             try:
                 if callback is not None:
                     if imgui.collapsing_header("Controls", None, imgui.TREE_NODE_DEFAULT_OPEN)[0]:
