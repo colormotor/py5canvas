@@ -98,7 +98,6 @@ def is_number(x):
 
 
 def wrapper(self, fn):
-    # print('wrapping ', fn)
     def result(*args, **kwargs):
         res = None
         self.dirty = True
@@ -119,7 +118,7 @@ class MultiContext:
         self.ctxs = [cairo.Context(surf)]
         for key, value in cairo.Context.__dict__.items( ):
             if hasattr( value, '__call__' ):
-                self.__dict__[key] = wrapper(self, key) #types.MethodType(wrapper(key), self.__class__ )
+                self.__dict__[key] = wrapper(self, key)
 
     def push_context(self, ctx):
         self.ctxs.append(ctx)
@@ -134,10 +133,15 @@ class CanvasState:
 
 
 class Canvas:
-    ''' Creates a a pycairo surface that behaves similarly to p5js'''
+    """
+    Creates a a pycairo surface that behaves similarly to p5js
+
+    param width: int, width of the canvas in pixels
+    param height: int, height of the canvas in pixels
+    param clear_callback: function, a callback to be called when the canvas is cleared (for internal use mostly)
+    """
     def __init__(self, width, height, clear_callback=lambda: None):
-        """Initialize Canvas with given `width` and `height`
-        """
+        """ Constructor"""
         # See https://pycairo.readthedocs.io/en/latest/reference/context.html
         surf = cairo.ImageSurface(cairo.FORMAT_ARGB32, width, height)
         ctx = MultiContext(surf) #cairo.Context(surf)
@@ -185,6 +189,9 @@ class Canvas:
         self.color_scale = scale
 
     def rect_mode(self, mode):
+        """ Set the mode for drawing rectangles.
+        param mode: string, can be one of 'corner', 'center', 'radius'
+        """
         if mode not in ['corner', 'center', 'radius']:
             print('rect_mode: invalid mode')
             print('choose one among: corner, center, radius')
@@ -206,6 +213,10 @@ class Canvas:
         self.draw_states[-1].cur_stroke = value
 
     def get_stroke_or_fill_color(self):
+        """
+        Get the current stroke color if set, the fill color otherwise
+        returns the current stroke or fill color as a numpy array, or None if no color is set
+        """
         if self.cur_stroke is not None:
             return np.array(self.cur_stroke)*self.color_scale
         if self.cur_fill is not None:
@@ -214,10 +225,12 @@ class Canvas:
 
     @property
     def width(self):
+        """ Width of canvas"""
         return self._width
 
     @property
     def height(self):
+        """ Height of canvas"""
         return self._height
 
     @property
@@ -230,9 +243,15 @@ class Canvas:
     def no_stroke(self):
         self.stroke(None)
 
-    def color_mode(self, mode, scale=255):
+    def color_mode(self, mode, scale=None):
+        """ Set the color mode for the canvas
+
+        param mode: string, can be one of 'rgb', 'hsv'
+        param scale: float, the scale for the color values (e.g. 255 for 0-255 range, 1 for 0-1 range)
+        """
         self._color_mode = mode
-        self.color_scale = scale
+        if scale is not None:
+            self.color_scale = scale
 
     def _apply_colormode(self, clr):
         if self._color_mode == 'hsv':
@@ -712,11 +731,13 @@ class Canvas:
 
         pos = np.array(pos).astype(float)
         size = np.array(size).astype(float)
-        if self._rect_mode == 'center':
-            pos -= size/2
-        elif self._rect_mode == 'radius':
-            pos -= size
-            size *= 2
+
+        # Disabling rect mode for images
+        # if self._rect_mode == 'center':
+        #     pos -= size/2
+        # elif self._rect_mode == 'radius':
+        #     pos -= size
+        #     size *= 2
 
         self.ctx.translate(pos[0], pos[1])
 
@@ -978,8 +999,16 @@ def hsv_to_rgb(hsva):
 
 
 class VideoInput:
-    '''Video Input utility (required OpenCV)'''
+    '''
+    Video Input utility (requires OpenCV to be installed).
+    Allows for reading frames from a video file or camera.
+
+    param name: Either an integer indicating the device number, or a string indicating the path of a video file
+    param size: A tuple indicating the desired size of the video frames (width, height)
+    param resize_mode: A string indicating the desired resize mode. Can be 'crop' or 'stretch'
+    '''
     def __init__(self, name=0, size=None, resize_mode='crop'):
+        ''' Constructor'''
         import cv2
         # define a video capture object
         self.vid = cv2.VideoCapture(name)
