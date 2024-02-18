@@ -751,14 +751,14 @@ def main(path='', standalone=False):
 
     #@sketch.window.event
     def on_mouse_motion(x, y, dx, dy):
-        sketch._mouse_pos = np.array([x, sketch.window_height-y])
+        sketch._mouse_pos = np.array([x, sketch.window_height-y-sketch.toolbar_height])
         #print((x, y, dx, dy))
         if 'mouse_moved' in sketch.var_context:
             sketch.var_context['mouse_moved']()
 
     #@sketch.window.event
     def on_mouse_drag(x, y, dx, dy, buttons, modifiers):
-        sketch._mouse_pos = np.array([x, sketch.window_height-y])
+        sketch._mouse_pos = np.array([x, sketch.window_height-y-sketch.toolbar_height])
         sketch.mouse_pressed = True
         if 'mouse_dragged' in sketch.var_context:
             sketch.var_context['mouse_dragged']()
@@ -767,12 +767,12 @@ def main(path='', standalone=False):
     def on_mouse_press(x, y, button, modifiers):
         sketch.mouse_pressed = True
         sketch.mouse_button = button
-        sketch._mouse_pos = np.array([x, sketch.window_height-y])
+        sketch._mouse_pos = np.array([x, sketch.window_height-y-sketch.toolbar_height])
 
     #@sketch.window.event
     def on_mouse_release(x, y, button, modifiers):
         sketch.mouse_pressed = False
-        sketch._mouse_pos = np.array([x, sketch.window_height-y])
+        sketch._mouse_pos = np.array([x, sketch.window_height-y-sketch.toolbar_height])
 
     sketch.window.push_handlers(on_key_press,
                                 on_mouse_motion,
