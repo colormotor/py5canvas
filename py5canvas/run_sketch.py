@@ -18,7 +18,7 @@ It will probably be significantly slow when using a large canvas size
 
 # importing pyglet module
 import pyglet
-#pyglet.options['osx_alt_loop'] = True
+pyglet.options['osx_alt_loop'] = True
 
 # from pyglet.window import key
 import numpy as np
@@ -28,6 +28,7 @@ import traceback
 import importlib
 import threading
 import cairo
+from inspect import signature
 
 #master = tkinter.Tk()
 #from tkinter import filedialog
@@ -129,6 +130,7 @@ class Sketch:
         self.params = None
         self.gui = None
         self.gui_callback = None
+        self.gui_focus = False
         if standalone:
             self.toolbar_height = 0
         else:
@@ -168,11 +170,13 @@ class Sketch:
         self.prev_mouse = None
         self.mouse_delta = np.zeros(2)
         self.mouse_button = 0
-        self.mouse_pressed = False
+        self.dragging = False
         self.mouse_moving = False
 
         self.prog_uses_imgui = False
-        
+
+        #self.keys = pyglet.window.key
+
         # Check if OSC is available
         osc_loader = importlib.find_loader('pythonosc')
         if osc_loader is not None:
@@ -208,6 +212,7 @@ class Sketch:
     def parameters(self, params):
         self.params = sketch_params.SketchParams(params, self.path)
         print('Setting params', self.params)
+        self.params.load()
         return self.params.params
 
     def has_error(self):
@@ -305,6 +310,7 @@ class Sketch:
             sketch_params.set_theme(hue)
 
     def set_gui_callback(self, func):
+        print("set_gui_callback is deprectated. Use the `gui` function in your sketch instead")
         self.gui_callback = func
 
     def load(self, path):
@@ -445,12 +451,16 @@ class Sketch:
             # var_context['c'] = self.canvas
             exec(prog, var_context)
 
-            # call setup
-            var_context['setup']()
-            # Once we have called setup load parameters if available:
             print('Maybe load params')
             if self.params is not None:
                 print('load params')
+                self.params.load()
+            # call setup
+            var_context['setup']()
+            # User might create parameters in setup
+            print('Maybe load params')
+            if self.params is not None:
+                print('load params after setup')
                 self.params.load()
             self.startup_error = False
             print("Success")
@@ -482,6 +492,7 @@ class Sketch:
         #     print(self.mouse_pos)
         #     print(self.mouse_delta)
 
+
     def update_globals(self):
         self.var_context['delta_time'] = self._delta_time
         self.var_context['frame_count'] = self._frame_count
@@ -489,7 +500,10 @@ class Sketch:
         self.var_context['height'] = self.height
         # Expose canvas globally
         self.var_context['c'] = self.canvas
-        self.var_context['mouse_pressed'] = self.mouse_pressed
+        # HACK keep mouse_pressed as a flag for backwards compatibility, but must be deprecated
+        if 'mouse_pressed' not in self.var_context or not callable(self.var_context['mouse_pressed']):
+            self.var_context['mouse_pressed'] = self.dragging
+        self.var_context['dragging'] = self.dragging
         self.var_context['mouse_delta'] = self.mouse_delta
         self.var_context['mouse_pos'] = self.mouse_pos
 
@@ -542,7 +556,13 @@ class Sketch:
                     self.gui_callback is not None or
                     self.prog_uses_imgui):
                     self.gui.begin_gui(self)
-                    
+
+                if 'gui' in self.var_context and callable(self.var_context['gui']):
+                    if self.gui.show_sketch_controls():
+                        self.var_context['gui']()
+                # Check focus
+                #self.gui_focus = imgui.core.is_window_hovered()
+                #print('gui focus', self.gui_focus)
         with perf_timer('update'):
             if not self.runtime_error or self._frame_count==0:
                 try:
@@ -577,16 +597,16 @@ class Sketch:
         # Update timers etc
         self._frame_count += 1
 
-
         if imgui is not None:
             if self.gui is not None:
                 if (self.params or
                     self.gui_callback is not None or
                     self.prog_uses_imgui):
                     self.gui.from_params(self, self.gui_callback, init=False)
+            if 'gui_window' in self.var_context and callable(self.var_context['gui_window']):
+                self.var_context['gui_window']()
             if not self.standalone:
                 self.gui.toolbar(self)
-
             # Required for render to work in draw callback
             try:
                 imgui.end_frame()
@@ -608,6 +628,7 @@ class Sketch:
             self.recording_context = None
             self.saving_svg = ''
             self.done_svg_drawing = False
+
         # NB need to check pyglet's draw loop, but clearing here will break when the frame-rate
         # is low or in other cases?
         # # Draw to window
@@ -702,6 +723,7 @@ class Sketch:
         if self.params is not None and not self.has_error():
             self.params.save()
 
+
 def main(path='', standalone=False):
     from importlib import reload
     mouse_moving = False
@@ -719,14 +741,20 @@ def main(path='', standalone=False):
     def exit():
         pass
 
-    def key_pressed(k, modifier):
-        pass
+    # def key_pressed(k, modifier):
+    #     pass
 
-    def mouse_moved():
-        pass
+    # def mouse_moved():
+    #     pass
 
-    def mouse_dragged():
-        pass
+    # def mouse_dragged():
+    #     pass
+
+    # def mouse_pressed():
+    #     pass
+
+    # def mouse_released():
+    #     pass
 
     # if len(sys.argv) < 2:
     #     print('You need to specify a python sketch file in the arguments')
@@ -743,36 +771,80 @@ def main(path='', standalone=False):
     # Create our sketch context and load script
     sketch = Sketch(path, 512, 512, standalone=standalone)
 
+    def canvas_pos(x, y):
+        return np.array([x, sketch.window_height-y-sketch.toolbar_height])
+
+    def check_callback(name):
+        if not name in sketch.var_context:
+            return False
+        return callable(sketch.var_context[name])
+
+    def imgui_focus():
+        #return False
+        print('Gui focus', sketch.gui_focus)
+        return imgui.core.is_any_item_active()
+
+    def point_in_canvas(p):
+        return (p[0] >= 0 and p[0] < sketch.canvas.width and
+                p[1] >= 0 and p[1] < sketch.canvas.height)
+
     #@sketch.window.event
     def on_key_press(symbol, modifier):
+        if imgui_focus():
+            return
         # print('Key pressed')
-        if 'key_pressed' in sketch.var_context:
-            sketch.var_context['key_pressed'](symbol, modifier)
+        if check_callback('key_pressed'):
+            params = [symbol, modifier]
+            sig = signature(sketch.var_context['key_pressed'])
+            sketch.var_context['key_pressed'](*params[:len(sig.parameters)])
 
     #@sketch.window.event
     def on_mouse_motion(x, y, dx, dy):
-        sketch._mouse_pos = np.array([x, sketch.window_height-y-sketch.toolbar_height])
+        sketch._mouse_pos = canvas_pos(x, y) #np.array([x, sketch.window_height-y-sketch.toolbar_height])
         #print((x, y, dx, dy))
-        if 'mouse_moved' in sketch.var_context:
+        if check_callback('mouse_moved'):
             sketch.var_context['mouse_moved']()
 
     #@sketch.window.event
     def on_mouse_drag(x, y, dx, dy, buttons, modifiers):
-        sketch._mouse_pos = np.array([x, sketch.window_height-y-sketch.toolbar_height])
-        sketch.mouse_pressed = True
-        if 'mouse_dragged' in sketch.var_context:
-            sketch.var_context['mouse_dragged']()
+        pos = canvas_pos(x, y)
+        sketch._mouse_pos = pos #canvas_pos(x, y) #np.array([x, sketch.window_height-y-sketch.toolbar_height])
+        if imgui_focus():
+            return
+        if not point_in_canvas(pos):
+            return
+
+        sketch.dragging = True
+        if check_callback('mouse_dragged'):
+            params = [buttons, modifiers]
+            sig = signature(sketch.var_context['mouse_dragged'])
+            sketch.var_context['mouse_dragged'](*params[:len(sig.parameters)])
 
     #@sketch.window.event
     def on_mouse_press(x, y, button, modifiers):
-        sketch.mouse_pressed = True
+        pos = canvas_pos(x, y)
+        if imgui_focus():
+            return
+        if not point_in_canvas(pos):
+            return
+
+        sketch.dragging = True
         sketch.mouse_button = button
-        sketch._mouse_pos = np.array([x, sketch.window_height-y-sketch.toolbar_height])
+        sketch._mouse_pos = pos #np.array([x, sketch.window_height-y-sketch.toolbar_height])
+        if check_callback('mouse_pressed'):
+            params = [button, modifiers]
+            sig = signature(sketch.var_context['mouse_pressed'])
+            sketch.var_context['mouse_pressed'](*params[:len(sig.parameters)])
 
     #@sketch.window.event
     def on_mouse_release(x, y, button, modifiers):
-        sketch.mouse_pressed = False
-        sketch._mouse_pos = np.array([x, sketch.window_height-y-sketch.toolbar_height])
+        pos = canvas_pos(x, y)
+        sketch.dragging = False
+        sketch._mouse_pos = pos #np.array([x, sketch.window_height-y-sketch.toolbar_height])
+        if check_callback('mouse_released'):
+            params = [button, modifiers]
+            sig = signature(sketch.var_context['mouse_released'])
+            sketch.var_context['mouse_released'](*params[:len(sig.parameters)])
 
     sketch.window.push_handlers(on_key_press,
                                 on_mouse_motion,

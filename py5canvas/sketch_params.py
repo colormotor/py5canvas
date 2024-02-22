@@ -405,6 +405,7 @@ if imgui is not None:
         def toolbar(self, sketch):
             self.sketch = sketch
             # Top bar
+            ratio = sketch.window.get_pixel_ratio()
             imgui.set_next_window_size(sketch.window_width, sketch.toolbar_height)
             imgui.set_next_window_position(0, 0)
             imgui.begin("Toolbar", True, (imgui.WINDOW_NO_RESIZE |
@@ -454,12 +455,16 @@ if imgui is not None:
 
         def begin_gui(self, sketch):
             self.sketch = sketch
-            imgui.set_next_window_size(self.width, sketch.window_height - sketch.toolbar_height)
-            imgui.set_next_window_position(sketch.window_width - self.width, sketch.toolbar_height)
+            ratio = 1 #sketch.window.get_pixel_ratio()
+            imgui.set_next_window_size(self.width, (sketch.window_height - sketch.toolbar_height)*ratio)
+            imgui.set_next_window_position((sketch.window_width - self.width)*ratio, sketch.toolbar_height)
             imgui.begin("Py5sketch", True, (imgui.WINDOW_NO_RESIZE |
                                             imgui.WINDOW_NO_TITLE_BAR |
                                             imgui.WINDOW_NO_SAVED_SETTINGS))
             imgui.begin_child("Sketch")
+
+        def show_sketch_controls(self):
+            return imgui.collapsing_header("Controls", None, imgui.TREE_NODE_DEFAULT_OPEN)[0]
 
         def from_params(self, sketch, callback=None, init=True):
             self.sketch = sketch
@@ -467,18 +472,10 @@ if imgui is not None:
             if init:
                 self.begin_gui()
             
-            try:
-                if callback is not None:
-                    if imgui.collapsing_header("Controls", None, imgui.TREE_NODE_DEFAULT_OPEN)[0]:
-                        callback()
-            except Exception as e:
-                print(e)
-                traceback.print_exc()
 
             if imgui.collapsing_header("Parameters", None, imgui.TREE_NODE_DEFAULT_OPEN)[0]:
                 if sketch.params is not None:
                     self.show_params(sketch.params.params, sketch.params.gui_params)
-
 
             # Presets
             imgui.spacing()
