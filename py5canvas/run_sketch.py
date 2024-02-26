@@ -477,7 +477,7 @@ class Sketch:
 
     def _update_mouse(self):
         # workaround for backwards compatibility (deprecating 'mouse_pressed')
-        # self.mouse_pressed = self.dragging
+        self.mouse_pressed = self.dragging
         if self._mouse_pos is None:
             return
 
