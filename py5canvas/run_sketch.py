@@ -477,7 +477,7 @@ class Sketch:
 
     def _update_mouse(self):
         # workaround for backwards compatibility (deprecating 'mouse_pressed')
-        self.mouse_pressed = self.dragging
+        # self.mouse_pressed = self.dragging
         if self._mouse_pos is None:
             return
 
@@ -794,6 +794,8 @@ def main(path='', standalone=False):
         return callable(sketch.var_context[name])
 
     def imgui_focus():
+        if imgui is None:
+            return False
         #return False
         return imgui.core.is_any_item_active()
 
