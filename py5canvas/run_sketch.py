@@ -476,6 +476,8 @@ class Sketch:
             self.canvas.ctx.pop_context()
 
     def _update_mouse(self):
+        # workaround for backwards compatibility (deprecating 'mouse_pressed')
+        self.mouse_pressed = self.dragging
         if self._mouse_pos is None:
             return
 
@@ -501,6 +503,7 @@ class Sketch:
         # Expose canvas globally
         self.var_context['c'] = self.canvas
         # HACK keep mouse_pressed as a flag for backwards compatibility, but must be deprecated
+
         if 'mouse_pressed' not in self.var_context or not callable(self.var_context['mouse_pressed']):
             self.var_context['mouse_pressed'] = self.dragging
         self.var_context['dragging'] = self.dragging
@@ -749,9 +752,6 @@ def main(path='', standalone=False):
     def draw():
         pass
 
-    def gui():
-        pass
-
     def exit():
         pass
 
@@ -795,7 +795,6 @@ def main(path='', standalone=False):
 
     def imgui_focus():
         #return False
-        print('Gui focus', sketch.gui_focus)
         return imgui.core.is_any_item_active()
 
     def point_in_canvas(p):
