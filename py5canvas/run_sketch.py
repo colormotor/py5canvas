@@ -558,8 +558,15 @@ class Sketch:
                     self.gui.begin_gui(self)
 
                 if 'gui' in self.var_context and callable(self.var_context['gui']):
-                    if self.gui.show_sketch_controls():
-                        self.var_context['gui']()
+                    try:
+                        if self.gui.show_sketch_controls():
+                            self.var_context['gui']()
+                    except Exception as e:
+                        print('Error in sketch gui()')
+                        print(e)
+                        self.error_label.text = str(e)
+                        self.runtime_error = True
+                        traceback.print_exc()
                 # Check focus
                 #self.gui_focus = imgui.core.is_window_hovered()
                 #print('gui focus', self.gui_focus)
@@ -604,7 +611,14 @@ class Sketch:
                     self.prog_uses_imgui):
                     self.gui.from_params(self, self.gui_callback, init=False)
             if 'gui_window' in self.var_context and callable(self.var_context['gui_window']):
-                self.var_context['gui_window']()
+                try:
+                    self.var_context['gui_window']()
+                except Exception as e:
+                    print('Error in sketch gui_window()')
+                    print(e)
+                    self.error_label.text = str(e)
+                    self.runtime_error = True
+                    traceback.print_exc()
             if not self.standalone:
                 self.gui.toolbar(self)
             # Required for render to work in draw callback
