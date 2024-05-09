@@ -140,7 +140,7 @@ class Canvas:
     param height: int, height of the canvas in pixels
     param clear_callback: function, a callback to be called when the canvas is cleared (for internal use mostly)
     """
-    def __init__(self, width, height, clear_callback=lambda: None):
+    def __init__(self, width, height, clear_callback=lambda: None, output_file=''):
         """ Constructor"""
         # See https://pycairo.readthedocs.io/en/latest/reference/context.html
         surf = cairo.ImageSurface(cairo.FORMAT_ARGB32, width, height)
@@ -182,6 +182,13 @@ class Canvas:
 
         # Utils
         self._cur_point = []
+
+        self.output_file = output_file
+        if output_file:
+            self.recording_surface = cairo.RecordingSurface(cairo.CONTENT_COLOR_ALPHA, None)
+            recording_context = cairo.Context(self.recording_surface)
+            self.ctx.push_context(recording_context)
+
 
     def set_color_scale(self, scale):
         """Set color scale, e.g. if we want to specify colors in the `0`-`255` range, scale would be `255`,
@@ -843,6 +850,26 @@ class Canvas:
         self.ctx.paint()
         self.ctx.set_source_surface(self.surf)
 
+    def Image(self):
+        from PIL import Image
+        return Image.fromarray(self.get_image())
+
+    def save(self):
+        ''' Save the canvas to an image'''
+        if not self.output_file:
+            print('No output file specified')
+            return
+        if '.svg' in self.output_file:
+            svg_surf = cairo.SVGSurface(self.output_file, self.width, self.height)
+            svg_ctx = cairo.Context(svg_surf)
+            svg_ctx.set_source_surface(self.surf)
+            svg_ctx.paint()
+            svg_ctx.set_source_surface(self.recording_surface)
+            svg_ctx.paint()
+            svg_surf.finish()
+        else:
+            self.surf.write_to_png(self.output_file)
+
     def show(self, size=None, title='', axis=False):
         import matplotlib.pyplot as plt
         if size is not None:
@@ -855,6 +882,27 @@ class Canvas:
         if not axis:
             plt.gca().axis('off')
         plt.show()
+
+    def _convert_html_color(self, html_color):
+        # Remove '#' if present
+        if html_color.startswith('#'):
+            html_color = html_color[1:]
+
+        # Extract RGB or RGBA components
+        if len(html_color) == 6:
+            r = int(html_color[:2], 16) / 255.0
+            g = int(html_color[2:4], 16) / 255.0
+            b = int(html_color[4:6], 16) / 255.0
+            return np.array([r, g, b, 1.0])
+        elif len(html_color) == 8:
+            r = int(html_color[:2], 16) / 255.0
+            g = int(html_color[2:4], 16) / 255.0
+            b = int(html_color[4:6], 16) / 255.0
+            a = int(html_color[6:8], 16) / 255.0
+            return np.array([r, g, b, a])
+        else:
+            raise ValueError("Invalid HTML color format")
+
 
     def _convert_rgb(self, x):
         if len(x)==1:
@@ -869,7 +917,9 @@ class Canvas:
 
     def _convert_rgba(self, x):
         if len(x)==1:
-            if not is_number(x[0]): # array like input
+            if type(x[0]) == str:
+                return self._convert_html_color(x[0])
+            elif not is_number(x[0]): # array like input
                 return np.array(x[0])/self.color_scale
             return (x[0]/self.color_scale,
                     x[0]/self.color_scale,
@@ -1037,7 +1087,7 @@ class VideoInput:
             dst_w, dst_h = self.size
 
             if self.resize_mode == 'crop':
-
+                print('Resizing with crop')
                 # Keep aspect ratio by cropping
                 aspect = dst_w / dst_h
 

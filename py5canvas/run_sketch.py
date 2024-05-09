@@ -30,6 +30,11 @@ import threading
 import cairo
 from inspect import signature
 
+# Try getting colored traceback
+IPython_loader = importlib.find_loader('IPython')
+if IPython_loader is not None:
+    from IPython.core.ultratb import ColorTB
+
 #master = tkinter.Tk()
 #from tkinter import filedialog
 
@@ -51,6 +56,13 @@ app_path = os.path.dirname(os.path.realpath(__file__))
 print('Running in ' + app_path)
 
 app_settings = {'script': ''}
+
+def print_traceback():
+    if IPython_loader is not None:
+        # https://stackoverflow.com/questions/14775916/coloring-exceptions-from-python-on-a-terminal
+        print(''.join(ColorTB().structured_traceback(*sys.exc_info())))
+    else:
+        traceback.print_exc()
 
 class perf_timer:
     def __init__(self, name='', verbose=False): # Set verbose to true for debugging
@@ -391,7 +403,7 @@ class Sketch:
             except Exception as e:
                 print('Error in exit')
                 print(e)
-                traceback.print_exc()
+                print_traceback()
 
         # And reset
         self.params = None
@@ -469,7 +481,7 @@ class Sketch:
             print(e)
             self.startup_error = True
             self.error_label.text = str(e)
-            traceback.print_exc()
+            print_traceback()
         # create_canvas created and added a recording context so pop it in case (if no error)
         if len(self.canvas.ctx.ctxs) > 1:
             print('Removing setup recording context')
@@ -562,14 +574,14 @@ class Sketch:
 
                 if 'gui' in self.var_context and callable(self.var_context['gui']):
                     try:
-                        if self.gui.show_sketch_controls():
+                        if self.gui.show_sketch_controls() and not self.runtime_error:
                             self.var_context['gui']()
                     except Exception as e:
                         print('Error in sketch gui()')
                         print(e)
                         self.error_label.text = str(e)
                         self.runtime_error = True
-                        traceback.print_exc()
+                        print_traceback()
                 # Check focus
                 #self.gui_focus = imgui.core.is_window_hovered()
                 #print('gui focus', self.gui_focus)
@@ -587,7 +599,7 @@ class Sketch:
                     print(e)
                     self.error_label.text = str(e)
                     self.runtime_error = True
-                    traceback.print_exc()
+                    print_traceback()
 
         pitch = self.width * 4
         with perf_timer('get buffer'):
@@ -621,7 +633,7 @@ class Sketch:
                     print(e)
                     self.error_label.text = str(e)
                     self.runtime_error = True
-                    traceback.print_exc()
+                    print_traceback()
             if not self.standalone:
                 self.gui.toolbar(self)
             # Required for render to work in draw callback
@@ -901,7 +913,7 @@ def main(path='', standalone=False):
                 print(e)
                 sketch.error_label.text = str(e)
                 sketch.runtime_error = True
-                traceback.print_exc()
+                print_traceback()
 
 
         if imgui is not None:
