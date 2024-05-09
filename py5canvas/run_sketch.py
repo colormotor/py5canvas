@@ -542,7 +542,9 @@ class Sketch:
             except imgui.core.ImGuiError as e:
                 print('Error in imgui new_frame')
                 print(e)
-
+                self.error_label.text = str(e)
+                self.runtime_error = True
+                traceback.print_exc()
             # print('New frame')
             # # For some reason this only works here and not in the constructor.
             # if self.impl is None:
