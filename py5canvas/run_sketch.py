@@ -554,7 +554,9 @@ class Sketch:
             except imgui.core.ImGuiError as e:
                 print('Error in imgui new_frame')
                 print(e)
-
+                self.error_label.text = str(e)
+                self.runtime_error = True
+                traceback.print_exc()
             # print('New frame')
             # # For some reason this only works here and not in the constructor.
             # if self.impl is None:
@@ -748,9 +750,12 @@ class Sketch:
             self.server_thread.join()
             print("Stopped")
         if imgui is not None:
+            print("Stopping imgui")
             self.impl.shutdown()
         if self.params is not None and not self.has_error():
+            print("Saving params")
             self.params.save()
+        print("End cleanup")
 
 
 def main(path='', standalone=False):
@@ -931,10 +936,14 @@ def main(path='', standalone=False):
             print('Saving params')
             sketch.params.save()
 
+        if 'exit' in sketch.var_context:
+            sketch.var_context['exit']()
+
         print("Saving settings")
         sketch_params.save_json(app_settings, os.path.join(app_path, 'settings.json'))
         sketch.cleanup()
-
+        print("End close")
+        
     @sketch.window.event
     def on_close():
         print('Close window event')
