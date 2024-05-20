@@ -9,7 +9,6 @@ b = new_points()
 
 frame_interval = 60
 
-
 def setup():
     create_canvas(800, 600)
 
