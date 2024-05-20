@@ -158,10 +158,10 @@ class Sketch:
         self.video_writer = None
         self.video_fps = 30
 
-        self.saving_svg = ''
+        self.saving_to_file = ''
         self.recording_context = None
         self.recording_surface = None
-        self.done_svg_drawing = False
+        self.done_saving = False
 
         self.error_label = pyglet.text.Label('Error',
                            font_name='Arial',
@@ -235,7 +235,7 @@ class Sketch:
         import xdialog
         if np.isscalar(exts):
             exts = [exts]
-        filetypes = [(ext, "*." + ext) for ext in exts]
+        filetypes = [(ext + ' files', "*." + ext) for ext in exts]
         return xdialog.open_file(title, filetypes=filetypes, multiple=False)
 
     def save_file_dialog(self, exts, title='Open file...', filename='untitled'):
@@ -294,20 +294,20 @@ class Sketch:
         self.gui = sketch_params.SketchGui(width)
         self._create_canvas(w + width, h + self.toolbar_height, (w, h), fullscreen)
 
-    def dump_svg(self, path):
+    def dump_canvas(self, path):
         ''' Tells the sketch to dump the next frame to an SVG file '''
         if '~' in path:
             path = os.path.expanduser(path)
-        self.saving_svg = os.path.abspath(path)
-        print('saving svg to', self.saving_svg)
+        self.saving_to_file = os.path.abspath(path)
+        print('saving file to', self.saving_to_file)
         # Since this can be called in frame, we need to make sure we don't save svg righ after
-        self.done_svg_drawing = False
+        self.done_saving = False
         # Create a recording surface and context and add it to canvas
         self.recording_surface = cairo.RecordingSurface(cairo.CONTENT_COLOR_ALPHA, None)
         self.recording_context = cairo.Context(self.recording_surface)
         self.canvas.ctx.push_context(self.recording_context)
 
-    save_svg = dump_svg
+    save_canvas = dump_canvas
 
     def toggle_fullscreen(self):
         self.fullscreen(not self.is_fullscreen)
@@ -455,7 +455,8 @@ class Sketch:
             var_context['create_canvas'] = wrap_method(self, 'create_canvas')
             var_context['size'] = var_context['create_canvas'] # For compatibility
             var_context['create_canvas_gui'] = wrap_method(self, 'create_canvas_gui')
-            var_context['save_svg'] = wrap_method(self, 'dump_svg')
+            var_context['save_svg'] = wrap_method(self, 'dump_canvas')
+            var_context['save_canvas'] = wrap_method(self, 'dump_canvas')
             var_context['VideoInput'] = canvas.VideoInput
             # And also expose canvas as 'c' since the functions in the canvas are quite common names and
             # might be easily overwritten
@@ -564,8 +565,8 @@ class Sketch:
             #     self.impl = create_renderer(self.window)
 
             # imgui.new_frame()
-        if self.saving_svg:
-            self.done_svg_drawing = True
+        if self.saving_to_file:
+            self.done_saving = True
 
         if imgui is not None:
             if self.gui is not None:
@@ -644,21 +645,24 @@ class Sketch:
             except imgui.core.ImGuiError as e:
                 print(e)
 
-        if self.saving_svg and self.done_svg_drawing:
-            print('saving svg')
-            svg_surf = cairo.SVGSurface(self.saving_svg, self.canvas.width, self.canvas.height)
-            svg_ctx = cairo.Context(svg_surf)
-            svg_ctx.set_source_surface(self.setup_surface)
-            svg_ctx.paint()
-            svg_ctx.set_source_surface(self.recording_surface)
-            svg_ctx.paint()
-            svg_surf.finish()
-            print('removing svg context')
+        if self.saving_to_file and self.done_saving:
+            print('saving to ', self.saving_to_file)
+            if '.svg' in self.saving_to_file:
+                surf = cairo.SVGSurface(self.saving_to_file, self.canvas.width, self.canvas.height)
+            elif '.pdf' in self.saving_to_file:
+                surf = cairo.PDFSurface(self.saving_to_file, self.canvas.width, self.canvas.height)
+            ctx = cairo.Context(surf)
+            ctx.set_source_surface(self.setup_surface)
+            ctx.paint()
+            ctx.set_source_surface(self.recording_surface)
+            ctx.paint()
+            surf.finish()
+            print('removing saving context')
             self.canvas.ctx.pop_context()
             self.recording_surface = None
             self.recording_context = None
-            self.saving_svg = ''
-            self.done_svg_drawing = False
+            self.saving_to_file = ''
+            self.done_saving = False
 
         # NB need to check pyglet's draw loop, but clearing here will break when the frame-rate
         # is low or in other cases?

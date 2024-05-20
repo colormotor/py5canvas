@@ -441,7 +441,13 @@ if imgui is not None:
                 name = os.path.splitext(os.path.basename(sketch.path))[0]
                 path = sketch.save_file_dialog('svg', filename=name)
                 if path:
-                    sketch.dump_svg(path)
+                    sketch.dump_canvas(path)
+            imgui.same_line()
+            if imgui.button('Save PDF...'):
+                name = os.path.splitext(os.path.basename(sketch.path))[0]
+                path = sketch.save_file_dialog('pdf', filename=name)
+                if path:
+                    sketch.dump_canvas(path)
             if imgui.is_item_hovered():
                 with imgui.begin_tooltip():
                     imgui.text('Save sketch output as SVG')

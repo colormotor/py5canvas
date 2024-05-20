@@ -140,7 +140,7 @@ class Canvas:
     param height: int, height of the canvas in pixels
     param clear_callback: function, a callback to be called when the canvas is cleared (for internal use mostly)
     """
-    def __init__(self, width, height, clear_callback=lambda: None, output_file=''):
+    def __init__(self, width, height, background=(0.0, 0.0, 0.0, 255.0), clear_callback=lambda: None, output_file=''):
         """ Constructor"""
         # See https://pycairo.readthedocs.io/en/latest/reference/context.html
         surf = cairo.ImageSurface(cairo.FORMAT_ARGB32, width, height)
@@ -151,7 +151,7 @@ class Canvas:
 
         ctx.set_fill_rule(cairo.FILL_RULE_EVEN_ODD) #FILL_RULE_WINDING) #EVEN_ODD)
         ctx.set_line_join(cairo.LINE_JOIN_MITER)
-        ctx.set_source_rgba(0.0, 0.0, 0.0, 255.0)
+        ctx.set_source_rgba(*background)
         ctx.rectangle(0,0,width,height)
         ctx.fill()
 
@@ -846,6 +846,13 @@ class Canvas:
     def save_svg(self, path):
         ''' Save the canvas to an svg file'''
         svg_surf = cairo.SVGSurface(path, self.width, self.height)
+        self.ctx.set_source_surface(svg_surf)
+        self.ctx.paint()
+        self.ctx.set_source_surface(self.surf)
+
+    def save_pdf(self, path):
+        ''' Save the canvas to an svg file'''
+        svg_surf = cairo.PDFSurface(path, self.width, self.height)
         self.ctx.set_source_surface(svg_surf)
         self.ctx.paint()
         self.ctx.set_source_surface(self.surf)
