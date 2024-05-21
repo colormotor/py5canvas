@@ -186,6 +186,7 @@ class Sketch:
         self.mouse_moving = False
 
         self.prog_uses_imgui = False
+        self.saved_canvas_size = []
 
         #self.keys = pyglet.window.key
 
@@ -277,8 +278,8 @@ class Sketch:
         buf = (pyglet.gl.GLubyte * len(buf))(*buf)
         self.image = pyglet.image.ImageData(*canvas_size, "BGRA", buf)
 
-    def create_canvas(self, w, h, gui_width=300, fullscreen=False):
-        if imgui is None:
+    def create_canvas(self, w, h, gui_width=300, fullscreen=False, with_gui=True):
+        if imgui is None or not with_gui:
             self._create_canvas(w, h, fullscreen=fullscreen)
             return
         if self.params or self.gui_callback is not None:
@@ -316,6 +317,11 @@ class Sketch:
         self.is_fullscreen = flag
         self.window.set_fullscreen(flag)
         self.window_width, self.window_height = self.window.get_size()
+        # if flag:
+        #     self.saved_canvas_size = [self.canvas.width, self.canvas.height]
+        #     self._create_canvas(self.window_width, self.window_height, fullscreen=True)
+        # else:
+        #     self._create_canvas(*self.saved_canvas_size, fullscreen=False)
 
     def set_gui_theme(self, hue):
         if self.gui is not None:
@@ -740,7 +746,7 @@ class Sketch:
         ''' Send an OSC message'''
         self.oscclient.send_message(addr, val)
 
-    def _handle_osc(self, addr, args):
+    def _handle_osc(self, addr, *args):
         print('received: ' + addr)
         print(args)
         if 'received_osc' in self.var_context:
