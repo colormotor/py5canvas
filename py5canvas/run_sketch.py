@@ -95,11 +95,13 @@ def load_json(path):
 class FileWatcher:
     """Checks if a file has been modified"""
     def __init__(self, path):
-        self._cached_stamp = 0
+        self._cached_stamp = None
         self.filename = path
 
     def modified(self):
         stamp = os.stat(self.filename).st_mtime
+        if self._cached_stamp is None:
+            self._cached_stamp = stamp
         if stamp != self._cached_stamp:
             self._cached_stamp = stamp
             return True
@@ -133,8 +135,10 @@ class Sketch:
         #                           samples=4,
         #                           depth_size=16,
         #                           double_buffer=True, )
-
-        self.window = pyglet.window.Window(width, height, title)
+        self.title = title
+        # display = pyglet.canvas.get_display()
+        # screens = display.get_screens()
+        self.window = pyglet.window.Window(width, height, title) #, style='borderless')
         self.window.set_vsync(False)
         self.standalone = standalone
         self.width, self.height = width, height
@@ -147,6 +151,8 @@ class Sketch:
             self.toolbar_height = 0
         else:
             self.toolbar_height = 30
+        self._gui_visible = True
+        self.keep_aspect_ratio = True
         self.create_canvas(self.width, self.height)
         # self.frame_rate(60)
         self.startup_error = False
@@ -186,7 +192,8 @@ class Sketch:
         self.mouse_moving = False
 
         self.prog_uses_imgui = False
-        self.saved_canvas_size = []
+
+        self.blit_scale_factor = (1.0, 1.0)
 
         #self.keys = pyglet.window.key
 
@@ -249,10 +256,13 @@ class Sketch:
     def open_folder_dialog(self, title='Open folder...'):
         return xdialog.directory(title)
 
-    def _create_canvas(self, w, h, canvas_size=None, fullscreen=False):
+    def _create_canvas(self, w, h, canvas_size=None, fullscreen=False, screen=None):
         self.is_fullscreen = fullscreen
+        #if screen is not None:
+        #    self.window = pyglet.window.Window(w, h, self.title, screen=screen)
+        self.window.set_vsync(False)
         self.window.set_size(w, h)
-        self.window.set_fullscreen(fullscreen)
+        self.window.set_fullscreen(fullscreen, screen)
         # Note, the canvas size may be different from the sketch size
         # for example when automatically creating a UI...
         if canvas_size is None:
@@ -278,22 +288,35 @@ class Sketch:
         buf = (pyglet.gl.GLubyte * len(buf))(*buf)
         self.image = pyglet.image.ImageData(*canvas_size, "BGRA", buf)
 
-    def create_canvas(self, w, h, gui_width=300, fullscreen=False, with_gui=True):
+    def create_canvas(self, w, h, gui_width=300, fullscreen=False, with_gui=True, screen=None):
         if imgui is None or not with_gui:
-            self._create_canvas(w, h, fullscreen=fullscreen)
+            print("Creating canvas no gui")
+            self._create_canvas(w, h, fullscreen=fullscreen, screen=screen)
             return
         if self.params or self.gui_callback is not None:
-            self.create_canvas_gui(w, h, gui_width, fullscreen)
+            self.create_canvas_gui(w, h, gui_width, fullscreen, screen=screen)
         else:
             self.gui = sketch_params.SketchGui(gui_width)
-            self._create_canvas(w, h + self.toolbar_height, (w, h), fullscreen)
+            self._create_canvas(w, h + self.toolbar_height, (w, h), fullscreen, screen=screen)
 
-    def create_canvas_gui(self, w, h, width=300, fullscreen=False):
+    @property
+    def canvas_display_width(self):
+        if self._gui_visible:
+            return self.window_width - self.gui.width
+        return self.window_width
+
+    @property
+    def canvas_display_height(self):
+        if self._gui_visible:
+            return self.window_height - self.toolbar_height
+        return self.window_height
+
+    def create_canvas_gui(self, w, h, width=300, fullscreen=False, screen=None):
         if imgui is None:
             print('Install ImGui to run UI')
             return self.create_canvas(w, h, fullscreen)
         self.gui = sketch_params.SketchGui(width)
-        self._create_canvas(w + width, h + self.toolbar_height, (w, h), fullscreen)
+        self._create_canvas(w + self.gui.width, h + self.toolbar_height, (w, h), fullscreen, screen=screen)
 
     def dump_canvas(self, path):
         ''' Tells the sketch to dump the next frame to an SVG file '''
@@ -310,18 +333,73 @@ class Sketch:
 
     save_canvas = dump_canvas
 
-    def toggle_fullscreen(self):
-        self.fullscreen(not self.is_fullscreen)
+    # def get_screen(self):
+    #     window_x, window_y = self.window.get_location()
+    #     display = pyglet.canvas.get_display()
+    #     print(display.get_screens())
+    #     for screen in display.get_screens():
 
-    def fullscreen(self, flag):
-        self.is_fullscreen = flag
-        self.window.set_fullscreen(flag)
-        self.window_width, self.window_height = self.window.get_size()
-        # if flag:
-        #     self.saved_canvas_size = [self.canvas.width, self.canvas.height]
-        #     self._create_canvas(self.window_width, self.window_height, fullscreen=True)
-        # else:
-        #     self._create_canvas(*self.saved_canvas_size, fullscreen=False)
+    #         screen_x, screen_y = screen.x, screen.y
+    #         screen_width, screen_height = screen.width, screen.height
+
+    #         if (screen_x <= window_x < screen_x + screen_width and
+    #             screen_y <= window_y < screen_y + screen_height):
+    #             print("Found screen")
+    #             return screen
+
+    #     return None
+
+    def show_gui(self, flag, screen_index=-1):
+        if self.gui is None:
+            return
+        self._gui_visible = flag
+        #screen = self.window.screen
+        #if screen_index > -1:
+        #    screen = self.get_screen(screen_index)
+        self.window.set_fullscreen(False)
+        self.create_canvas(self.canvas.width,
+                           self.canvas.height,
+                           self.gui.width,
+                           self.is_fullscreen,
+                           flag) #screen=screen)
+
+    def toggle_fullscreen(self, toggle_gui=False, screen_index=-1):
+        self.fullscreen(not self.is_fullscreen,
+                        toggle_gui=toggle_gui,
+                        screen_index=screen_index)
+
+    def get_screen(self, index):
+        # TODO fixme
+        display = pyglet.canvas.get_display()
+        screens = display.get_screens()
+        if index < len(screens) and index >= 0:
+            return screens[index]
+        print("Invalid screen index for display")
+        return None
+
+    def fullscreen(self, flag, toggle_gui=False, screen_index=-1):
+        # old_window_width = self.canvas_display_width
+        # old_window_height = self.canvas_display_height
+        if toggle_gui:
+            self.is_fullscreen = flag
+            self.show_gui(not flag) #, screen_index)
+            return
+
+        self.window.set_fullscreen(False)
+        self.create_canvas(self.canvas.width,
+                           self.canvas.height,
+                           self.gui.width,
+                           flag,
+                           flag)
+                           #screen=self.get_screen(screen_index))
+
+
+        # self.window.set_fullscreen(flag)
+        # self.window_width, self.window_height = self.window.get_size()
+        # print('Window size:', self.window_width, self.window_height)
+
+        # self.is_fullscreen = flag
+
 
     def set_gui_theme(self, hue):
         if self.gui is not None:
@@ -428,7 +506,7 @@ class Sketch:
             self.watcher = FileWatcher(self.path)
         # Attempt to compile script
         try:
-            print("Compiling")
+            print("Compiling script", self.path)
             prog_text = open(self.path).read()
             if 'imgui.' in prog_text:
                 self.prog_uses_imgui = True
@@ -455,7 +533,6 @@ class Sketch:
             var_context['ceil'] = lambda x: np.ceil(x).astype(int)
             var_context['round'] = lambda x: np.round(x).astype(int)
 
-
             # And basic functions from sketch
             var_context['frame_rate'] = wrap_method(self, 'frame_rate')
             var_context['create_canvas'] = wrap_method(self, 'create_canvas')
@@ -470,16 +547,15 @@ class Sketch:
             # var_context['c'] = self.canvas
             exec(prog, var_context)
 
-            print('Maybe load params')
             if self.params is not None:
-                print('load params')
+                print('Preload params')
                 self.params.load()
             # call setup
             var_context['setup']()
             # User might create parameters in setup
             print('Maybe load params')
             if self.params is not None:
-                print('load params after setup')
+                print('Load params after setup')
                 self.params.load()
             self.startup_error = False
             print("Success")
@@ -537,6 +613,7 @@ class Sketch:
         self._delta_time = dt
 
         print('update')
+
     # internal update
     def frame(self):
         self._update_mouse()
@@ -574,7 +651,7 @@ class Sketch:
         if self.saving_to_file:
             self.done_saving = True
 
-        if imgui is not None:
+        if imgui is not None and self._gui_visible:
             if self.gui is not None:
                 if (self.params or
                     self.gui_callback is not None or
@@ -583,7 +660,8 @@ class Sketch:
 
                 if 'gui' in self.var_context and callable(self.var_context['gui']):
                     try:
-                        if self.gui.show_sketch_controls() and not self.runtime_error:
+                        if (self.gui.show_sketch_controls() and
+                            not self.runtime_error):
                             self.var_context['gui']()
                     except Exception as e:
                         print('Error in sketch gui()')
@@ -628,13 +706,14 @@ class Sketch:
         # Update timers etc
         self._frame_count += 1
 
-        if imgui is not None:
+        if imgui is not None and self._gui_visible:
             if self.gui is not None:
                 if (self.params or
                     self.gui_callback is not None or
                     self.prog_uses_imgui):
                     self.gui.from_params(self, self.gui_callback, init=False)
-            if 'gui_window' in self.var_context and callable(self.var_context['gui_window']):
+            if ('gui_window' in self.var_context and
+                callable(self.var_context['gui_window'])):
                 try:
                     self.var_context['gui_window']()
                 except Exception as e:
@@ -916,7 +995,16 @@ def main(path='', standalone=False):
         sketch.frame()
         # clearing the window
         sketch.window.clear()
-        sketch.image.blit(0, 0, width=sketch.canvas.width, height=sketch.canvas.height) #, width=sketch.window_width, height=sketch.window_height) #*window.get_size())
+        if sketch.keep_aspect_ratio:
+            sketch.blit_scale_factor = (sketch.canvas_display_height / sketch.canvas.height,
+                                        sketch.canvas_display_height / sketch.canvas.height)
+        else:
+            sketch.blit_scale_factor = (sketch.canvas_display_width / sketch.canvas.width,
+                                      sketch.canvas_display_height / sketch.canvas.height)
+
+        sketch.image.blit(0, 0,
+                          width=sketch.canvas.width*sketch.blit_scale_factor[0],
+                          height=sketch.canvas.height*sketch.blit_scale_factor[1]) #, width=sketch.window_width, height=sketch.window_height) #*window.get_size())
         if sketch.has_error():
             sketch.error_label.draw()
 
