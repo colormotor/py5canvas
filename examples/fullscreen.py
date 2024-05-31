@@ -20,6 +20,8 @@ def setup():
     # This should happen before `create_canvas` for the window size to adjust with respect to the UI
     global params
     params = sketch.parameters(params)
+    # Setting this to False will stretch the canvas when going fullscreen
+    sketch.keep_aspect_ratio = False
 
     create_canvas(512, 512, 300)
 
