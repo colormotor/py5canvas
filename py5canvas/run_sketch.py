@@ -18,7 +18,7 @@ It will probably be significantly slow when using a large canvas size
 
 # importing pyglet module
 import pyglet
-#pyglet.options['osx_alt_loop'] = True
+pyglet.options['osx_alt_loop'] = True
 
 # from pyglet.window import key
 import numpy as np
@@ -28,6 +28,12 @@ import traceback
 import importlib
 import threading
 import cairo
+from inspect import signature
+
+# Try getting colored traceback
+IPython_loader = importlib.find_loader('IPython')
+if IPython_loader is not None:
+    from IPython.core.ultratb import ColorTB
 
 #master = tkinter.Tk()
 #from tkinter import filedialog
@@ -50,6 +56,13 @@ app_path = os.path.dirname(os.path.realpath(__file__))
 print('Running in ' + app_path)
 
 app_settings = {'script': ''}
+
+def print_traceback():
+    if IPython_loader is not None:
+        # https://stackoverflow.com/questions/14775916/coloring-exceptions-from-python-on-a-terminal
+        print(''.join(ColorTB().structured_traceback(*sys.exc_info())))
+    else:
+        traceback.print_exc()
 
 class perf_timer:
     def __init__(self, name='', verbose=False): # Set verbose to true for debugging
@@ -82,11 +95,13 @@ def load_json(path):
 class FileWatcher:
     """Checks if a file has been modified"""
     def __init__(self, path):
-        self._cached_stamp = 0
+        self._cached_stamp = None
         self.filename = path
 
     def modified(self):
         stamp = os.stat(self.filename).st_mtime
+        if self._cached_stamp is None:
+            self._cached_stamp = stamp
         if stamp != self._cached_stamp:
             self._cached_stamp = stamp
             return True
@@ -120,8 +135,10 @@ class Sketch:
         #                           samples=4,
         #                           depth_size=16,
         #                           double_buffer=True, )
-
-        self.window = pyglet.window.Window(width, height, title)
+        self.title = title
+        # display = pyglet.canvas.get_display()
+        # screens = display.get_screens()
+        self.window = pyglet.window.Window(width, height, title) #, style='borderless')
         self.window.set_vsync(False)
         self.standalone = standalone
         self.width, self.height = width, height
@@ -129,10 +146,13 @@ class Sketch:
         self.params = None
         self.gui = None
         self.gui_callback = None
+        self.gui_focus = False
         if standalone:
             self.toolbar_height = 0
         else:
             self.toolbar_height = 30
+        self._gui_visible = True
+        self.keep_aspect_ratio = True
         self.create_canvas(self.width, self.height)
         # self.frame_rate(60)
         self.startup_error = False
@@ -144,10 +164,10 @@ class Sketch:
         self.video_writer = None
         self.video_fps = 30
 
-        self.saving_svg = ''
+        self.saving_to_file = ''
         self.recording_context = None
         self.recording_surface = None
-        self.done_svg_drawing = False
+        self.done_saving = False
 
         self.error_label = pyglet.text.Label('Error',
                            font_name='Arial',
@@ -168,11 +188,15 @@ class Sketch:
         self.prev_mouse = None
         self.mouse_delta = np.zeros(2)
         self.mouse_button = 0
-        self.mouse_pressed = False
+        self.dragging = False
         self.mouse_moving = False
 
         self.prog_uses_imgui = False
-        
+
+        self.blit_scale_factor = (1.0, 1.0)
+
+        #self.keys = pyglet.window.key
+
         # Check if OSC is available
         osc_loader = importlib.find_loader('pythonosc')
         if osc_loader is not None:
@@ -208,6 +232,7 @@ class Sketch:
     def parameters(self, params):
         self.params = sketch_params.SketchParams(params, self.path)
         print('Setting params', self.params)
+        self.params.load()
         return self.params.params
 
     def has_error(self):
@@ -218,7 +243,7 @@ class Sketch:
         import xdialog
         if np.isscalar(exts):
             exts = [exts]
-        filetypes = [(ext, "*." + ext) for ext in exts]
+        filetypes = [(ext + ' files', "*." + ext) for ext in exts]
         return xdialog.open_file(title, filetypes=filetypes, multiple=False)
 
     def save_file_dialog(self, exts, title='Open file...', filename='untitled'):
@@ -231,10 +256,13 @@ class Sketch:
     def open_folder_dialog(self, title='Open folder...'):
         return xdialog.directory(title)
 
-    def _create_canvas(self, w, h, canvas_size=None, fullscreen=False):
+    def _create_canvas(self, w, h, canvas_size=None, fullscreen=False, screen=None):
         self.is_fullscreen = fullscreen
+        #if screen is not None:
+        #    self.window = pyglet.window.Window(w, h, self.title, screen=screen)
+        self.window.set_vsync(False)
         self.window.set_size(w, h)
-        self.window.set_fullscreen(fullscreen)
+        self.window.set_fullscreen(fullscreen, screen)
         # Note, the canvas size may be different from the sketch size
         # for example when automatically creating a UI...
         if canvas_size is None:
@@ -260,51 +288,125 @@ class Sketch:
         buf = (pyglet.gl.GLubyte * len(buf))(*buf)
         self.image = pyglet.image.ImageData(*canvas_size, "BGRA", buf)
 
-    def create_canvas(self, w, h, gui_width=300, fullscreen=False):
-        if imgui is None:
-            self._create_canvas(w, h, fullscreen=fullscreen)
+    def create_canvas(self, w, h, gui_width=300, fullscreen=False, with_gui=True, screen=None):
+        if imgui is None or not with_gui:
+            print("Creating canvas no gui")
+            self._create_canvas(w, h, fullscreen=fullscreen, screen=screen)
             return
         if self.params or self.gui_callback is not None:
-            self.create_canvas_gui(w, h, gui_width, fullscreen)
+            self.create_canvas_gui(w, h, gui_width, fullscreen, screen=screen)
         else:
             self.gui = sketch_params.SketchGui(gui_width)
-            self._create_canvas(w, h + self.toolbar_height, (w, h), fullscreen)
+            self._create_canvas(w, h + self.toolbar_height, (w, h), fullscreen, screen=screen)
 
-    def create_canvas_gui(self, w, h, width=300, fullscreen=False):
+    @property
+    def canvas_display_width(self):
+        if self._gui_visible:
+            return self.window_width - self.gui.width
+        return self.window_width
+
+    @property
+    def canvas_display_height(self):
+        if self._gui_visible:
+            return self.window_height - self.toolbar_height
+        return self.window_height
+
+    def create_canvas_gui(self, w, h, width=300, fullscreen=False, screen=None):
         if imgui is None:
             print('Install ImGui to run UI')
             return self.create_canvas(w, h, fullscreen)
         self.gui = sketch_params.SketchGui(width)
-        self._create_canvas(w + width, h + self.toolbar_height, (w, h), fullscreen)
+        self._create_canvas(w + self.gui.width, h + self.toolbar_height, (w, h), fullscreen, screen=screen)
 
-    def dump_svg(self, path):
+    def dump_canvas(self, path):
         ''' Tells the sketch to dump the next frame to an SVG file '''
         if '~' in path:
             path = os.path.expanduser(path)
-        self.saving_svg = os.path.abspath(path)
-        print('saving svg to', self.saving_svg)
+        self.saving_to_file = os.path.abspath(path)
+        print('saving file to', self.saving_to_file)
         # Since this can be called in frame, we need to make sure we don't save svg righ after
-        self.done_svg_drawing = False
+        self.done_saving = False
         # Create a recording surface and context and add it to canvas
         self.recording_surface = cairo.RecordingSurface(cairo.CONTENT_COLOR_ALPHA, None)
         self.recording_context = cairo.Context(self.recording_surface)
         self.canvas.ctx.push_context(self.recording_context)
 
-    save_svg = dump_svg
+    save_canvas = dump_canvas
 
-    def toggle_fullscreen(self):
-        self.fullscreen(not self.is_fullscreen)
+    # def get_screen(self):
+    #     window_x, window_y = self.window.get_location()
+    #     display = pyglet.canvas.get_display()
+    #     print(display.get_screens())
+    #     for screen in display.get_screens():
 
-    def fullscreen(self, flag):
-        self.is_fullscreen = flag
-        self.window.set_fullscreen(flag)
-        self.window_width, self.window_height = self.window.get_size()
+    #         screen_x, screen_y = screen.x, screen.y
+    #         screen_width, screen_height = screen.width, screen.height
+
+    #         if (screen_x <= window_x < screen_x + screen_width and
+    #             screen_y <= window_y < screen_y + screen_height):
+    #             print("Found screen")
+    #             return screen
+
+    #     return None
+
+    def show_gui(self, flag, screen_index=-1):
+        if self.gui is None:
+            return
+        self._gui_visible = flag
+        #screen = self.window.screen
+        #if screen_index > -1:
+        #    screen = self.get_screen(screen_index)
+        self.window.set_fullscreen(False)
+        self.create_canvas(self.canvas.width,
+                           self.canvas.height,
+                           self.gui.width,
+                           self.is_fullscreen,
+                           flag) #screen=screen)
+
+    def toggle_fullscreen(self, toggle_gui=False, screen_index=-1):
+        self.fullscreen(not self.is_fullscreen,
+                        toggle_gui=toggle_gui,
+                        screen_index=screen_index)
+
+    def get_screen(self, index):
+        # TODO fixme
+        display = pyglet.canvas.get_display()
+        screens = display.get_screens()
+        if index < len(screens) and index >= 0:
+            return screens[index]
+        print("Invalid screen index for display")
+        return None
+
+    def fullscreen(self, flag, toggle_gui=False, screen_index=-1):
+        # old_window_width = self.canvas_display_width
+        # old_window_height = self.canvas_display_height
+        if toggle_gui:
+            self.is_fullscreen = flag
+            self.show_gui(not flag) #, screen_index)
+            return
+
+        self.window.set_fullscreen(False)
+        self.create_canvas(self.canvas.width,
+                           self.canvas.height,
+                           self.gui.width,
+                           flag,
+                           flag)
+                           #screen=self.get_screen(screen_index))
+
+
+        # self.window.set_fullscreen(flag)
+        # self.window_width, self.window_height = self.window.get_size()
+        # print('Window size:', self.window_width, self.window_height)
+
+        # self.is_fullscreen = flag
+
 
     def set_gui_theme(self, hue):
         if self.gui is not None:
             sketch_params.set_theme(hue)
 
     def set_gui_callback(self, func):
+        print("set_gui_callback is deprectated. Use the `gui` function in your sketch instead")
         self.gui_callback = func
 
     def load(self, path):
@@ -385,7 +487,7 @@ class Sketch:
             except Exception as e:
                 print('Error in exit')
                 print(e)
-                traceback.print_exc()
+                print_traceback()
 
         # And reset
         self.params = None
@@ -404,7 +506,7 @@ class Sketch:
             self.watcher = FileWatcher(self.path)
         # Attempt to compile script
         try:
-            print("Compiling")
+            print("Compiling script", self.path)
             prog_text = open(self.path).read()
             if 'imgui.' in prog_text:
                 self.prog_uses_imgui = True
@@ -431,13 +533,13 @@ class Sketch:
             var_context['ceil'] = lambda x: np.ceil(x).astype(int)
             var_context['round'] = lambda x: np.round(x).astype(int)
 
-
             # And basic functions from sketch
             var_context['frame_rate'] = wrap_method(self, 'frame_rate')
             var_context['create_canvas'] = wrap_method(self, 'create_canvas')
             var_context['size'] = var_context['create_canvas'] # For compatibility
             var_context['create_canvas_gui'] = wrap_method(self, 'create_canvas_gui')
-            var_context['save_svg'] = wrap_method(self, 'dump_svg')
+            var_context['save_svg'] = wrap_method(self, 'dump_canvas')
+            var_context['save_canvas'] = wrap_method(self, 'dump_canvas')
             var_context['VideoInput'] = canvas.VideoInput
             # And also expose canvas as 'c' since the functions in the canvas are quite common names and
             # might be easily overwritten
@@ -445,12 +547,15 @@ class Sketch:
             # var_context['c'] = self.canvas
             exec(prog, var_context)
 
+            if self.params is not None:
+                print('Preload params')
+                self.params.load()
             # call setup
             var_context['setup']()
-            # Once we have called setup load parameters if available:
+            # User might create parameters in setup
             print('Maybe load params')
             if self.params is not None:
-                print('load params')
+                print('Load params after setup')
                 self.params.load()
             self.startup_error = False
             print("Success")
@@ -459,13 +564,15 @@ class Sketch:
             print(e)
             self.startup_error = True
             self.error_label.text = str(e)
-            traceback.print_exc()
+            print_traceback()
         # create_canvas created and added a recording context so pop it in case (if no error)
         if len(self.canvas.ctx.ctxs) > 1:
             print('Removing setup recording context')
             self.canvas.ctx.pop_context()
 
     def _update_mouse(self):
+        # workaround for backwards compatibility (deprecating 'mouse_pressed')
+        self.mouse_pressed = self.dragging
         if self._mouse_pos is None:
             return
 
@@ -482,6 +589,7 @@ class Sketch:
         #     print(self.mouse_pos)
         #     print(self.mouse_delta)
 
+
     def update_globals(self):
         self.var_context['delta_time'] = self._delta_time
         self.var_context['frame_count'] = self._frame_count
@@ -489,7 +597,11 @@ class Sketch:
         self.var_context['height'] = self.height
         # Expose canvas globally
         self.var_context['c'] = self.canvas
-        self.var_context['mouse_pressed'] = self.mouse_pressed
+        # HACK keep mouse_pressed as a flag for backwards compatibility, but must be deprecated
+
+        if 'mouse_pressed' not in self.var_context or not callable(self.var_context['mouse_pressed']):
+            self.var_context['mouse_pressed'] = self.dragging
+        self.var_context['dragging'] = self.dragging
         self.var_context['mouse_delta'] = self.mouse_delta
         self.var_context['mouse_pos'] = self.mouse_pos
 
@@ -501,6 +613,7 @@ class Sketch:
         self._delta_time = dt
 
         print('update')
+
     # internal update
     def frame(self):
         self._update_mouse()
@@ -525,7 +638,9 @@ class Sketch:
             except imgui.core.ImGuiError as e:
                 print('Error in imgui new_frame')
                 print(e)
-
+                self.error_label.text = str(e)
+                self.runtime_error = True
+                traceback.print_exc()
             # print('New frame')
             # # For some reason this only works here and not in the constructor.
             # if self.impl is None:
@@ -533,16 +648,30 @@ class Sketch:
             #     self.impl = create_renderer(self.window)
 
             # imgui.new_frame()
-        if self.saving_svg:
-            self.done_svg_drawing = True
+        if self.saving_to_file:
+            self.done_saving = True
 
-        if imgui is not None:
+        if imgui is not None and self._gui_visible:
             if self.gui is not None:
                 if (self.params or
                     self.gui_callback is not None or
                     self.prog_uses_imgui):
                     self.gui.begin_gui(self)
-                    
+
+                if 'gui' in self.var_context and callable(self.var_context['gui']):
+                    try:
+                        if (self.gui.show_sketch_controls() and
+                            not self.runtime_error):
+                            self.var_context['gui']()
+                    except Exception as e:
+                        print('Error in sketch gui()')
+                        print(e)
+                        self.error_label.text = str(e)
+                        self.runtime_error = True
+                        print_traceback()
+                # Check focus
+                #self.gui_focus = imgui.core.is_window_hovered()
+                #print('gui focus', self.gui_focus)
         with perf_timer('update'):
             if not self.runtime_error or self._frame_count==0:
                 try:
@@ -557,7 +686,7 @@ class Sketch:
                     print(e)
                     self.error_label.text = str(e)
                     self.runtime_error = True
-                    traceback.print_exc()
+                    print_traceback()
 
         pitch = self.width * 4
         with perf_timer('get buffer'):
@@ -577,37 +706,49 @@ class Sketch:
         # Update timers etc
         self._frame_count += 1
 
-
-        if imgui is not None:
+        if imgui is not None and self._gui_visible:
             if self.gui is not None:
                 if (self.params or
                     self.gui_callback is not None or
                     self.prog_uses_imgui):
                     self.gui.from_params(self, self.gui_callback, init=False)
+            if ('gui_window' in self.var_context and
+                callable(self.var_context['gui_window'])):
+                try:
+                    self.var_context['gui_window']()
+                except Exception as e:
+                    print('Error in sketch gui_window()')
+                    print(e)
+                    self.error_label.text = str(e)
+                    self.runtime_error = True
+                    print_traceback()
             if not self.standalone:
                 self.gui.toolbar(self)
-
             # Required for render to work in draw callback
             try:
                 imgui.end_frame()
             except imgui.core.ImGuiError as e:
                 print(e)
 
-        if self.saving_svg and self.done_svg_drawing:
-            print('saving svg')
-            svg_surf = cairo.SVGSurface(self.saving_svg, self.canvas.width, self.canvas.height)
-            svg_ctx = cairo.Context(svg_surf)
-            svg_ctx.set_source_surface(self.setup_surface)
-            svg_ctx.paint()
-            svg_ctx.set_source_surface(self.recording_surface)
-            svg_ctx.paint()
-            svg_surf.finish()
-            print('removing svg context')
+        if self.saving_to_file and self.done_saving:
+            print('saving to ', self.saving_to_file)
+            if '.svg' in self.saving_to_file:
+                surf = cairo.SVGSurface(self.saving_to_file, self.canvas.width, self.canvas.height)
+            elif '.pdf' in self.saving_to_file:
+                surf = cairo.PDFSurface(self.saving_to_file, self.canvas.width, self.canvas.height)
+            ctx = cairo.Context(surf)
+            ctx.set_source_surface(self.setup_surface)
+            ctx.paint()
+            ctx.set_source_surface(self.recording_surface)
+            ctx.paint()
+            surf.finish()
+            print('removing saving context')
             self.canvas.ctx.pop_context()
             self.recording_surface = None
             self.recording_context = None
-            self.saving_svg = ''
-            self.done_svg_drawing = False
+            self.saving_to_file = ''
+            self.done_saving = False
+
         # NB need to check pyglet's draw loop, but clearing here will break when the frame-rate
         # is low or in other cases?
         # # Draw to window
@@ -684,7 +825,7 @@ class Sketch:
         ''' Send an OSC message'''
         self.oscclient.send_message(addr, val)
 
-    def _handle_osc(self, addr, args):
+    def _handle_osc(self, addr, *args):
         print('received: ' + addr)
         print(args)
         if 'received_osc' in self.var_context:
@@ -698,9 +839,13 @@ class Sketch:
             self.server_thread.join()
             print("Stopped")
         if imgui is not None:
+            print("Stopping imgui")
             self.impl.shutdown()
         if self.params is not None and not self.has_error():
+            print("Saving params")
             self.params.save()
+        print("End cleanup")
+
 
 def main(path='', standalone=False):
     from importlib import reload
@@ -713,20 +858,23 @@ def main(path='', standalone=False):
     def draw():
         pass
 
-    def gui():
-        pass
-
     def exit():
         pass
 
-    def key_pressed(k, modifier):
-        pass
+    # def key_pressed(k, modifier):
+    #     pass
 
-    def mouse_moved():
-        pass
+    # def mouse_moved():
+    #     pass
 
-    def mouse_dragged():
-        pass
+    # def mouse_dragged():
+    #     pass
+
+    # def mouse_pressed():
+    #     pass
+
+    # def mouse_released():
+    #     pass
 
     # if len(sys.argv) < 2:
     #     print('You need to specify a python sketch file in the arguments')
@@ -743,36 +891,81 @@ def main(path='', standalone=False):
     # Create our sketch context and load script
     sketch = Sketch(path, 512, 512, standalone=standalone)
 
+    def canvas_pos(x, y):
+        return np.array([x, sketch.window_height-y-sketch.toolbar_height])
+
+    def check_callback(name):
+        if not name in sketch.var_context:
+            return False
+        return callable(sketch.var_context[name])
+
+    def imgui_focus():
+        if imgui is None:
+            return False
+        #return False
+        return imgui.core.is_any_item_active()
+
+    def point_in_canvas(p):
+        return (p[0] >= 0 and p[0] < sketch.canvas.width and
+                p[1] >= 0 and p[1] < sketch.canvas.height)
+
     #@sketch.window.event
     def on_key_press(symbol, modifier):
+        if imgui_focus():
+            return
         # print('Key pressed')
-        if 'key_pressed' in sketch.var_context:
-            sketch.var_context['key_pressed'](symbol, modifier)
+        if check_callback('key_pressed'):
+            params = [symbol, modifier]
+            sig = signature(sketch.var_context['key_pressed'])
+            sketch.var_context['key_pressed'](*params[:len(sig.parameters)])
 
     #@sketch.window.event
     def on_mouse_motion(x, y, dx, dy):
-        sketch._mouse_pos = np.array([x, sketch.window_height-y])
+        sketch._mouse_pos = canvas_pos(x, y) #np.array([x, sketch.window_height-y-sketch.toolbar_height])
         #print((x, y, dx, dy))
-        if 'mouse_moved' in sketch.var_context:
+        if check_callback('mouse_moved'):
             sketch.var_context['mouse_moved']()
 
     #@sketch.window.event
     def on_mouse_drag(x, y, dx, dy, buttons, modifiers):
-        sketch._mouse_pos = np.array([x, sketch.window_height-y])
-        sketch.mouse_pressed = True
-        if 'mouse_dragged' in sketch.var_context:
-            sketch.var_context['mouse_dragged']()
+        pos = canvas_pos(x, y)
+        sketch._mouse_pos = pos #canvas_pos(x, y) #np.array([x, sketch.window_height-y-sketch.toolbar_height])
+        if imgui_focus():
+            return
+        if not point_in_canvas(pos):
+            return
+
+        sketch.dragging = True
+        if check_callback('mouse_dragged'):
+            params = [buttons, modifiers]
+            sig = signature(sketch.var_context['mouse_dragged'])
+            sketch.var_context['mouse_dragged'](*params[:len(sig.parameters)])
 
     #@sketch.window.event
     def on_mouse_press(x, y, button, modifiers):
-        sketch.mouse_pressed = True
+        pos = canvas_pos(x, y)
+        if imgui_focus():
+            return
+        if not point_in_canvas(pos):
+            return
+
+        sketch.dragging = True
         sketch.mouse_button = button
-        sketch._mouse_pos = np.array([x, sketch.window_height-y])
+        sketch._mouse_pos = pos #np.array([x, sketch.window_height-y-sketch.toolbar_height])
+        if check_callback('mouse_pressed'):
+            params = [button, modifiers]
+            sig = signature(sketch.var_context['mouse_pressed'])
+            sketch.var_context['mouse_pressed'](*params[:len(sig.parameters)])
 
     #@sketch.window.event
     def on_mouse_release(x, y, button, modifiers):
-        sketch.mouse_pressed = False
-        sketch._mouse_pos = np.array([x, sketch.window_height-y])
+        pos = canvas_pos(x, y)
+        sketch.dragging = False
+        sketch._mouse_pos = pos #np.array([x, sketch.window_height-y-sketch.toolbar_height])
+        if check_callback('mouse_released'):
+            params = [button, modifiers]
+            sig = signature(sketch.var_context['mouse_released'])
+            sketch.var_context['mouse_released'](*params[:len(sig.parameters)])
 
     sketch.window.push_handlers(on_key_press,
                                 on_mouse_motion,
@@ -802,7 +995,16 @@ def main(path='', standalone=False):
         sketch.frame()
         # clearing the window
         sketch.window.clear()
-        sketch.image.blit(0, 0, width=sketch.canvas.width, height=sketch.canvas.height) #, width=sketch.window_width, height=sketch.window_height) #*window.get_size())
+        if sketch.keep_aspect_ratio:
+            sketch.blit_scale_factor = (sketch.canvas_display_height / sketch.canvas.height,
+                                        sketch.canvas_display_height / sketch.canvas.height)
+        else:
+            sketch.blit_scale_factor = (sketch.canvas_display_width / sketch.canvas.width,
+                                      sketch.canvas_display_height / sketch.canvas.height)
+
+        sketch.image.blit(0, 0,
+                          width=sketch.canvas.width*sketch.blit_scale_factor[0],
+                          height=sketch.canvas.height*sketch.blit_scale_factor[1]) #, width=sketch.window_width, height=sketch.window_height) #*window.get_size())
         if sketch.has_error():
             sketch.error_label.draw()
 
@@ -814,7 +1016,7 @@ def main(path='', standalone=False):
                 print(e)
                 sketch.error_label.text = str(e)
                 sketch.runtime_error = True
-                traceback.print_exc()
+                print_traceback()
 
 
         if imgui is not None:
@@ -832,10 +1034,14 @@ def main(path='', standalone=False):
             print('Saving params')
             sketch.params.save()
 
+        if 'exit' in sketch.var_context:
+            sketch.var_context['exit']()
+
         print("Saving settings")
         sketch_params.save_json(app_settings, os.path.join(app_path, 'settings.json'))
         sketch.cleanup()
-
+        print("End close")
+        
     @sketch.window.event
     def on_close():
         print('Close window event')

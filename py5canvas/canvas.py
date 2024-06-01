@@ -98,7 +98,6 @@ def is_number(x):
 
 
 def wrapper(self, fn):
-    # print('wrapping ', fn)
     def result(*args, **kwargs):
         res = None
         self.dirty = True
@@ -119,7 +118,7 @@ class MultiContext:
         self.ctxs = [cairo.Context(surf)]
         for key, value in cairo.Context.__dict__.items( ):
             if hasattr( value, '__call__' ):
-                self.__dict__[key] = wrapper(self, key) #types.MethodType(wrapper(key), self.__class__ )
+                self.__dict__[key] = wrapper(self, key)
 
     def push_context(self, ctx):
         self.ctxs.append(ctx)
@@ -134,10 +133,15 @@ class CanvasState:
 
 
 class Canvas:
-    ''' Creates a a pycairo surface that behaves similarly to p5js'''
-    def __init__(self, width, height, clear_callback=lambda: None):
-        """Initialize Canvas with given `width` and `height`
-        """
+    """
+    Creates a a pycairo surface that behaves similarly to p5js
+
+    param width: int, width of the canvas in pixels
+    param height: int, height of the canvas in pixels
+    param clear_callback: function, a callback to be called when the canvas is cleared (for internal use mostly)
+    """
+    def __init__(self, width, height, background=(0.0, 0.0, 0.0, 255.0), clear_callback=lambda: None, output_file=''):
+        """ Constructor"""
         # See https://pycairo.readthedocs.io/en/latest/reference/context.html
         surf = cairo.ImageSurface(cairo.FORMAT_ARGB32, width, height)
         ctx = MultiContext(surf) #cairo.Context(surf)
@@ -147,7 +151,7 @@ class Canvas:
 
         ctx.set_fill_rule(cairo.FILL_RULE_EVEN_ODD) #FILL_RULE_WINDING) #EVEN_ODD)
         ctx.set_line_join(cairo.LINE_JOIN_MITER)
-        ctx.set_source_rgba(0.0, 0.0, 0.0, 255.0)
+        ctx.set_source_rgba(*background)
         ctx.rectangle(0,0,width,height)
         ctx.fill()
 
@@ -179,12 +183,22 @@ class Canvas:
         # Utils
         self._cur_point = []
 
+        self.output_file = output_file
+        if output_file:
+            self.recording_surface = cairo.RecordingSurface(cairo.CONTENT_COLOR_ALPHA, None)
+            recording_context = cairo.Context(self.recording_surface)
+            self.ctx.push_context(recording_context)
+
+
     def set_color_scale(self, scale):
         """Set color scale, e.g. if we want to specify colors in the `0`-`255` range, scale would be `255`,
         or if the colors are in the `0`-`1` range, scale will be `1`"""
         self.color_scale = scale
 
     def rect_mode(self, mode):
+        """ Set the mode for drawing rectangles.
+        param mode: string, can be one of 'corner', 'center', 'radius'
+        """
         if mode not in ['corner', 'center', 'radius']:
             print('rect_mode: invalid mode')
             print('choose one among: corner, center, radius')
@@ -206,6 +220,10 @@ class Canvas:
         self.draw_states[-1].cur_stroke = value
 
     def get_stroke_or_fill_color(self):
+        """
+        Get the current stroke color if set, the fill color otherwise
+        returns the current stroke or fill color as a numpy array, or None if no color is set
+        """
         if self.cur_stroke is not None:
             return np.array(self.cur_stroke)*self.color_scale
         if self.cur_fill is not None:
@@ -214,10 +232,12 @@ class Canvas:
 
     @property
     def width(self):
+        """ Width of canvas"""
         return self._width
 
     @property
     def height(self):
+        """ Height of canvas"""
         return self._height
 
     @property
@@ -230,9 +250,15 @@ class Canvas:
     def no_stroke(self):
         self.stroke(None)
 
-    def color_mode(self, mode, scale=255):
+    def color_mode(self, mode, scale=None):
+        """ Set the color mode for the canvas
+
+        param mode: string, can be one of 'rgb', 'hsv'
+        param scale: float, the scale for the color values (e.g. 255 for 0-255 range, 1 for 0-1 range)
+        """
         self._color_mode = mode
-        self.color_scale = scale
+        if scale is not None:
+            self.color_scale = scale
 
     def _apply_colormode(self, clr):
         if self._color_mode == 'hsv':
@@ -712,11 +738,13 @@ class Canvas:
 
         pos = np.array(pos).astype(float)
         size = np.array(size).astype(float)
-        if self._rect_mode == 'center':
-            pos -= size/2
-        elif self._rect_mode == 'radius':
-            pos -= size
-            size *= 2
+
+        # Disabling rect mode for images
+        # if self._rect_mode == 'center':
+        #     pos -= size/2
+        # elif self._rect_mode == 'radius':
+        #     pos -= size
+        #     size *= 2
 
         self.ctx.translate(pos[0], pos[1])
 
@@ -822,6 +850,33 @@ class Canvas:
         self.ctx.paint()
         self.ctx.set_source_surface(self.surf)
 
+    def save_pdf(self, path):
+        ''' Save the canvas to an svg file'''
+        svg_surf = cairo.PDFSurface(path, self.width, self.height)
+        self.ctx.set_source_surface(svg_surf)
+        self.ctx.paint()
+        self.ctx.set_source_surface(self.surf)
+
+    def Image(self):
+        from PIL import Image
+        return Image.fromarray(self.get_image())
+
+    def save(self):
+        ''' Save the canvas to an image'''
+        if not self.output_file:
+            print('No output file specified')
+            return
+        if '.svg' in self.output_file:
+            svg_surf = cairo.SVGSurface(self.output_file, self.width, self.height)
+            svg_ctx = cairo.Context(svg_surf)
+            svg_ctx.set_source_surface(self.surf)
+            svg_ctx.paint()
+            svg_ctx.set_source_surface(self.recording_surface)
+            svg_ctx.paint()
+            svg_surf.finish()
+        else:
+            self.surf.write_to_png(self.output_file)
+
     def show(self, size=None, title='', axis=False):
         import matplotlib.pyplot as plt
         if size is not None:
@@ -834,6 +889,27 @@ class Canvas:
         if not axis:
             plt.gca().axis('off')
         plt.show()
+
+    def _convert_html_color(self, html_color):
+        # Remove '#' if present
+        if html_color.startswith('#'):
+            html_color = html_color[1:]
+
+        # Extract RGB or RGBA components
+        if len(html_color) == 6:
+            r = int(html_color[:2], 16) / 255.0
+            g = int(html_color[2:4], 16) / 255.0
+            b = int(html_color[4:6], 16) / 255.0
+            return np.array([r, g, b, 1.0])
+        elif len(html_color) == 8:
+            r = int(html_color[:2], 16) / 255.0
+            g = int(html_color[2:4], 16) / 255.0
+            b = int(html_color[4:6], 16) / 255.0
+            a = int(html_color[6:8], 16) / 255.0
+            return np.array([r, g, b, a])
+        else:
+            raise ValueError("Invalid HTML color format")
+
 
     def _convert_rgb(self, x):
         if len(x)==1:
@@ -848,7 +924,9 @@ class Canvas:
 
     def _convert_rgba(self, x):
         if len(x)==1:
-            if not is_number(x[0]): # array like input
+            if type(x[0]) == str:
+                return self._convert_html_color(x[0])
+            elif not is_number(x[0]): # array like input
                 return np.array(x[0])/self.color_scale
             return (x[0]/self.color_scale,
                     x[0]/self.color_scale,
@@ -978,8 +1056,16 @@ def hsv_to_rgb(hsva):
 
 
 class VideoInput:
-    '''Video Input utility (required OpenCV)'''
+    '''
+    Video Input utility (requires OpenCV to be installed).
+    Allows for reading frames from a video file or camera.
+
+    param name: Either an integer indicating the device number, or a string indicating the path of a video file
+    param size: A tuple indicating the desired size of the video frames (width, height)
+    param resize_mode: A string indicating the desired resize mode. Can be 'crop' or 'stretch'
+    '''
     def __init__(self, name=0, size=None, resize_mode='crop'):
+        ''' Constructor'''
         import cv2
         # define a video capture object
         self.vid = cv2.VideoCapture(name)
@@ -1008,7 +1094,7 @@ class VideoInput:
             dst_w, dst_h = self.size
 
             if self.resize_mode == 'crop':
-
+                print('Resizing with crop')
                 # Keep aspect ratio by cropping
                 aspect = dst_w / dst_h
 
