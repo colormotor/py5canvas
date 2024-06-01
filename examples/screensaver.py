@@ -1,4 +1,8 @@
 import numpy as np
+import torch
+
+params = {'foo':(30.0, {'min':0.0, 'max':100.0})}
+params = sketch.parameters(params)
 
 def new_points():
     points = np.random.uniform(-200, 200, (10, 2))*2
@@ -12,11 +16,12 @@ frame_interval = 60
 
 def setup():
     create_canvas(800, 600)
-
+    frame_rate(60)
+    
 def draw():
     global a, b # we are modifying these
 
-    background(0, 0, 0, 8) # Clear with alpha will create the "trail effect"
+    background(params.foo, 0, 0, 100) # Clear with alpha will create the "trail effect"
     # Center of screen
     translate(c.width/2, c.height/2)
 
