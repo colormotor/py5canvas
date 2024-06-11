@@ -62,7 +62,7 @@ This is one of many ways to develop "Processing-like" code in Python. There are 
 - Processing has a [[https://py.processing.org][Python mode]], but this deviates from the standard way of installing Python dependencies (e.g. Pip or Conda) and makes it more challenging to take full advantage of the big echosystem of Python packages/libraries.
 - [[https://www.drawbot.com][DrawBot]] uses a different syntax but has a similar goal of easily "sketching" 2d designs in Python. It currently only runs on MacOS.
 
-The main drive to develop this new system has been to provide a drawing interface in Python notebooks that is similar to Processing and to allow "live coding" (or more precicesely live-reloading) of interactive sketches for quicker prototyping of ideas. While the syntax of the sketches is similar to P5js or Processing, the aim of this system is to provide a platform similar to DrawBot for interactive editing of scripts.
+The main drive to develop this new system has been to provide a drawing interface in Python notebooks that is similar to Processing and to allow "live coding" (or more precicesely live-reloading) of interactive sketches for quicker prototyping of ideas. While the syntax of the sketches is similar to P5js or Processing, the aim of this system is to provide a platform similar to DrawBot for interactive editing of scripts and with a focus on 2d vector graphics.
 
 * Installation
 ** Dependencies
@@ -70,31 +70,9 @@ The main requirements for Py5Canvas are [[https://numpy.org][NumPy]], [[https://
 #+begin_example
 conda install -c conda-forge numpy matplotlib pycairo opencv
 #+end_example
-Then install the latest version of Pyglet with
-#+begin_example
-pip install pyglet
-#+end_example
 
-*** Optional (but suggested) extensions
-The py5sketch script runner is designed so it can work with the minimal dependencies described above. However, to get the "full experience", it is recommended to also install the following dependencies.
-These will enable a GUI and save/load parameters functionalities through the [[https://pypi.org/project/imgui/][PyImGui]], [[https://pypi.org/project/easydict/][EasyDict]] and [[https://github.com/xMGZx/xdialog][xdialog]] modules. You can install these with pip, using
-#+begin_example
-pip install imgui[pyglet]
-pip install easydict
-pip install xdialog
-#+end_example
-
-**** Open Sound Control (OSC)
-The sketch interface also provides optional OSC functionality through the  [[https://pypi.org/project/python-osc/][python-osc]] module. This enables communication with other software that supports the protocol. It can be installed with:
-#+begin_example
-pip install python-osc
-#+end_example
-See the relevant section below for usage details.
-
-** Install Py5Canvas
+** Installing py5canvas with pip
 py5canvas is still not on PyPi, so for the moment you can use one of the following to install:
-*** Pip installation
-To install using pip you can use
 #+begin_example
 pip install git+https://github.com/colormotor/py5canvas.git
 #+end_example
@@ -103,8 +81,15 @@ To update the module to its latest version use
 pip install --upgrade  --force-reinstall --no-deps git+https://github.com/colormotor/py5canvas.git
 #+end_example
 
-*** Local installation
-To install Py5Canvas locally, clone the repository in a given directory, e.g. with
+Then install the latest version of Pyglet with
+#+begin_example
+pip install pyglet
+#+end_example
+
+
+
+** Install locally with pip
+With this procedure, you will be able to pull the latest changes to the module with git. Firt, clone the repository in a given directory, e.g. with
 #+begin_example
 git clone https://github.com/colormotor/py5canvas.git
 #+end_example
@@ -113,6 +98,17 @@ Then navigate to the ~py5canvas~ directory and install locally with
 #+begin_example
 pip install -e .
 #+end_example
+Now any modification to the code in the directory will be always available when you import hte module.
+
+** Optional (but suggested) extensions
+
+**** Open Sound Control (OSC)
+The sketch interface also provides optional OSC functionality through the  [[https://pypi.org/project/python-osc/][python-osc]] module. This enables communication with other software that supports the protocol. It can be installed with:
+#+begin_example
+pip install python-osc
+#+end_example
+See the relevant section below for usage details.
+
 
 * Usage
 ** Canvas API

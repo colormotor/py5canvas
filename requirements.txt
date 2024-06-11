@@ -2,3 +2,6 @@ numpy
 matplotlib
 pycairo
 pyglet
+easydict
+imgui [pyglet]
+xdialog
