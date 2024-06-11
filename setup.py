@@ -7,7 +7,7 @@ setup(
     author='Daniel Berio',
     author_email='drand48@gmail.com',
     packages=['py5canvas'],
-    install_requires=['matplotlib', 'pycairo', 'pyglet', 'numpy', 'easydict', 'xdialog', 'imgui[pyglet]',
+    install_requires=['matplotlib', 'pycairo', 'pyglet', 'numpy', 'easydict', 'xdialog', 'imgui\[pyglet\]',
     entry_points={
         'console_scripts': [
             'py5sketch = py5canvas.run_sketch:main'
