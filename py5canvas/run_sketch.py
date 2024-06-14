@@ -254,6 +254,7 @@ class Sketch:
         return xdialog.save_file(title, filetypes=filetypes)
 
     def open_folder_dialog(self, title='Open folder...'):
+        import xdialog
         return xdialog.directory(title)
 
     def _create_canvas(self, w, h, canvas_size=None, fullscreen=False, screen=None):
@@ -479,6 +480,10 @@ class Sketch:
         if self.params is not None and not self.has_error():
             self.params.save()
 
+        if self.video_writer is not None:
+            self.video_writer.release()
+            self.video_writer = None
+
         # Call exit callback if any
         if 'exit' in var_context:
             try:
@@ -700,7 +705,7 @@ class Sketch:
 
         self.image.set_data("BGRA", -pitch, buf) # Looks like negative sign takes care of C-contiguity
 
-        if self.grabbing:
+        if self.grabbing and not self.must_reload:
             self.grab()
 
         # Update timers etc
