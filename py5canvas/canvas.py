@@ -140,7 +140,7 @@ class Canvas:
     param height: int, height of the canvas in pixels
     param clear_callback: function, a callback to be called when the canvas is cleared (for internal use mostly)
     """
-    def __init__(self, width, height, background=(0.0, 0.0, 0.0, 255.0), clear_callback=lambda: None, output_file=''):
+    def __init__(self, width, height, background=(0.0, 0.0, 0.0, 255.0), clear_callback=lambda: None, output_file='', recording=True):
         """ Constructor"""
         # See https://pycairo.readthedocs.io/en/latest/reference/context.html
         surf = cairo.ImageSurface(cairo.FORMAT_ARGB32, width, height)
@@ -152,7 +152,7 @@ class Canvas:
         ctx.set_fill_rule(cairo.FILL_RULE_EVEN_ODD) #FILL_RULE_WINDING) #EVEN_ODD)
         ctx.set_line_join(cairo.LINE_JOIN_MITER)
         ctx.set_source_rgba(*background)
-        ctx.rectangle(0,0,width,height)
+        ctx.rectangle(0, 0, width, height)
         ctx.fill()
 
         # This is useful for py5sketch to reset SVG each time background is cleared
@@ -184,7 +184,8 @@ class Canvas:
         self._cur_point = []
 
         self.output_file = output_file
-        if output_file:
+        self.recording_surface = None
+        if output_file or recording:
             self.recording_surface = cairo.RecordingSurface(cairo.CONTENT_COLOR_ALPHA, None)
             recording_context = cairo.Context(self.recording_surface)
             self.ctx.push_context(recording_context)
@@ -280,6 +281,63 @@ class Canvas:
     def stroke_weight(self, w):
         """Set the line width"""
         self.ctx.set_line_width(w)
+
+    def line_join(self, join):
+        """Specify the 'join' for polylines.
+        Args:
+        join (string): can be one of "miter", "bevel" or "round"
+        """
+        joins = {'miter': cairo.LINE_JOIN_MITER,
+                'bevel': cairo.LINE_JOIN_BEVEL,
+                'round': cairo.LINE_CAP_ROUND}
+        if join not in joins:
+            print(str(join) + ' not a valid line join')
+            print('Choose one of ' + str(joins.keys()))
+            return
+
+        self.ctx.set_line_join(joins[join])
+
+    def blend_mode(self, mode="over"):
+        blend_modes = {
+            "clear": cairo.OPERATOR_CLEAR,
+            "source": cairo.OPERATOR_SOURCE,
+            "over": cairo.OPERATOR_OVER,  # This is the default blend mode
+            "in": cairo.OPERATOR_IN,
+            "out": cairo.OPERATOR_OUT,
+            "atop": cairo.OPERATOR_ATOP,
+            "dest": cairo.OPERATOR_DEST,
+            "dest_over": cairo.OPERATOR_DEST_OVER,
+            "dest_in": cairo.OPERATOR_DEST_IN,
+            "dest_out": cairo.OPERATOR_DEST_OUT,
+            "dest_atop": cairo.OPERATOR_DEST_ATOP,
+            "xor": cairo.OPERATOR_XOR,
+            "add": cairo.OPERATOR_ADD,
+            "saturate": cairo.OPERATOR_SATURATE,
+            "multiply": cairo.OPERATOR_MULTIPLY,
+            "screen": cairo.OPERATOR_SCREEN,
+            "overlay": cairo.OPERATOR_OVERLAY,
+            "darken": cairo.OPERATOR_DARKEN,
+            "lighten": cairo.OPERATOR_LIGHTEN,
+            "color_dodge": cairo.OPERATOR_COLOR_DODGE,
+            "color_burn": cairo.OPERATOR_COLOR_BURN,
+            "hard_light": cairo.OPERATOR_HARD_LIGHT,
+            "soft_light": cairo.OPERATOR_SOFT_LIGHT,
+            "difference": cairo.OPERATOR_DIFFERENCE,
+            "exclusion": cairo.OPERATOR_EXCLUSION,
+            "hsl_hue": cairo.OPERATOR_HSL_HUE,
+            "hsl_saturation": cairo.OPERATOR_HSL_SATURATION,
+            "hsl_color": cairo.OPERATOR_HSL_COLOR,
+            "hsl_luminosity": cairo.OPERATOR_HSL_LUMINOSITY
+        }
+
+        mode = mode.lower()
+
+        # Set the blend mode if it exists in the dictionary
+        if mode in blend_modes:
+            self.ctx.set_operator(blend_modes[mode])
+        else:
+            raise ValueError(f"Invalid blend mode: {mode}")
+
 
     def line_cap(self, cap):
         """Specify the 'cap' for lines.
@@ -845,37 +903,55 @@ class Canvas:
 
     def save_svg(self, path):
         ''' Save the canvas to an svg file'''
-        svg_surf = cairo.SVGSurface(path, self.width, self.height)
-        self.ctx.set_source_surface(svg_surf)
-        self.ctx.paint()
-        self.ctx.set_source_surface(self.surf)
+        if self.recording_surface is None:
+            raise ValueError('No recording surface in canvas')
+        surf = cairo.SVGSurface(path, self.width, self.height)
+        ctx = cairo.Context(surf)
+        ctx.set_source_surface(self.recording_surface)
+        ctx.paint()
+        surf.finish()
+        fix_clip_path(path, path)
+        
 
     def save_pdf(self, path):
         ''' Save the canvas to an svg file'''
-        svg_surf = cairo.PDFSurface(path, self.width, self.height)
-        self.ctx.set_source_surface(svg_surf)
-        self.ctx.paint()
-        self.ctx.set_source_surface(self.surf)
-
+        if self.recording_surface is None:
+            raise ValueError('No recording surface in canvas')
+        surf = cairo.PDFSurface(path, self.width, self.height)
+        ctx = cairo.Context(surf)
+        ctx.set_source_surface(self.recording_surface)
+        ctx.paint()
+        surf.finish()
+        
     def Image(self):
         from PIL import Image
         return Image.fromarray(self.get_image())
 
-    def save(self):
+    # def save(self):
+    #     ''' Save the canvas to an image'''
+    #     if not self.output_file:
+    #         print('No output file specified')
+    #         return
+    #     if '.svg' in self.output_file:
+    #         svg_surf = cairo.SVGSurface(self.output_file, self.width, self.height)
+    #         svg_ctx = cairo.Context(svg_surf)
+    #         svg_ctx.set_source_surface(self.surf)
+    #         svg_ctx.paint()
+    #         svg_ctx.set_source_surface(self.recording_surface)
+    #         svg_ctx.paint()
+    #         svg_surf.finish()
+    #     else:
+    #         self.surf.write_to_png(self.output_file)
+
+    def save(self, path):
         ''' Save the canvas to an image'''
-        if not self.output_file:
-            print('No output file specified')
-            return
-        if '.svg' in self.output_file:
-            svg_surf = cairo.SVGSurface(self.output_file, self.width, self.height)
-            svg_ctx = cairo.Context(svg_surf)
-            svg_ctx.set_source_surface(self.surf)
-            svg_ctx.paint()
-            svg_ctx.set_source_surface(self.recording_surface)
-            svg_ctx.paint()
-            svg_surf.finish()
-        else:
-            self.surf.write_to_png(self.output_file)
+        if '.svg' in path:
+            self.save_svg(path)
+        elif '.pdf' in path:
+            self.save_pdf(path)
+        elif '.png' in path:
+            # TODO use PIL
+            self.save_image(path)
 
     def show(self, size=None, title='', axis=False):
         import matplotlib.pyplot as plt
@@ -1113,3 +1189,35 @@ class VideoInput:
 
         img = img[:,:,::-1]
         return img
+
+# Fix svg export clip path 
+# RecordingSurface adds a clip-path attribute that breaks Illustrator import
+def fix_namespace(xml_content):
+    #return xml_content
+    # Remove namespace prefixes from the XML content and replace ns1 with xlink (argh)
+    xml_content = xml_content.replace('ns0:', '').replace(':ns0', '')
+    return xml_content.replace('ns1:', 'xlink:').replace(':ns1', ':xlink')
+
+def fix_clip_path(file_path, out_path):
+    import xml.etree.ElementTree as ET
+
+    # Load the SVG file
+    tree = ET.parse(file_path)
+    root = tree.getroot()
+    # Define the namespace
+    namespace = {'svg': 'http://www.w3.org/2000/svg'}
+
+    # Find the first <g> tag
+    g_tag = root.find('.//svg:g', namespace)
+
+    # Remove the 'clip-path' attribute if it exists
+    if 'clip-path' in g_tag.attrib:
+        del g_tag.attrib['clip-path']
+    res = ET.tostring(root, encoding='unicode')
+    # Save and then apply fixes
+    tree.write(out_path, encoding='UTF-8', xml_declaration=True, default_namespace='')
+    with open(out_path, 'r') as f:
+        # Fix namepace
+        txt = fix_namespace(f.read())
+    with open(out_path, 'w', encoding='utf-8') as f:
+        f.write(txt)

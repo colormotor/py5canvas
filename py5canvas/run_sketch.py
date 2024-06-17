@@ -274,9 +274,12 @@ class Sketch:
         # This will enable recording of drawing commands that are called in setup, if any,
         # and then we can pass these into a svg if we want to save one
         print('Setting up recording surface')
-        self.setup_surface = cairo.RecordingSurface(cairo.CONTENT_COLOR_ALPHA, None)
-        self.setup_ctx = cairo.Context(self.setup_surface)
-        self.canvas.ctx.push_context(self.setup_ctx)
+        self.recording_surface = cairo.RecordingSurface(cairo.CONTENT_COLOR_ALPHA, None)
+        self.recording_context = cairo.Context(self.recording_surface)
+        self.canvas.ctx.push_context(self.recording_context)
+        # self.setup_surface = cairo.RecordingSurface(cairo.CONTENT_COLOR_ALPHA, None)
+        # self.setup_ctx = cairo.Context(self.setup_surface)
+        #self.canvas.ctx.push_context(self.setup_ctx)
 
         self.window_width, self.window_height = self.window.get_size()
 
@@ -327,9 +330,7 @@ class Sketch:
         print('saving file to', self.saving_to_file)
         # Since this can be called in frame, we need to make sure we don't save svg righ after
         self.done_saving = False
-        # Create a recording surface and context and add it to canvas
-        self.recording_surface = cairo.RecordingSurface(cairo.CONTENT_COLOR_ALPHA, None)
-        self.recording_context = cairo.Context(self.recording_surface)
+        # Add the recording context so we can replay and save later
         self.canvas.ctx.push_context(self.recording_context)
 
     save_canvas = dump_canvas
@@ -656,6 +657,7 @@ class Sketch:
         if self.saving_to_file:
             self.done_saving = True
 
+        # Optional imGUI init and visualization
         if imgui is not None and self._gui_visible:
             if self.gui is not None:
                 if (self.params or
@@ -663,6 +665,8 @@ class Sketch:
                     self.prog_uses_imgui):
                     self.gui.begin_gui(self)
 
+                # User can add a 'gui()' function that will be automatically called
+                # But also imgui calls in draw will be valid
                 if 'gui' in self.var_context and callable(self.var_context['gui']):
                     try:
                         if (self.gui.show_sketch_controls() and
@@ -693,6 +697,7 @@ class Sketch:
                     self.runtime_error = True
                     print_traceback()
 
+        # Copy canvas image and visualize
         pitch = self.width * 4
         with perf_timer('get buffer'):
             buf = self.canvas.get_buffer()
@@ -711,6 +716,7 @@ class Sketch:
         # Update timers etc
         self._frame_count += 1
 
+        # Finalize gui visualization
         if imgui is not None and self._gui_visible:
             if self.gui is not None:
                 if (self.params or
@@ -742,17 +748,20 @@ class Sketch:
             elif '.pdf' in self.saving_to_file:
                 surf = cairo.PDFSurface(self.saving_to_file, self.canvas.width, self.canvas.height)
             ctx = cairo.Context(surf)
-            ctx.set_source_surface(self.setup_surface)
-            ctx.paint()
+            #ctx.set_source_surface(self.setup_surface)
+            #ctx.paint()
             ctx.set_source_surface(self.recording_surface)
             ctx.paint()
             surf.finish()
-            print('removing saving context')
+
+            # Apply svg fix
+            if '.svg' in self.saving_to_file:
+                canvas.fix_clip_path(self.saving_to_file, self.saving_to_file)
+
             self.canvas.ctx.pop_context()
-            self.recording_surface = None
-            self.recording_context = None
             self.saving_to_file = ''
             self.done_saving = False
+
 
         # NB need to check pyglet's draw loop, but clearing here will break when the frame-rate
         # is low or in other cases?
@@ -1060,4 +1069,3 @@ def main(path='', standalone=False):
 if __name__ == '__main__':
     main()
 
-# santamonica and highland after 6pm
