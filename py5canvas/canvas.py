@@ -91,6 +91,7 @@ import numbers
 import copy
 from math import fmod, pi
 import types
+from PIL import Image
 
 def is_number(x):
     return isinstance(x, numbers.Number)
@@ -771,7 +772,8 @@ class Canvas:
         `opacity`: a value between 0 and 1 specifying image opacity.
 
         """
-
+        if isinstance(img, Image.Image):
+            img = np.array(img)
         if type(img) == np.ndarray:
             img = numpy_to_surface(img)
         self.ctx.save()
@@ -924,7 +926,6 @@ class Canvas:
         surf.finish()
         
     def Image(self):
-        from PIL import Image
         return Image.fromarray(self.get_image())
 
     # def save(self):
