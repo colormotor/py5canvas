@@ -668,6 +668,9 @@ class Canvas:
     def end_contour(self, close=False):
         ''' End drawing a contour'''
         if not self.curve_segments:
+            if close:
+                self.ctx.close_path()
+            self._fillstroke()
             return
         if (len(self.curve_segments)==1 and
             self.curve_segment_types[-1] == 'C'):
