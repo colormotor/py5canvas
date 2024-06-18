@@ -177,6 +177,8 @@ class Canvas:
         self.ctx.set_font_size(16)
         self.line_cap('round')
 
+        self.tension = 0.5
+
         # Constants
         self.PI = pi
         self.TWO_PI = pi*2
@@ -640,25 +642,69 @@ class Canvas:
             self.ctx.stroke()
 
 
+    def clear_segments(self):
+        self.curve_segments = []
+        self.curve_segment_types = []
+
     def begin_shape(self):
         ''' Begin drawing a compound shape'''
         self.no_draw = True
+        self.clear_segments()
 
-    def end_shape(self):
+    def end_shape(self, close=False):
         ''' End drawing a compound shape'''
         self.no_draw = False
-        self._fillstroke()
+        self.end_contour(close)
+        # if close:
+        #     self.ctx.close_path()
+        # self._fillstroke()
 
     def begin_contour(self):
         ''' Begin drawing a contour'''
+        self.clear_segments()
         self.ctx.new_sub_path()
         self._first_point = True
 
     def end_contour(self, close=False):
         ''' End drawing a contour'''
+        if not self.curve_segments:
+            return
+        if (len(self.curve_segments)==1 and
+            self.curve_segment_types[-1] == 'C'):
+            P = self.curve_segments[-1]
+            if len(P) < 3:
+                raise ValueError('Insufficient points for spline')
+            Cp = cardinal_spline(P, self.tension, close)
+            #c.begin_contour()
+            self.ctx.move_to(*Cp[0])
+            for i in range(0, len(Cp)-1, 3):
+                self.ctx.curve_to(*Cp[i+1], *Cp[i+2], *Cp[i+3])
+            #c.end_contour(close)
+        else:
+            #c.begin_contour()
+            cur = self.curve_segments[0].pop(0)
+            self.ctx.move_to(*cur)
+            for seg, type in zip(self.curve_segments, self.curve_segment_types):
+                if type=='C':
+                    P = [cur] + seg
+                    Cp = cardinal_spline(P, self.tension, False)
+                    # for p in Cp:
+                    #     self.ctx.line_to(*p)
+                    for i in range(0, len(Cp)-1, 3):
+                        self.ctx.curve_to(*Cp[i+1], *Cp[i+2], *Cp[i+3])
+                else:
+                    for p in seg:
+                        self.ctx.line_to(*p)
+                cur = seg[-1]
+            #c.end_contour()
+
         if close:
             self.ctx.close_path()
         self._fillstroke()
+
+    def _add_curve_segment(self, type):
+        self.curve_segments.append([])
+        self.curve_segment_types.append(type)
 
     def vertex(self, x, y=None):
         ''' Add a vertex to current contour
@@ -669,84 +715,113 @@ class Canvas:
         '''
         if y is None:
             x, y = x
-        if not self._cur_point:
-            self.ctx.move_to(x, y)
-        else:
-            self.ctx.line_to(x, y)
-        self._cur_point = [x, y]
+        if (not self.curve_segments or
+            self.curve_segment_types[-1] != 'L'):
+            self._add_curve_segment('L')
 
-    def cubic(self, *args):
-        ''' Draw a cubic bezier curve
+        self.curve_segments[-1].append([x,y])
+
+    def curve_vertex(self, x, y=None):
+        ''' Add a curved vertex to current contour
         Args:
         Input arguments can be in the following formats:
-         `[x1, y1], [x2, y2], [x3, y3]`
-         `x1, y1, x2, y2, x3, y3`
+         `[x, y]'
+         `x, y`
         '''
-        if len(args) == 3:
-            p1, p2, p3 = args
-        else:
-            p1 = args[:2]
-            p2 = args[2:4]
-            p3 = args[4:6]
-        self._cur_point = [*p3]
-        self.ctx.curve_to(*p1, *p2, *p3)
-    cvertex = cubic
+        if y is None:
+            x, y = x
+        if (not self.curve_segments or
+            self.curve_segment_types[-1] != 'C'):
+            self._add_curve_segment('C')
+        self.curve_segments[-1].append([x,y])
 
-    def quadratic(self, *args):
-        ''' Draw a quadratic bezier curve
-        Args:
-        Input arguments can be in the following formats:
-            `[x1, y1], [x2, y2]`
-            `x1, y1, x2, y2`
-        '''
-        if len(args) == 2:
-            (x1, y1), (x2, y2) = args
-        else:
-            x1, y1, x2, y2 = args
+    # def vertex(self, x, y=None):
+    #     ''' Add a vertex to current contour
+    #     Args:
+    #     Input arguments can be in the following formats:
+    #      `[x, y]'
+    #      `x, y`
+    #     '''
+    #     if y is None:
+    #         x, y = x
+    #     if not self._cur_point:
+    #         self.ctx.move_to(x, y)
+    #     else:
+    #         self.ctx.line_to(x, y)
+    #     self._cur_point = [x, y]
 
-        if not self._cur_point:
-            print("Need an inital point to construct quadratic bezier curve")
-            raise ValueError
+    # def cubic(self, *args):
+    #     ''' Draw a cubic bezier curve
+    #     Args:
+    #     Input arguments can be in the following formats:
+    #      `[x1, y1], [x2, y2], [x3, y3]`
+    #      `x1, y1, x2, y2, x3, y3`
+    #     '''
+    #     if len(args) == 3:
+    #         p1, p2, p3 = args
+    #     else:
+    #         p1 = args[:2]
+    #         p2 = args[2:4]
+    #         p3 = args[4:6]
+    #     self._cur_point = [*p3]
+    #     self.ctx.curve_to(*p1, *p2, *p3)
+    # cvertex = cubic
 
-        x0, y0 = self._cur_point
-        self.ctx.curve_to(
-            (2 * x1 + x0) / 3,
-            (2 * y1 + y0) / 3,
-            (2 * x1 + x2) / 3,
-            (2 * y1 + y2) / 3,
-            x2, y2)
+    # def quadratic(self, *args):
+    #     ''' Draw a quadratic bezier curve
+    #     Args:
+    #     Input arguments can be in the following formats:
+    #         `[x1, y1], [x2, y2]`
+    #         `x1, y1, x2, y2`
+    #     '''
+    #     if len(args) == 2:
+    #         (x1, y1), (x2, y2) = args
+    #     else:
+    #         x1, y1, x2, y2 = args
 
-        self._cur_point = [x2, y2]
-    qvertex = quadratic
+    #     if not self._cur_point:
+    #         print("Need an inital point to construct quadratic bezier curve")
+    #         raise ValueError
 
-    def quadratic_to_cubic(self, x1, y1, x2, y2):
-        ''' Convert a quadratic bezier curve to a cubic bezier curve
-        Args:
-        Input arguments can be in the following formats:
-            `x1, y1, x2, y2`
-        '''
-        x0, y0 = self._cur_point
-        self.ctx.curve_to(
-                            2.0 / 3.0 * x1 + 1.0 / 3.0 * x0,
-                            2.0 / 3.0 * y1 + 1.0 / 3.0 * y0,
-                            2.0 / 3.0 * x1 + 1.0 / 3.0 * x2,
-                            2.0 / 3.0 * y1 + 1.0 / 3.0 * y2,
-                            y1, y2)
+    #     x0, y0 = self._cur_point
+    #     self.ctx.curve_to(
+    #         (2 * x1 + x0) / 3,
+    #         (2 * y1 + y0) / 3,
+    #         (2 * x1 + x2) / 3,
+    #         (2 * y1 + y2) / 3,
+    #         x2, y2)
 
-    def bezier(self, *args):
-        ''' Draws a bezier curve segment from current point
-            The degree of the curve (2 or 3) depends on the input arguments
-        Args:
-        Input arguments can be in the following formats:
-            `[x1, y1], [x2, y2], [x3, y3]` is cubic
-            `x1, y1, x2, y2, x3, y3` is cubic
-            `[x1, y1], [x2, y2]` is quadratic
-            `x1, y1, x2, y2` is quadratic
-        '''
-        if len(args) == 3 or len(args)==6:
-            self.cubic(*args)
-        else:
-            self.quadratic(*args)
+    #     self._cur_point = [x2, y2]
+    # qvertex = quadratic
+
+    # def quadratic_to_cubic(self, x1, y1, x2, y2):
+    #     ''' Convert a quadratic bezier curve to a cubic bezier curve
+    #     Args:
+    #     Input arguments can be in the following formats:
+    #         `x1, y1, x2, y2`
+    #     '''
+    #     x0, y0 = self._cur_point
+    #     self.ctx.curve_to(
+    #                         2.0 / 3.0 * x1 + 1.0 / 3.0 * x0,
+    #                         2.0 / 3.0 * y1 + 1.0 / 3.0 * y0,
+    #                         2.0 / 3.0 * x1 + 1.0 / 3.0 * x2,
+    #                         2.0 / 3.0 * y1 + 1.0 / 3.0 * y2,
+    #                         y1, y2)
+
+    # def bezier(self, *args):
+    #     ''' Draws a bezier curve segment from current point
+    #         The degree of the curve (2 or 3) depends on the input arguments
+    #     Args:
+    #     Input arguments can be in the following formats:
+    #         `[x1, y1], [x2, y2], [x3, y3]` is cubic
+    #         `x1, y1, x2, y2, x3, y3` is cubic
+    #         `[x1, y1], [x2, y2]` is quadratic
+    #         `x1, y1, x2, y2` is quadratic
+    #     '''
+    #     if len(args) == 3 or len(args)==6:
+    #         self.cubic(*args)
+    #     else:
+    #         self.quadratic(*args)
 
     def load_image(self, path):
         '''Load an image from disk. Currently only supports png! Use external
@@ -1171,7 +1246,6 @@ class VideoInput:
             dst_w, dst_h = self.size
 
             if self.resize_mode == 'crop':
-                print('Resizing with crop')
                 # Keep aspect ratio by cropping
                 aspect = dst_w / dst_h
 
@@ -1190,6 +1264,34 @@ class VideoInput:
 
         img = img[:,:,::-1]
         return img
+
+def cardinal_spline(Q, c, closed=False):
+    ''' Returns a Bezier chain for a Cardinal spline interpolation for a sequence of values
+    c is the tension parameter with 0.5 a Catmull-Rom spline
+    '''
+    Q = np.array(Q)
+    if closed:
+        Q = np.vstack([Q, Q[0]])
+    n = len(Q)
+    D = []
+    for k in range(1, n-1):
+        # Note that we do not take parametrisation into account here
+        d = (1-c)*(Q[k+1] - Q[k-1])
+        D.append(d)
+    if closed:
+        d1 =  (1-c)*(Q[1] - Q[-2])
+        dn = d1
+    else:
+        d1 = (1-c)*(Q[1] - Q[0])
+        dn = (1-c)*(Q[-1] - Q[-2])
+    D = [d1] + D + [dn]
+    P = [Q[0]]
+    for k in range(1, n):
+        p1 = Q[k-1] + D[k-1]/3
+        p2 = Q[k] - D[k]/3
+        p3 = Q[k]
+        P += [p1, p2, p3]
+    return np.array(P)
 
 # Fix svg export clip path 
 # RecordingSurface adds a clip-path attribute that breaks Illustrator import
