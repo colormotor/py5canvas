@@ -164,6 +164,9 @@ class Sketch:
         self.video_writer = None
         self.video_fps = 30
 
+        self.fps = 0
+        self.first_load = True
+
         self.saving_to_file = ''
         self.recording_context = None
         self.recording_surface = None
@@ -297,7 +300,8 @@ class Sketch:
             print("Creating canvas no gui")
             self._create_canvas(w, h, fullscreen=fullscreen, screen=screen)
             return
-        if self.params or self.gui_callback is not None:
+        has_gui = 'gui' in self.var_context and callable(self.var_context['gui'])
+        if self.params or self.gui_callback is not None or has_gui:
             self.create_canvas_gui(w, h, gui_width, fullscreen, screen=screen)
         else:
             self.gui = sketch_params.SketchGui(gui_width)
@@ -622,6 +626,12 @@ class Sketch:
 
     # internal update
     def frame(self):
+        # Setting the framerate in pyglet run seems to break things
+        # so make sure it is set when starting up the sketch
+        if self.first_load:
+            self.frame_rate(self.fps)
+            self.first_load = False
+
         self._update_mouse()
         self.update_globals()
 
@@ -788,6 +798,7 @@ class Sketch:
                 event_loop.clock.schedule_interval(event_loop._redraw_windows, 1.0/fps)
             else:
                 event_loop.clock.schedule(event_loop._redraw_windows)
+            self.fps = fps
         except AttributeError as e:
             print(e)
 
