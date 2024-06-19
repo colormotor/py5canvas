@@ -182,6 +182,8 @@ class Canvas:
         # Constants
         self.PI = pi
         self.TWO_PI = pi*2
+        self.HALF_PI = pi/2
+        self.QUARTER_PI = pi/4
 
         # Utils
         self._cur_point = []
@@ -1100,13 +1102,16 @@ class Canvas:
                 x[2]/self.color_scale,
                 x[3]/self.color_scale)
 
-def map(value, start1, stop1, start2, stop2):
-    return start2 + (stop2 - start2) * ((value - start1) / (stop1 - start1))
+def map(value, start1, stop1, start2, stop2, within_bounds=False):
+    ''' Re-maps a number from one range to another. '''
+    t = ((value - start1) / (stop1 - start1))
+    if within_bounds:
+        t = max(0.0, min(t, 1.0))
+    return start2 + (stop2 - start2) * t
 
 def radians(x):
     ''' Get radians given x degrees'''
     return np.pi/180*x
-
 
 def degrees(x):
     ''' Get degrees given x radians'''
