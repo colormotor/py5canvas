@@ -272,7 +272,7 @@ class Sketch:
         if canvas_size is None:
             canvas_size = (w, h)
         self.width, self.height = canvas_size #w, h
-        self.canvas = canvas.Canvas(*canvas_size) #, clear_callback=self.clear_callback)
+        self.canvas = canvas.Canvas(*canvas_size, recording=False) #, clear_callback=self.clear_callback)
         # When createing a canvas we create a recording surface
         # This will enable recording of drawing commands that are called in setup, if any,
         # and then we can pass these into a svg if we want to save one
@@ -626,6 +626,7 @@ class Sketch:
 
     # internal update
     def frame(self):
+
         # Setting the framerate in pyglet run seems to break things
         # so make sure it is set when starting up the sketch
         if self.first_load:
@@ -666,6 +667,8 @@ class Sketch:
             # imgui.new_frame()
         if self.saving_to_file:
             self.done_saving = True
+
+        # return
 
         # Optional imGUI init and visualization
         if imgui is not None and self._gui_visible:
@@ -1018,6 +1021,7 @@ def main(path='', standalone=False):
     def on_draw():
         # Updates input and calls draw in the sketch
         sketch.frame()
+
         # clearing the window
         sketch.window.clear()
         if sketch.keep_aspect_ratio:
@@ -1027,9 +1031,12 @@ def main(path='', standalone=False):
             sketch.blit_scale_factor = (sketch.canvas_display_width / sketch.canvas.width,
                                       sketch.canvas_display_height / sketch.canvas.height)
 
+
+
         sketch.image.blit(0, 0,
                           width=sketch.canvas.width*sketch.blit_scale_factor[0],
-                          height=sketch.canvas.height*sketch.blit_scale_factor[1]) #, width=sketch.window_width, height=sketch.window_height) #*window.get_size())
+                          height=sketch.canvas.height*sketch.blit_scale_factor[1])
+
         if sketch.has_error():
             sketch.error_label.draw()
 
