@@ -254,7 +254,13 @@ class Sketch:
         if np.isscalar(exts):
             exts = [exts]
         filetypes = [(filename, "*." + ext) for ext in exts]
-        return xdialog.save_file(title, filetypes=filetypes)
+        file_path = xdialog.save_file(title, filetypes=filetypes)
+        root, ext = os.path.splitext(file_path)
+        # Check if the current extension is in the list of allowed extensions
+        if ext.lower() not in [f".{e.lower()}" for e in exts]:
+            # If not, append the first extension from the list
+            file_path = f"{file_path}.{exts[0].lstrip('.')}"
+        return file_path
 
     def open_folder_dialog(self, title='Open folder...'):
         import xdialog
@@ -445,6 +451,15 @@ class Sketch:
     def stop_grabbing(self):
         self.num_grab_frames = self.current_grab_frame
 
+    def finalize_grab(self):
+        if not self.grabbing:
+            return
+        self.cur_grab_frame = 0
+        if self.video_writer is not None:
+            self.video_writer.release()
+            self.video_writer = None
+
+
     def grab(self):
         if not self.grabbing:
             return
@@ -463,19 +478,22 @@ class Sketch:
             # Grab png frame
             path = self.grabbing
             self.canvas.save_image(os.path.join(path, '%d.png'%(self.cur_grab_frame+1)))
-        print('Saving frame %d' % (self.cur_grab_frame+1))
+        print('Saving frame %d of %d' % (self.cur_grab_frame+1, self.num_grab_frames))
         self.cur_grab_frame += 1
         if self.cur_grab_frame >= self.num_grab_frames:
+            self.finalize_grab()
             print("Stopping grab")
             self.grabbing = ''
-            self.cur_grab_frame = 0
-            if self.video_writer is not None:
-                self.video_writer.release()
-                self.video_writer = None
+            # self.cur_grab_frame = 0
+            # if self.video_writer is not None:
+            #     self.video_writer.release()
+            #     self.video_writer = None
 
 
     def reload(self, var_context):
         print("Reloading sketch code")
+        self.finalize_grab()
+
         self.var_context = var_context
 
         self._frame_count = 0
@@ -1061,6 +1079,9 @@ def main(path='', standalone=False):
 
 
     def close():
+        # Stop grabbing and finalize
+        sketch.finalize_grab()
+
         # Save params if they exist
         if sketch.params is not None and not sketch.has_error():
             print('Saving params')
