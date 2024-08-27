@@ -107,6 +107,7 @@ class FileWatcher:
             return True
         return False
 
+# Code injection
 def wrap_method(obj, func):
     # print('wrapping ' + func)
     def wrapper(*args, **kwargs):

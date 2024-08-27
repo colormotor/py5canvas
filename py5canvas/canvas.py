@@ -194,7 +194,8 @@ class Canvas:
             self.recording_surface = cairo.RecordingSurface(cairo.CONTENT_COLOR_ALPHA, None)
             recording_context = cairo.Context(self.recording_surface)
             self.ctx.push_context(recording_context)
-
+        else:
+            print("Not creating recording context")
 
     def set_color_scale(self, scale):
         """Set color scale, e.g. if we want to specify colors in the `0`-`255` range, scale would be `255`,
@@ -235,6 +236,12 @@ class Canvas:
         if self.cur_fill is not None:
             return np.array(self.cur_fill)*self.color_scale
         return None #self.cur_fill
+
+    @property
+    def center(self):
+        """ Center of the canvas"""
+        return np.array([self._width/2,
+                         self._height/2])
 
     @property
     def width(self):

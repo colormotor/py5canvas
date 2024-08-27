@@ -101,7 +101,6 @@ def fetch_params(gui_params):
             key = val['__key__']
             params[key] = fetch_params(val)
         else:
-            print(val)
             val, opts = val
             key = opts['__key__']
             params[key] = val
@@ -162,7 +161,7 @@ class SketchParams:
             path = self.param_path
 
         print('Loading parameters from ' + path)
-        print('Pre: ', self.params)
+        #print('Pre: ', self.params)
         data = load_json(path)
         if not data:
             return
@@ -170,7 +169,7 @@ class SketchParams:
         #self.params.update(data['params'])
         self.presets = data['presets']
         self.aux.update(data['aux'])
-        print('Post: ', self.params)
+        #print('Post: ', self.params)
         self.current_preset = -1
 
     def preset_index(self, name):
@@ -495,13 +494,6 @@ if imgui is not None:
             if sketch.params is not None:
                 if imgui.collapsing_header("Presets", None, imgui.TREE_NODE_DEFAULT_OPEN):
                     preset_names = [k for k in sketch.params.presets.keys()]
-                    clicked, sketch.params.current_preset = imgui.listbox("Presets", sketch.params.current_preset, preset_names)
-
-                    if clicked:
-                        sketch.params.apply_preset(preset_names[sketch.params.current_preset])
-                        self.cur_preset_name = preset_names[sketch.params.current_preset]
-                        self.force_changed(sketch.params.params, sketch.params.gui_params)
-
                     preset_name = ''
                     if 0 <= sketch.params.current_preset < len(preset_names):
                         preset_name = preset_names[sketch.params.current_preset]
@@ -539,6 +531,15 @@ if imgui is not None:
                         if imgui.is_item_hovered():
                             with imgui.begin_tooltip():
                                 imgui.text('Press enter to update preset name')
+
+
+                    clicked, sketch.params.current_preset = imgui.listbox("Presets", sketch.params.current_preset, preset_names)
+
+                    if clicked:
+                        sketch.params.apply_preset(preset_names[sketch.params.current_preset])
+                        self.cur_preset_name = preset_names[sketch.params.current_preset]
+                        self.force_changed(sketch.params.params, sketch.params.gui_params)
+
 
                     if changed:
                         if preset_name: #self.cur_preset_name in sketch.params.presets:
