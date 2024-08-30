@@ -1,8 +1,8 @@
 import inspect
-from . import run_sketch
 import os
 
 def run():
+    from . import run_sketch
     frame = inspect.stack()[1]
     module = inspect.getmodule(frame[0])
     filename = module.__file__

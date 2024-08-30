@@ -97,7 +97,6 @@ def is_number(x):
     return isinstance(x, numbers.Number)
 
 
-
 def wrapper(self, fn):
     def result(*args, **kwargs):
         res = None

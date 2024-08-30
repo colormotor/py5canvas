@@ -23,7 +23,7 @@ import traceback
 imgui_loader = importlib.find_loader('imgui')
 if imgui_loader is not None:
     import imgui
-    from imgui.integrations.pyglet import create_renderer
+    # from imgui.integrations.pyglet import create_renderer
 else:
     imgui = None
 
@@ -409,7 +409,7 @@ if imgui is not None:
         def toolbar(self, sketch):
             self.sketch = sketch
             # Top bar
-            ratio = sketch.window.get_pixel_ratio()
+            ratio = sketch.get_pixel_ratio()
             imgui.set_next_window_size(sketch.window_width, sketch.toolbar_height)
             imgui.set_next_window_position(0, 0)
             imgui.begin("Toolbar", True, (imgui.WINDOW_NO_RESIZE |
