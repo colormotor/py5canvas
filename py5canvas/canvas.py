@@ -11,76 +11,6 @@ eeeee e    e 8     eeee eeeee eeeee ee   e eeeee eeeee
 ```
 Simplistic utilty to mimic [P5js](https://p5js.org) in Python/Jupyter notebooks.
 © Daniel Berio (@colormotor) 2023 - ...
-
-## Dependencies
-This module depends on matplotlib, numpy and and pycairo.
-To install these with conda do:
-```
-conda install -c conda-forge matplotlib
-conda install -c conda-forge pycairo
-```
-
-When using Google Colab, matplotlib and numpy will already be installed. To
-install pycairo add and execute the following in a code cell:
-```
-!apt-get install libcairo2-dev libjpeg-dev libgif-dev
-!pip install pycairo
-```
-
-## Usage
-Place the `canvas.py` file in the same directory as your notebook.
-If using Google Colab fetch the latest version of the module with
-```
-!wget https://raw.githubusercontent.com/colormotor/DMLAP/main/python/canvas.py
-```
-
-## Example
-The following is the conversion of a simple example in P5js to the `canvas` API.
-In Javascript we may have:
-
-```Javascript
-function setup() {
-  createCanvas(512, 512);
-  // Clear background to black
-  background(0);
-  // Set stroke only and draw circle
-  stroke(128);
-  noFill();
-  strokeWeight(5);
-  circle(width/2, height/2, 200);
-  // Draw red text
-  fill(255, 0, 0);
-  noStroke();
-  textSize(30);
-  textAlign(CENTER);
-  text("Hello world", width/2, 40);
-}
-
-function draw() {
-}
-```
-
-The equivalent Python version will be:
-
-```Python
-import canvas
-
-# Create our canvas object
-c = canvas.Canvas(512, 512)
-
-# Clear background to black
-c.background(0)
-# Set stroke only and draw circle
-c.stroke(128)
-c.no_fill()
-c.stroke_weight(5)
-c.circle(c.width/2, c.height/2, 100)
-# Draw red text
-c.fill(255, 0, 0)
-c.text_size(30)
-c.text([c.width/2, 40], "Hello world", center=True)
-c.show()
-```
 """
 
 #%%
@@ -96,7 +26,6 @@ from PIL import Image
 def is_number(x):
     return isinstance(x, numbers.Number)
 
-
 def wrapper(self, fn):
     def result(*args, **kwargs):
         res = None
@@ -106,7 +35,6 @@ def wrapper(self, fn):
         return res
 
     return result
-
 
 class MultiContext:
     ''' Workaround for TeeSurface not working on Mac (at least)
@@ -134,14 +62,16 @@ class CanvasState:
 
 class Canvas:
     """
-    Creates a a pycairo surface that behaves similarly to p5js
+    Creates a drawing canvas (pyCairo) that behaves similarly to p5js
 
-    param width: int, width of the canvas in pixels
-    param height: int, height of the canvas in pixels
-    param clear_callback: function, a callback to be called when the canvas is cleared (for internal use mostly)
+    Constructor arguments:
+
+    - ~width~ : (~int~), width of the canvas in pixels
+    - ~height~ : (~int~), height of the canvas in pixels
+    - ~clear_callback~ (optional): function, a callback to be called when the canvas is cleared (for internal use mostly)
     """
     def __init__(self, width, height, background=(0.0, 0.0, 0.0, 255.0), clear_callback=lambda: None, output_file='', recording=True):
-        """ Constructor"""
+        """Constructor"""
         # See https://pycairo.readthedocs.io/en/latest/reference/context.html
         surf = cairo.ImageSurface(cairo.FORMAT_ARGB32, width, height)
         ctx = MultiContext(surf) #cairo.Context(surf)
@@ -183,6 +113,9 @@ class Canvas:
         self.TWO_PI = pi*2
         self.HALF_PI = pi/2
         self.QUARTER_PI = pi/4
+        self.CENTER = 'center'
+        self.CORNER = 'corner'
+        self.RADIUS = 'radius'
 
         # Utils
         self._cur_point = []
@@ -197,13 +130,19 @@ class Canvas:
             print("Not creating recording context")
 
     def set_color_scale(self, scale):
-        """Set color scale, e.g. if we want to specify colors in the `0`-`255` range, scale would be `255`,
-        or if the colors are in the `0`-`1` range, scale will be `1`"""
+        """Set color scale:
+
+        Arguments:
+
+        - ~scale~ (float): the color scale. if we want to specify colors in the ~0...255~ range,
+        ~scale~ will be ~255~. If we want to specify colors in the ~0...1~ range, ~scale~ will be ~1~"""
         self.color_scale = scale
 
     def rect_mode(self, mode):
-        """ Set the mode for drawing rectangles.
-        param mode: string, can be one of 'corner', 'center', 'radius'
+        """ Set the "mode" for drawing rectangles.
+
+        Arguments:
+        - ~mode~ (string): can be one of 'corner', 'center', 'radius'
         """
         if mode not in ['corner', 'center', 'radius']:
             print('rect_mode: invalid mode')
@@ -214,6 +153,7 @@ class Canvas:
     @property
     def cur_fill(self):
         return self.draw_states[-1].cur_fill
+
     @cur_fill.setter
     def cur_fill(self, value):
         self.draw_states[-1].cur_fill = value
@@ -221,14 +161,15 @@ class Canvas:
     @property
     def cur_stroke(self):
         return self.draw_states[-1].cur_stroke
+
     @cur_stroke.setter
     def cur_stroke(self, value):
         self.draw_states[-1].cur_stroke = value
 
-    def get_stroke_or_fill_color(self):
+    def _get_stroke_or_fill_color(self):
         """
-        Get the current stroke color if set, the fill color otherwise
-        returns the current stroke or fill color as a numpy array, or None if no color is set
+        Returns the current stroke color if set, the fill color otherwise
+        returns the current stroke or fill color as a numpy array, or ~None~ if no color is set
         """
         if self.cur_stroke is not None:
             return np.array(self.cur_stroke)*self.color_scale
@@ -238,18 +179,18 @@ class Canvas:
 
     @property
     def center(self):
-        """ Center of the canvas"""
+        """ The center of the canvas (as a 2d numpy array)"""
         return np.array([self._width/2,
                          self._height/2])
 
     @property
     def width(self):
-        """ Width of canvas"""
+        """ The width of canvas"""
         return self._width
 
     @property
     def height(self):
-        """ Height of canvas"""
+        """ The height of canvas"""
         return self._height
 
     @property
@@ -257,16 +198,20 @@ class Canvas:
         return self.surf
 
     def no_fill(self):
+        """ Do not fill subsequent shapes"""
         self.fill(None)
 
     def no_stroke(self):
+        """ Do not stroke subsequent shapes"""
         self.stroke(None)
 
     def color_mode(self, mode, scale=None):
         """ Set the color mode for the canvas
 
-        param mode: string, can be one of 'rgb', 'hsv'
-        param scale: float, the scale for the color values (e.g. 255 for 0-255 range, 1 for 0-1 range)
+        Arguments:
+
+        - ~mode~ (string): can be one of 'rgb', 'hsv' depending on the desired color mode
+        - ~scale~ (float): the scale for the color values (e.g. 255 for 0...255 range, 1 for 0...1 range)
         """
         self._color_mode = mode
         if scale is not None:
@@ -278,12 +223,30 @@ class Canvas:
         return clr
 
     def fill(self, *args):
+        """ Set the color of the current fill
+
+        Arguments:
+
+        - A single argument specifies a grayscale value, e.g ~c.fill(128)~ will fill with 50% gray.
+        - Two arguments specify grayscale with opacity, e.g. ~c.fill(255, 128)~ will fill with transparent white.
+        - Three arguments specify a color depending on the color mode (rgb or hsv)
+        - Four arguments specify a color with opacity
+        """
         if args[0] is None:
             self.cur_fill = None
         else:
             self.cur_fill = self._apply_colormode(self._convert_rgba(args))
 
     def stroke(self, *args):
+        """ Set the color of the current stroke
+
+        Arguments:
+        - A single argument specifies a grayscale value.
+        - Two arguments specify grayscale with opacity.
+        - Three arguments specify a color depending on the color mode (rgb or hsv)
+        - Four arguments specify a color with opacity
+        """
+
         if args[0] is None:
             self.cur_stroke = None
         else:
@@ -294,9 +257,11 @@ class Canvas:
         self.ctx.set_line_width(w)
 
     def line_join(self, join):
-        """Specify the 'join' for polylines.
-        Args:
-        join (string): can be one of "miter", "bevel" or "round"
+        """Specify the 'join' mode for polylines.
+
+        Arguments:
+
+        - ~join~ (string): can be one of "miter", "bevel" or "round"
         """
         joins = {'miter': cairo.LINE_JOIN_MITER,
                 'bevel': cairo.LINE_JOIN_BEVEL,
@@ -309,6 +274,14 @@ class Canvas:
         self.ctx.set_line_join(joins[join])
 
     def blend_mode(self, mode="over"):
+        """Specify the blending mode
+
+        Arguments:
+
+        - ~mode~ (string) can be one of: "clear", "source", "over", "in", "out", "atop",
+          "dest", "dest_over", "dest_in", "dest_out", "dest_atop", "xor", "add", "saturate", "multiply", "screen", "overlay", "darken", "lighten", "color_dodge", "color_burn", "hard_light", "soft_light", "difference", "exclusion", "hsl_hue", "hsl_saturation", "hsl_color", "hsl_luminosity"
+          See [[https://www.cairographics.org/operators/]] for a discussion on the different operators.
+        """
         blend_modes = {
             "clear": cairo.OPERATOR_CLEAR,
             "source": cairo.OPERATOR_SOURCE,
@@ -352,8 +325,10 @@ class Canvas:
 
     def line_cap(self, cap):
         """Specify the 'cap' for lines.
-        Args:
-        cap (string): can be one of "butt", "round" or "square"
+
+        Arguments:
+
+        - ~cap~ (string): can be one of "butt", "round" or "square"
         """
         caps = {'butt': cairo.LINE_CAP_BUTT,
                 'round': cairo.LINE_CAP_ROUND,
@@ -366,24 +341,43 @@ class Canvas:
         self.ctx.set_line_cap(caps[cap])
 
     def text_size(self, size):
+        """Specify the text size
+
+        Arguments:
+
+        - ~size~ (int): the text size
+        """
         self.ctx.set_font_size(size)
 
+    def text_font(self, font):
+        """Specify the font to use for text rendering
+        Arguments:
+
+        - ~font~ (string): the name of a system font
+        """
+        self.ctx.select_font_face(font)
+
     def push(self):
+        """
+        Save the current drawing state and transformations
+        """
         self.ctx.save()
         self.draw_states.append(copy.deepcopy(self.draw_states[-1]))
 
     def pop(self):
+        """
+        Restore the previously pushed drawing state and transformations
+        """
         self.ctx.restore()
         self.draw_states.pop()
 
     def translate(self, *args):
-        """Translate by specifying `x` and `y` offset.
+        """Translate by specifying ~x~ and ~y~ offset.
 
-        Args:
-            The offset can be specified as an array/list (e.g `c.translate([x,y])`
-            or as single arguments (e.g. `c.translate(x, y)`)
-        Returns:
-            Nothing
+        Arguments:
+
+        - The offset can be specified as an array/list (e.g ~c.translate([x,y])~
+          or as single arguments (e.g. ~c.translate(x, y)~)
         """
         if len(args)==1:
             v = args[0]
@@ -394,14 +388,12 @@ class Canvas:
     def scale(self, *args):
         """Apply a scaling transformation.
 
-        Args:
-        Providing a single number will apply a uniform transformation.
-        Providing a pair of number will scale in the x and y directions.
-        The scale can be specified as an array/list (e.g `c.scale([x,y])`
-        or as single arguments (e.g. `c.scale(x, y)`)'''
+        Arguments:
 
-        Returns:
-        type: nothing
+        - Providing a single number will apply a uniform transformation.
+        - Providing a pair of number will scale in the x and y directions.
+        - The scale can be specified as an array/list (e.g ~c.scale([x,y])~
+        or as single arguments (e.g. ~c.scale(x, y)~)'''
         """
 
         if len(args)==1:
@@ -413,12 +405,13 @@ class Canvas:
         self.ctx.scale(*s)
 
     def rotate(self, theta):
-        ''' Rotate by `theta` radians'''
+        ''' Rotate by ~theta~ radians'''
         self.ctx.rotate(theta)
 
     rotate_rad = rotate
 
     def apply_matrix(self, mat):
+        ''' Apply an affine (3x3) transformation matrix'''
         matrix = cairo.Matrix(mat[0][0], mat[1][0], mat[0][1], mat[1][1], mat[0][2], mat[1][2])
         self.ctx.transform(matrix)
 
@@ -449,11 +442,11 @@ class Canvas:
     def rectangle(self, *args):
         """Draw a rectangle given top-left corner, width and heght.
 
-        Args:
-        Input arguments can be in the following formats:
-         - `[topleft_x, topleft_y], [width, height]`,
-         - `[topleft_x, topleft_y], width, height`,
-         - `topleft_x, topleft_y, width, height`
+        Arguments:
+
+         - ~[topleft_x, topleft_y], [width, height]~,
+         - ~[topleft_x, topleft_y], width, height~,
+         - ~topleft_x, topleft_y, width, height~
          - '[[topleft_x, topleft_y], [bottomright_x, bottomright_y]]'
         """
 
@@ -482,11 +475,11 @@ class Canvas:
     def rect(self, *args):
         """Draw a rectangle given top-left corner, width and heght.
 
-        Args:
         Input arguments can be in the following formats:
-         - `[topleft_x, topleft_y], [width, height]`,
-         - `[topleft_x, topleft_y], width, height`,
-         - `topleft_x, topleft_y, width, height`
+
+         - ~[topleft_x, topleft_y], [width, height]~,
+         - ~[topleft_x, topleft_y], width, height~,
+         - ~topleft_x, topleft_y, width, height~
 
         """
         return self.rectangle(*args)
@@ -494,10 +487,10 @@ class Canvas:
     def quad(self, *args):
         """Draws a quadrangle given four points
 
-        Args:
         Input arguments can be in the following formats:
-         - `a, b, c, d` (Four points specified as lists/tuples/numpy arrays
-         - `x1, y1, x2, y2, x3, y3, x4, y4`
+
+         - ~a, b, c, d~ (Four points specified as lists/tuples/numpy arrays
+         - ~x1, y1, x2, y2, x3, y3, x4, y4~, a sequence of numbers, one for each coordinate
         """
 
         if len(args)==4:
@@ -519,6 +512,7 @@ class Canvas:
         self.pop()
 
     def arrow(self, a, b, size=2.5, overhang=0.7, length=2.0):
+        ''' Draw an arrow between two points ~a~ and ~b~'''
         w = self.ctx.get_line_width()*size
         # Arrow width and 'height' (length)
         h = w*length
@@ -536,7 +530,7 @@ class Canvas:
         # draw
         self.line(a, b)
         self.push()
-        self.fill(self.get_stroke_or_fill_color())
+        self.fill(self._get_stroke_or_fill_color())
         self.no_stroke()
         self.polygon(P)
         self.pop()
@@ -544,10 +538,10 @@ class Canvas:
     def triangle(self, *args):
         """Draws a triangle given three points
 
-        Args:
         Input arguments can be in the following formats:
-         - `a, b, c` (Four points specified as lists/tuples/numpy arrays
-         - `x1, y1, x2, y2, x3, y3`
+
+         - ~a, b, c~ (Four points specified as lists/tuples/numpy arrays
+         - ~x1, y1, x2, y2, x3, y3~
         """
 
         if len(args)==3:
@@ -558,10 +552,10 @@ class Canvas:
     def circle(self, *args):
         """Draw a circle given center and radius
 
-        Args:
         Input arguments can be in the following formats:
-        - `[center_x, center_y], radius`,
-        - `center_x, center_y, raidus`
+
+        - ~[center_x, center_y], radius~,
+        - ~center_x, center_y, raidus~
         """
 
         if len(args)==3:
@@ -576,11 +570,11 @@ class Canvas:
     def ellipse(self, *args):
         """Draw an ellipse with center, width and height.
 
-        Args:
         Input arguments can be in the following formats:
-        - `[center_x, center_y], [width, height]`,
-        - `[center_x, center_y], width, height`,
-        - `center_x, center_y, width, height`
+
+        - ~[center_x, center_y], [width, height]~,
+        - ~[center_x, center_y], width, height~,
+        - ~center_x, center_y, width, height~
         """
 
         if len(args) == 3:
@@ -611,15 +605,15 @@ class Canvas:
             self.ctx.stroke()
 
     def arc(self, *args):
-        """Draw an arc given the center of the ellipse `x, y`
-        the size of the ellipse `w, h` and the initial and final angles
-        in radians  `start, stop`.
+        """Draw an arc given the center of the ellipse ~x, y~
+        the size of the ellipse ~w, h~ and the initial and final angles
+        in radians  ~start, stop~.
 
-        Args:
-          Input arguments can be in the following formats:
-          -`x, y, w, h, start, stop`
-          -`[x, y]', '[w, h]', '[start, stop]'
-          -`[x, y]', w, h, start, stop`
+        Input arguments can be in the following formats:
+
+          -~x, y, w, h, start, stop~
+          -~[x, y]', '[w, h]', '[start, stop]'
+          -~[x, y]', w, h, start, stop~
 
         """
         if len(args) == 3:
@@ -719,10 +713,11 @@ class Canvas:
 
     def vertex(self, x, y=None):
         ''' Add a vertex to current contour
-        Args:
+
         Input arguments can be in the following formats:
-         `[x, y]'
-         `x, y`
+
+         ~[x, y]'
+         ~x, y~
         '''
         if y is None:
             x, y = x
@@ -734,10 +729,11 @@ class Canvas:
 
     def curve_vertex(self, x, y=None):
         ''' Add a curved vertex to current contour
-        Args:
+
         Input arguments can be in the following formats:
-         `[x, y]'
-         `x, y`
+
+         ~[x, y]'
+         ~x, y~
         '''
         if y is None:
             x, y = x
@@ -748,10 +744,10 @@ class Canvas:
 
     # def vertex(self, x, y=None):
     #     ''' Add a vertex to current contour
-    #     Args:
+    #     Arguments:
     #     Input arguments can be in the following formats:
-    #      `[x, y]'
-    #      `x, y`
+    #      ~[x, y]'
+    #      ~x, y~
     #     '''
     #     if y is None:
     #         x, y = x
@@ -763,10 +759,10 @@ class Canvas:
 
     # def cubic(self, *args):
     #     ''' Draw a cubic bezier curve
-    #     Args:
+    #     Arguments:
     #     Input arguments can be in the following formats:
-    #      `[x1, y1], [x2, y2], [x3, y3]`
-    #      `x1, y1, x2, y2, x3, y3`
+    #      ~[x1, y1], [x2, y2], [x3, y3]~
+    #      ~x1, y1, x2, y2, x3, y3~
     #     '''
     #     if len(args) == 3:
     #         p1, p2, p3 = args
@@ -780,10 +776,10 @@ class Canvas:
 
     # def quadratic(self, *args):
     #     ''' Draw a quadratic bezier curve
-    #     Args:
+    #     Arguments:
     #     Input arguments can be in the following formats:
-    #         `[x1, y1], [x2, y2]`
-    #         `x1, y1, x2, y2`
+    #         ~[x1, y1], [x2, y2]~
+    #         ~x1, y1, x2, y2~
     #     '''
     #     if len(args) == 2:
     #         (x1, y1), (x2, y2) = args
@@ -807,9 +803,9 @@ class Canvas:
 
     # def quadratic_to_cubic(self, x1, y1, x2, y2):
     #     ''' Convert a quadratic bezier curve to a cubic bezier curve
-    #     Args:
+    #     Arguments:
     #     Input arguments can be in the following formats:
-    #         `x1, y1, x2, y2`
+    #         ~x1, y1, x2, y2~
     #     '''
     #     x0, y0 = self._cur_point
     #     self.ctx.curve_to(
@@ -822,12 +818,12 @@ class Canvas:
     # def bezier(self, *args):
     #     ''' Draws a bezier curve segment from current point
     #         The degree of the curve (2 or 3) depends on the input arguments
-    #     Args:
+    #     Arguments:
     #     Input arguments can be in the following formats:
-    #         `[x1, y1], [x2, y2], [x3, y3]` is cubic
-    #         `x1, y1, x2, y2, x3, y3` is cubic
-    #         `[x1, y1], [x2, y2]` is quadratic
-    #         `x1, y1, x2, y2` is quadratic
+    #         ~[x1, y1], [x2, y2], [x3, y3]~ is cubic
+    #         ~x1, y1, x2, y2, x3, y3~ is cubic
+    #         ~[x1, y1], [x2, y2]~ is quadratic
+    #         ~x1, y1, x2, y2~ is quadratic
     #     '''
     #     if len(args) == 3 or len(args)==6:
     #         self.cubic(*args)
@@ -835,27 +831,23 @@ class Canvas:
     #         self.quadratic(*args)
 
     def load_image(self, path):
-        '''Load an image from disk. Currently only supports png! Use external
-        loading into NumPy instead'''
-        if not 'png' in path:
-            print ("Load image only supports PNG files!!!")
-            assert(0)
-        surf = cairo.ImageSurface.create_from_png(path)
-        return surf
+        '''Load an image from disk. Actually returns a PIL image'''
+        return Image.open(path)
 
     def image(self, img, *args, opacity=1.0):
         """Draw an image at position with (optional) size and (optional) opacity
 
-        Args:
-        img: The input image. Can be either a numpy array or a pyCairo surface (e.g. another canvas).
-        *args: position and size can be specified with the following formats:
-            `x, y`:  position only
-            `x, y, w, h`: position and size
-            `[x, y]`: position only (also a numpy array or tuple are valid)
-            `[x, y], [w, h]`: position and size
+        Arguments:
+
+        - ~img~: The input image. Can be either a PIL image, a numpy array or a pyCairo surface (e.g. another canvas).
+        - optional arguments: position and size can be specified with the following formats:
+            - ~x, y~:  position only
+            - ~x, y, w, h~: position and size
+            - ~[x, y]~: position only (also a numpy array or tuple are valid)
+            - ~[x, y], [w, h]~: position and size
         if the position is not specified, the original image dimensions will be used
 
-        `opacity`: a value between 0 and 1 specifying image opacity.
+        - ~opacity~: a value between 0 and 1 specifying image opacity.
 
         """
         if isinstance(img, Image.Image):
@@ -916,7 +908,7 @@ class Canvas:
     def text(self, pos, text, center=False):
         ''' Draw text at a given position
 
-        Args:
+        Arguments:
             if center=True the text will be horizontally centered
         '''
 
@@ -933,17 +925,17 @@ class Canvas:
     def polygon(self, *args):
         ''' Draw a *closed* polygon
         The polyline is specified as either:
-        - a list of `[x,y]` pairs (e.g. `[[0, 100], [200, 100], [200, 200]]`)
-        - a numpy array with shape `(n, 2)`, representing `n` points (a point for each row and a coordinate for each column)'''
+        - a list of ~[x,y]~ pairs (e.g. ~[[0, 100], [200, 100], [200, 200]]~)
+        - a numpy array with shape ~(n, 2)~, representing ~n~ points (a point for each row and a coordinate for each column)'''
         self.polyline(*args, closed=True)
 
     def polyline(self, *args, closed=False):
         ''' Draw a polyline. 
         The polyline is specified as either:
-        - a list of `[x,y]` pairs (e.g. `[[0, 100], [200, 100], [200, 200]]`)
-        - a numpy array with shape `(n, 2)`, representing `n` points (a point for each row and a coordinate for each column)
+        - a list of ~[x,y]~ pairs (e.g. ~[[0, 100], [200, 100], [200, 200]]~)
+        - a numpy array with shape ~(n, 2)~, representing ~n~ points (a point for each row and a coordinate for each column)
         
-        To close the polyline set the named closed argument to `True`, e.g. `c.polyline(points, closed=True)`.
+        To close the polyline set the named closed argument to ~True~, e.g. ~c.polyline(points, closed=True)~.
         '''
         self.ctx.new_sub_path()
         #self.ctx.new_path()
@@ -1040,7 +1032,19 @@ class Canvas:
             # TODO use PIL
             self.save_image(path)
 
-    def show(self, size=None, title='', axis=False):
+
+    def show(self):
+        ''' Display the canvas in a notebook'''
+        display(Image.fromarray(self.get_image()))
+
+    def show_plt(self, size=None, title='', axis=False):
+        ''' Show the canvas in a notebook with matplotlib
+
+        Arguments:
+        size (tuple, optional): The size of the displayed image, by default this is the size of the canvas
+        title (string, optional): A title for the figure
+        axis (bool, optional): If ~True~ shows the coordinate axes
+        '''
         import matplotlib.pyplot as plt
         if size is not None:
             plt.figure(figsize=(size[0]/100, size[1]/100))
