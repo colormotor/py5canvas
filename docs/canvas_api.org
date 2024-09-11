@@ -1,7 +1,8 @@
 #+title: Canvas Api
 
 
-* Canvas
+
+** ~Canvas~ class
 Creates a drawing canvas (pyCairo) that behaves similarly to p5js
 
 Constructor arguments:
@@ -10,7 +11,7 @@ Constructor arguments:
 - ~height~ : (~int~), height of the canvas in pixels
 - ~clear_callback~ (optional): function, a callback to be called when the canvas is cleared (for internal use mostly)
 
-** ~set_color_scale(...)~
+*** ~set_color_scale(...)~
 Set color scale:
 
 Arguments:
@@ -18,28 +19,28 @@ Arguments:
 - ~scale~ (float): the color scale. if we want to specify colors in the ~0...255~ range,
 ~scale~ will be ~255~. If we want to specify colors in the ~0...1~ range, ~scale~ will be ~1~
 
-** ~rect_mode(...)~
+*** ~rect_mode(...)~
 Set the "mode" for drawing rectangles.
 
 Arguments:
 - ~mode~ (string): can be one of 'corner', 'center', 'radius'
 
-** ~center~ (property)
+*** ~center~ (property)
 The center of the canvas (as a 2d numpy array)
 
-** ~width~ (property)
+*** ~width~ (property)
 The width of canvas
 
-** ~height~ (property)
+*** ~height~ (property)
 The height of canvas
 
-** ~no_fill()~
+*** ~no_fill()~
 Do not fill subsequent shapes
 
-** ~no_stroke()~
+*** ~no_stroke()~
 Do not stroke subsequent shapes
 
-** ~color_mode(...)~
+*** ~color_mode(...)~
 Set the color mode for the canvas
 
 Arguments:
@@ -47,7 +48,7 @@ Arguments:
 - ~mode~ (string): can be one of 'rgb', 'hsv' depending on the desired color mode
 - ~scale~ (float): the scale for the color values (e.g. 255 for 0...255 range, 1 for 0...1 range)
 
-** ~fill()~
+*** ~fill()~
 Set the color of the current fill
 
 Arguments:
@@ -57,7 +58,7 @@ Arguments:
 - Three arguments specify a color depending on the color mode (rgb or hsv)
 - Four arguments specify a color with opacity
 
-** ~stroke()~
+*** ~stroke()~
 Set the color of the current stroke
 
 Arguments:
@@ -66,17 +67,17 @@ Arguments:
 - Three arguments specify a color depending on the color mode (rgb or hsv)
 - Four arguments specify a color with opacity
 
-** ~stroke_weight(...)~
+*** ~stroke_weight(...)~
 Set the line width
 
-** ~line_join(...)~
+*** ~line_join(...)~
 Specify the 'join' mode for polylines.
 
 Arguments:
 
 - ~join~ (string): can be one of "miter", "bevel" or "round"
 
-** ~blend_mode(...)~
+*** ~blend_mode(...)~
 Specify the blending mode
 
 Arguments:
@@ -85,33 +86,33 @@ Arguments:
   "dest", "dest_over", "dest_in", "dest_out", "dest_atop", "xor", "add", "saturate", "multiply", "screen", "overlay", "darken", "lighten", "color_dodge", "color_burn", "hard_light", "soft_light", "difference", "exclusion", "hsl_hue", "hsl_saturation", "hsl_color", "hsl_luminosity"
   See [[https://www.cairographics.org/operators/]] for a discussion on the different operators.
 
-** ~line_cap(...)~
+*** ~line_cap(...)~
 Specify the 'cap' for lines.
 
 Arguments:
 
 - ~cap~ (string): can be one of "butt", "round" or "square"
 
-** ~text_size(...)~
+*** ~text_size(...)~
 Specify the text size
 
 Arguments:
 
 - ~size~ (int): the text size
 
-** ~text_font(...)~
+*** ~text_font(...)~
 Specify the font to use for text rendering
 Arguments:
 
 - ~font~ (string): the name of a system font
 
-** ~push()~
+*** ~push()~
 Save the current drawing state and transformations
 
-** ~pop()~
+*** ~pop()~
 Restore the previously pushed drawing state and transformations
 
-** ~translate()~
+*** ~translate()~
 Translate by specifying ~x~ and ~y~ offset.
 
 Arguments:
@@ -119,7 +120,7 @@ Arguments:
 - The offset can be specified as an array/list (e.g ~c.translate([x,y])~
   or as single arguments (e.g. ~c.translate(x, y)~)
 
-** ~scale()~
+*** ~scale()~
 Apply a scaling transformation.
 
 Arguments:
@@ -129,16 +130,16 @@ Arguments:
 - The scale can be specified as an array/list (e.g ~c.scale([x,y])~
 or as single arguments (e.g. ~c.scale(x, y)~)'''
 
-** ~rotate(...)~
+*** ~rotate(...)~
 Rotate by ~theta~ radians
 
-** ~apply_matrix(...)~
+*** ~apply_matrix(...)~
 Apply an affine (3x3) transformation matrix
 
-** ~rotate_deg(...)~
+*** ~rotate_deg(...)~
 Rotate using degrees
 
-** ~rectangle()~
+*** ~rectangle()~
 Draw a rectangle given top-left corner, width and heght.
 
 Arguments:
@@ -148,7 +149,7 @@ Arguments:
  - ~topleft_x, topleft_y, width, height~
  - '[[topleft_x, topleft_y], [bottomright_x, bottomright_y]]'
 
-** ~rect()~
+*** ~rect()~
 Draw a rectangle given top-left corner, width and heght.
 
 Input arguments can be in the following formats:
@@ -157,7 +158,7 @@ Input arguments can be in the following formats:
  - ~[topleft_x, topleft_y], width, height~,
  - ~topleft_x, topleft_y, width, height~
 
-** ~quad()~
+*** ~quad()~
 Draws a quadrangle given four points
 
 Input arguments can be in the following formats:
@@ -165,10 +166,10 @@ Input arguments can be in the following formats:
  - ~a, b, c, d~ (Four points specified as lists/tuples/numpy arrays
  - ~x1, y1, x2, y2, x3, y3, x4, y4~, a sequence of numbers, one for each coordinate
 
-** ~arrow(...)~
+*** ~arrow(...)~
 Draw an arrow between two points ~a~ and ~b~
 
-** ~triangle()~
+*** ~triangle()~
 Draws a triangle given three points
 
 Input arguments can be in the following formats:
@@ -176,7 +177,7 @@ Input arguments can be in the following formats:
  - ~a, b, c~ (Four points specified as lists/tuples/numpy arrays
  - ~x1, y1, x2, y2, x3, y3~
 
-** ~circle()~
+*** ~circle()~
 Draw a circle given center and radius
 
 Input arguments can be in the following formats:
@@ -184,7 +185,7 @@ Input arguments can be in the following formats:
 - ~[center_x, center_y], radius~,
 - ~center_x, center_y, raidus~
 
-** ~ellipse()~
+*** ~ellipse()~
 Draw an ellipse with center, width and height.
 
 Input arguments can be in the following formats:
@@ -193,7 +194,7 @@ Input arguments can be in the following formats:
 - ~[center_x, center_y], width, height~,
 - ~center_x, center_y, width, height~
 
-** ~arc()~
+*** ~arc()~
 Draw an arc given the center of the ellipse ~x, y~
 the size of the ellipse ~w, h~ and the initial and final angles
 in radians  ~start, stop~.
@@ -204,19 +205,19 @@ Input arguments can be in the following formats:
   -~[x, y]', '[w, h]', '[start, stop]'
   -~[x, y]', w, h, start, stop~
 
-** ~begin_shape()~
+*** ~begin_shape()~
 Begin drawing a compound shape
 
-** ~end_shape(...)~
+*** ~end_shape(...)~
 End drawing a compound shape
 
-** ~begin_contour()~
+*** ~begin_contour()~
 Begin drawing a contour
 
-** ~end_contour(...)~
+*** ~end_contour(...)~
 End drawing a contour
 
-** ~vertex(...)~
+*** ~vertex(...)~
 Add a vertex to current contour
 
 Input arguments can be in the following formats:
@@ -224,7 +225,7 @@ Input arguments can be in the following formats:
  ~[x, y]'
  ~x, y~
 
-** ~curve_vertex(...)~
+*** ~curve_vertex(...)~
 Add a curved vertex to current contour
 
 Input arguments can be in the following formats:
@@ -232,10 +233,10 @@ Input arguments can be in the following formats:
  ~[x, y]'
  ~x, y~
 
-** ~load_image(...)~
+*** ~load_image(...)~
 Load an image from disk. Actually returns a PIL image
 
-** ~image(...)~
+*** ~image(...)~
 Draw an image at position with (optional) size and (optional) opacity
 
 Arguments:
@@ -250,23 +251,23 @@ if the position is not specified, the original image dimensions will be used
 
 - ~opacity~: a value between 0 and 1 specifying image opacity.
 
-** ~shape(...)~
+*** ~shape(...)~
 Draw a shape represented as a list of polylines, see the ~polyline~
 method for the format of each polyline
 
-** ~text(...)~
+*** ~text(...)~
 Draw text at a given position
 
 Arguments:
     if center=True the text will be horizontally centered
 
-** ~polygon()~
+*** ~polygon()~
 Draw a *closed* polygon
 The polyline is specified as either:
 - a list of ~[x,y]~ pairs (e.g. ~[[0, 100], [200, 100], [200, 200]]~)
 - a numpy array with shape ~(n, 2)~, representing ~n~ points (a point for each row and a coordinate for each column)
 
-** ~polyline()~
+*** ~polyline()~
 Draw a polyline.
 The polyline is specified as either:
 - a list of ~[x,y]~ pairs (e.g. ~[[0, 100], [200, 100], [200, 200]]~)
@@ -274,31 +275,31 @@ The polyline is specified as either:
 
 To close the polyline set the named closed argument to ~True~, e.g. ~c.polyline(points, closed=True)~.
 
-** ~background()~
+*** ~background()~
 Clear the canvas with a given color
 
-** ~get_image()~
+*** ~get_image()~
 Get canvas image as a numpy array
 
-** ~get_image_grayscale()~
+*** ~get_image_grayscale()~
 Returns the canvas image as a grayscale numpy array (in 0-1 range)
 
-** ~save_image(...)~
+*** ~save_image(...)~
 Save the canvas to an image
 
-** ~save_svg(...)~
+*** ~save_svg(...)~
 Save the canvas to an svg file
 
-** ~save_pdf(...)~
+*** ~save_pdf(...)~
 Save the canvas to an svg file
 
-** ~save(...)~
+*** ~save(...)~
 Save the canvas to an image
 
-** ~show()~
+*** ~show()~
 Display the canvas in a notebook
 
-** ~show_plt(...)~
+*** ~show_plt(...)~
 Show the canvas in a notebook with matplotlib
 
 Arguments:
