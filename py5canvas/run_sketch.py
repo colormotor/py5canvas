@@ -155,18 +155,18 @@ class Sketch:
         self.window = glfw.create_window(width, height, title, None, None)
         glfw.make_context_current(self.window)
 
-        # OpenGL context and
+        # OpenGL context, shader and vao for rendering canvas
         self.glctx = mgl.create_context()
         prog = self.glctx.program(vertex_shader=quad_vertex_shader, fragment_shader=quad_fragment_shader)
         vertices = np.array([
             # x, y, u, v
-            -1.0, -1.0, 0.0, 0.0,
-            1.0, -1.0, 1.0, 0.0,
-            1.0,  1.0, 1.0, 1.0,
+            -1.0, -1.0, 0.0, 1.0,
+            1.0, -1.0, 1.0, 1.0,
+            1.0,  1.0, 1.0, 0.0,
 
-            -1.0, -1.0, 0.0, 0.0,
-            1.0,  1.0, 1.0, 1.0,
-            -1.0,  1.0, 0.0, 1.0,
+            -1.0, -1.0, 0.0, 1.0,
+            1.0,  1.0, 1.0, 0.0,
+            -1.0,  1.0, 0.0, 0.0,
         ], dtype='f4')
         vbo = self.glctx.buffer(vertices.tobytes())
         self.quad_vao = self.glctx.simple_vertex_array(prog, vbo, 'in_vert', 'in_text')
@@ -174,6 +174,7 @@ class Sketch:
         #self.window.set_vsync(False)
         self.standalone = standalone
         self.width, self.height = width, height
+        self.canvas_tex = None
         self.var_context = {}
         self.params = None
         self.gui = None
@@ -190,7 +191,6 @@ class Sketch:
         self.impl = None
         # Saving window position for fullscreen toggle
         self.last_window_pos = None
-
 
         self.create_canvas(self.width, self.height)
         # self.frame_rate(60)
@@ -353,6 +353,8 @@ class Sketch:
         if self.var_context:
             self.update_globals()
 
+        if self.canvas_tex is not None:
+            self.canvas_tex.release()
         self.canvas_tex = self.glctx.texture(canvas_size, 4, self.canvas.get_buffer())
 
         # # Create image and copy initial canvas buffer to it
@@ -873,23 +875,7 @@ class Sketch:
 
 
     def frame_rate(self, fps):
-        pass
-
-        # try:
-        #     print('setting frame rate to ' + str(fps))
-        # #print('sketch.frame_rate is deprecated for the moment, the function will have no effect')
-        #     event_loop = pyglet.app.event_loop
-        #     event_loop.clock.unschedule(event_loop._redraw_windows)
-        #     if fps > 0:
-        #         event_loop.clock.schedule_interval(event_loop._redraw_windows, 1.0/fps)
-        #     else:
-        #         event_loop.clock.schedule(event_loop._redraw_windows)
-        #     self.fps = fps
-        # except AttributeError as e:
-        #     print(e)
-
-        # pyglet.clock.unschedule(self._update)
-        # pyglet.clock.schedule_interval(self._update, 1.0/fps)
+        self.fps = fps
 
 
     def start_osc(self):
@@ -1200,18 +1186,34 @@ def main(path='', standalone=False):
 
     first_frame = True
 
+    prev_t = time.perf_counter()
+
     while not glfw.window_should_close(sketch.window):
         # Updates input and calls draw in the sketch
         # Poll for and process events
         glfw.poll_events()
         sketch._mouse_pos = np.array(glfw.get_cursor_pos(sketch.window))
-        sketch.frame()
+
+        do_frame = False
+        if sketch.fps <= 0:
+            do_frame = True
+        else:
+            if time.perf_counter() - prev_t >= 1.0 / sketch.fps:
+                do_frame = True
+
+        if do_frame:
+            sketch.frame()
+            prev_t = time.perf_counter()
+
 
         sketch.impl.process_inputs()
 
         sketch.canvas_tex.write(sketch.canvas.get_buffer())
         sketch.glctx.clear(1.0, 1.0, 1.0)  # Clear the screen to white
+        prev_viewport = sketch.glctx.viewport
+        sketch.glctx.viewport = (0, 0, sketch.canvas.width, sketch.canvas.height)
         sketch.quad_vao.render(mgl.TRIANGLES)  # Render the VAO
+        sketch.glctx.viewport = prev_viewport
         # if sketch.keep_aspect_ratio:
         #     sketch.blit_scale_factor = (sketch.canvas_display_height / sketch.canvas.height,
         #                                 sketch.canvas_display_height / sketch.canvas.height)
@@ -1237,6 +1239,9 @@ def main(path='', standalone=False):
                 # sketch.error_label.text = str(e)
                 sketch.runtime_error = True
                 print_traceback()
+
+                sketch.impl.process_inputs()
+
 
         if imgui is not None:
             try:

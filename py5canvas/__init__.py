@@ -1,6 +1,7 @@
 import inspect
 import os
-
+from .canvas import Canvas
+ 
 def run():
     from . import run_sketch
     frame = inspect.stack()[1]
