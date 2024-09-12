@@ -1,7 +1,8 @@
 numpy
-matplotlib
+pillow
 pycairo
-pyglet
+glfw
+moderngl
 easydict
-imgui [pyglet]
 xdialog
+imgui [glfw]

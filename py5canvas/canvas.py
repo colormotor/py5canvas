@@ -14,7 +14,6 @@ Simplistic utilty to mimic [P5js](https://p5js.org) in Python/Jupyter notebooks.
 """
 
 #%%
-import matplotlib.pyplot as plt
 import numpy as np
 import cairo
 import numbers
