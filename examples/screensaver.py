@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 
-params = {'foo':(30.0, {'min':0.0, 'max':100.0})}
+params = {'background':(30.0, {'min':0.0, 'max':255.0})}
 params = sketch.parameters(params)
 
 def new_points():
@@ -20,7 +20,8 @@ def setup():
 def draw():
     global a, b # we are modifying these
 
-    background(params.foo, 0, 0, 100) # Clear with alpha will create the "trail effect"
+    background(params.background, 50) # Clear with alpha will create the "trail effect"
+    #
     # Center of screen
     translate(c.width/2, c.height/2)
 
