@@ -22,6 +22,15 @@ import copy
 from math import fmod, pi
 import types
 from PIL import Image
+import importlib
+
+perlin_loader = importlib.find_loader('perlin_noise')
+if perlin_loader is not None:
+    from perlin_noise import PerlinNoise
+    perlin = PerlinNoise()
+else:
+    print("Perlin noise not installed. Use `pip install perlin-noise` to install")
+    perlin = None
 
 def is_number(x):
     return isinstance(x, numbers.Number)
@@ -57,7 +66,7 @@ class MultiContext:
 class CanvasState:
     def __init__(self, c):
         self.cur_fill = c._convert_rgba([255.0])
-        self.cur_stroke = None
+        self.cur_stroke = c._convert_rgba([0.0])
 
 
 class Canvas:
@@ -70,7 +79,7 @@ class Canvas:
     - ~height~ : (~int~), height of the canvas in pixels
     - ~clear_callback~ (optional): function, a callback to be called when the canvas is cleared (for internal use mostly)
     """
-    def __init__(self, width, height, background=(0.0, 0.0, 0.0, 255.0), clear_callback=lambda: None, output_file='', recording=True):
+    def __init__(self, width, height, background=(128.0, 128.0, 128.0, 255.0), clear_callback=lambda: None, output_file='', recording=True):
         """Constructor"""
         # See https://pycairo.readthedocs.io/en/latest/reference/context.html
         surf = cairo.ImageSurface(cairo.FORMAT_ARGB32, width, height)
@@ -79,11 +88,6 @@ class Canvas:
         # Create SVG surface for saving
         self.color_scale = 255.0
 
-        ctx.set_fill_rule(cairo.FILL_RULE_EVEN_ODD) #FILL_RULE_WINDING) #EVEN_ODD)
-        ctx.set_line_join(cairo.LINE_JOIN_MITER)
-        ctx.set_source_rgba(*background)
-        ctx.rectangle(0, 0, width, height)
-        ctx.fill()
 
         # This is useful for py5sketch to reset SVG each time background is cleared
         self.clear_callback = clear_callback
@@ -94,11 +98,18 @@ class Canvas:
         self.surf = surf
         self.ctx = ctx
 
+        ctx.set_fill_rule(cairo.FILL_RULE_EVEN_ODD) #FILL_RULE_WINDING) #EVEN_ODD)
+        ctx.set_line_join(cairo.LINE_JOIN_MITER)
+        ctx.set_source_rgba(*self._apply_colormode(self._convert_rgba(background)))
+        ctx.rectangle(0, 0, width, height)
+        ctx.fill()
+
         self.draw_states = [CanvasState(self)]
 
         # self.cur_fill = self._convert_rgba([255.0])
         # self.cur_stroke = None
         self._rect_mode = 'corner'
+        self._ellipse_mode = 'center'
 
         self.no_draw = False
 
@@ -116,6 +127,9 @@ class Canvas:
         self.CENTER = 'center'
         self.CORNER = 'corner'
         self.RADIUS = 'radius'
+        self.HSB = 'hsv'
+        self.HSV = 'hsv'
+        self.RGB = 'rgb'
 
         # Utils
         self._cur_point = []
@@ -149,6 +163,18 @@ class Canvas:
             print('choose one among: corner, center, radius')
             return
         self._rect_mode = mode
+
+    def ellipse_mode(self, mode):
+        """ Set the "mode" for drawing rectangles.
+
+        Arguments:
+        - ~mode~ (string): can be one of 'corner', 'center'
+        """
+        if mode not in ['corner', 'center']:
+            print('rect_mode: invalid mode')
+            print('choose one among: corner, center')
+            return
+        self._ellipse_mode = mode
 
     @property
     def cur_fill(self):
@@ -424,7 +450,9 @@ class Canvas:
             return hsv_to_rgb(np.array(args))*self.color_scale
         else:
             return hsv_to_rgb(np.array(args[0]))*self.color_scale
-            
+
+    hsb = hsv
+
     def _fillstroke(self):
         if self.no_draw: # we are in a begin_shape end_shape pair
            return
@@ -498,9 +526,18 @@ class Canvas:
         else:
             self.polygon([[args[i*2], args[i*2+1]] for i in range(4)])
 
+
     def line(self, *args):
-        self.push()
+        """ Draws a line between two points
+
+        Input arguments can be in the following formats:
+
+         - ~a, b~ (Two points specified as lists/tuples/numpy arrays
+         - ~x1, y1, x2, y2~, a sequence of numbers, one for each coordinate
+        """
+        nostroke = False
         if self.cur_stroke is None:
+            nostroke = True
             if self.cur_fill is not None:
                 self.cur_stroke = self.cur_fill
             else:
@@ -509,7 +546,27 @@ class Canvas:
             self.polyline(args[0], args[1])
         if len(args)==4:
             self.polyline([[args[0], args[1]], [args[2], args[3]]])
-        self.pop()
+        if nostroke:
+            self.cur_stroke = None
+
+    def point(self, *args):
+        nostroke = False
+        if self.cur_stroke is None:
+            nostroke = True
+            if self.cur_fill is not None:
+                self.cur_stroke = self.cur_fill
+            else:
+                print('point: No color is set')
+        if len(args)==1:
+            self.polyline(args[0], args[0])
+        elif len(args)==2:
+            self.polyline([args[0], args[1]],
+                          [args[0], args[1]])
+        else:
+            raise ValueError("point: Illegal number of arguments")
+        if nostroke:
+            self.cur_stroke = None
+
 
     def arrow(self, a, b, size=2.5, overhang=0.7, length=2.0):
         ''' Draw an arrow between two points ~a~ and ~b~'''
@@ -589,9 +646,12 @@ class Canvas:
 
         self.push()
         self.translate(center)
+        if self._ellipse_mode == 'corner':
+            self.translate(w/2, h/2)
         self.scale([w/2,h/2])
+
         self.ctx.new_sub_path()
-        self.ctx.arc(0, 0, 1, 0,np.pi*2.)
+        self.ctx.arc(0, 0, 1, 0, np.pi*2.)
         if self.cur_fill is not None:
             self.ctx.set_source_rgba(*self.cur_fill)
             if self.cur_stroke is not None:
@@ -668,7 +728,12 @@ class Canvas:
         self._first_point = True
 
     def end_contour(self, close=False):
-        ''' End drawing a contour'''
+        ''' End drawing a contour
+
+        Arguments:
+
+        - ~close~ (bool, optional): if ~True~ close the contour
+        '''
         if not self.curve_segments:
             if close:
                 self.ctx.close_path()
@@ -680,28 +745,29 @@ class Canvas:
             if len(P) < 3:
                 raise ValueError('Insufficient points for spline')
             Cp = cardinal_spline(P, self.tension, close)
-            #c.begin_contour()
             self.ctx.move_to(*Cp[0])
             for i in range(0, len(Cp)-1, 3):
                 self.ctx.curve_to(*Cp[i+1], *Cp[i+2], *Cp[i+3])
-            #c.end_contour(close)
         else:
-            #c.begin_contour()
             cur = self.curve_segments[0].pop(0)
+
             self.ctx.move_to(*cur)
             for seg, type in zip(self.curve_segments, self.curve_segment_types):
+                if not seg:
+                    continue
                 if type=='C':
                     P = [cur] + seg
                     Cp = cardinal_spline(P, self.tension, False)
-                    # for p in Cp:
-                    #     self.ctx.line_to(*p)
                     for i in range(0, len(Cp)-1, 3):
                         self.ctx.curve_to(*Cp[i+1], *Cp[i+2], *Cp[i+3])
+                elif type=='B':
+                    # Cubic Bezier segment
+                    for i in range(0, len(seg), 3):
+                        self.ctx.curve_to(*seg[i], *seg[i+1], *seg[i+2])
                 else:
                     for p in seg:
                         self.ctx.line_to(*p)
                 cur = seg[-1]
-            #c.end_contour()
 
         if close:
             self.ctx.close_path()
@@ -725,7 +791,7 @@ class Canvas:
             self.curve_segment_types[-1] != 'L'):
             self._add_curve_segment('L')
 
-        self.curve_segments[-1].append([x,y])
+        self.curve_segments[-1].append([x, y])
 
     def curve_vertex(self, x, y=None):
         ''' Add a curved vertex to current contour
@@ -741,6 +807,35 @@ class Canvas:
             self.curve_segment_types[-1] != 'C'):
             self._add_curve_segment('C')
         self.curve_segments[-1].append([x,y])
+
+    def bezier_vertex(self, *args):
+        ''' Draw a cubic Bezier segment from the current point
+        requires a first control point to be already defined with ~vertex~.
+
+        Arguments:
+
+        Requires three points. Input arguments can be in the following formats:
+         ~[x1, y1], [x2, y2], [x3, y3]~
+         ~x1, y1, x2, y2, x3, y3~
+        '''
+        if len(args) == 3:
+            p1, p2, p3 = args
+        else:
+            p1 = args[:2]
+            p2 = args[2:4]
+            p3 = args[4:6]
+        if not self.curve_segments:
+            raise ValueError('bezier_vertex requires an initial vertex to work')
+        if self.curve_segment_types[-1] != 'B':
+            self._add_curve_segment('B')
+        self.curve_segments[-1].append(p1)
+        self.curve_segments[-1].append(p2)
+        self.curve_segments[-1].append(p3)
+
+    def curve_tightness(self, val):
+        ''' Sets the 'tension' parameter for the curve used when using ~curve_vertex~
+        '''
+        self.tension = val
 
     # def vertex(self, x, y=None):
     #     ''' Add a vertex to current contour
@@ -1127,7 +1222,6 @@ def degrees(x):
     ''' Get degrees given x radians'''
     return x * (180.0/np.pi)
 
-
 def numpy_to_surface(arr):
     ''' Convert numpy array to a pycairo surface'''
     # Get the shape and data type of the numpy array
@@ -1157,7 +1251,6 @@ def numpy_to_surface(arr):
 
     return surf
 
-
 def show_image(im, size=None, title='', cmap='gray'):
     ''' Display a (numpy) image'''
     import matplotlib.pyplot as plt
@@ -1169,7 +1262,6 @@ def show_image(im, size=None, title='', cmap='gray'):
         plt.title(title)
     plt.imshow(im, cmap)
     plt.show()
-
 
 def show_images(images, ncols, size=None, title='', cmap='gray'):
     ''' Display multiple images in a grid'''
@@ -1191,7 +1283,6 @@ def show_images(images, ncols, size=None, title='', cmap='gray'):
         ax.axis('off')
     plt.tight_layout()
     plt.show()
-
 
 def hsv_to_rgb(hsva):
     h, s, v = hsva[:3]
@@ -1342,3 +1433,65 @@ def fix_clip_path(file_path, out_path):
         txt = fix_namespace(f.read())
     with open(out_path, 'w', encoding='utf-8') as f:
         f.write(txt)
+
+# Optional perlin noise init
+_perlin_octaves = 4
+_perlin_falloff = 0.5
+
+def noise_seed(seed):
+    """ Sets the seed for the noise generator
+    """
+    global perlin
+
+    if perlin is None:
+        raise ValueError('Noise is not installed. use `pip install perlin-noise`')
+    perlin = PerlinNoise(seed=seed)
+
+def noise_detail(octaves, falloff=0.5):
+    """ Adjusts the character and level of detail produced by the Perlin noise function.
+
+    Arguments:
+
+    - ~octaves~ (int): the number of noise 'octaves'. Each octave has double the frequency of the previous.
+    - ~falloff~ (float, default 0.5): a number between 0 and 1 that multiplies the amplitude of each consectutive octave
+    """
+    global _perlin_falloff, _perlin_octaves
+
+    if perlin is None:
+        raise ValueError('Noise is not installed. use `pip install perlin-noise`')
+
+    _perlin_falloff = falloff
+    _perlin_octaves = octaves
+
+def noise(*args):
+    """ Returns a Perlin noise value (between 0 and 1) at a given coordinate.
+    Noise is created by summing consecutive "octaves" with increasing level of detail.
+    Each octave has double the frequency of the previous and an amplitude falls off for each octave. By default the falloff is 0.5.
+    The default number of octaves is ~4~. Use `noise_detail~ to set the number of octaves and falloff.
+
+    Arguments:
+
+    - The arguments to this function can vary from 1 to 3, determining the "space" that is sampled to generate noise.
+    The function also accepts a single array parameter with 1 to 3 elements.
+    """
+    if perlin is None:
+        raise ValueError('Noise is not installed. use `pip install perlin-noise`')
+    if len(args) > 1:
+        x = np.array(args)
+    else:
+        if not is_number(args[0]):
+            x = np.array([args[0]])
+        else:
+            x = args[0]
+
+    amp = 1.0
+    ampsum = 0
+    v = 0.0
+
+    for i in range(_perlin_octaves):
+        v += (perlin(x))*amp
+        x *= 2
+        ampsum += amp
+        amp *= _perlin_falloff
+    v /= ampsum
+    return v+0.5
