@@ -1,34 +1,38 @@
 import numpy as np
 from . import canvas
 import inspect
+
+
+# Tricks the linter into knowing the symbols we inject
 from .dummy_globals import *
+from .globals import *
 
-TWO_PI = 2*np.pi
-HALF_PI = np.pi/2
-QUARTER_PI = np.pi/4
-TAU = 2*np.pi
-PI = np.pi
-RGB = 'rgb'
-HSB = 'hsv'
-HSV = 'hsv'
-CENTER = 'center'
-CORNER = 'corner'
-RADIUS = 'radius'
-random = np.random.uniform
-randomseed = np.random.seed
-randomseed = np.random.seed
-radians = canvas.radians
-degrees = canvas.degrees
-noise = canvas.noise
-noise_detail = canvas.noise_detail
-noise_seed = canvas.noise_seed
+# TWO_PI = 2*np.pi
+# HALF_PI = np.pi/2
+# QUARTER_PI = np.pi/4
+# TAU = 2*np.pi
+# PI = np.pi
+# RGB = 'rgb'
+# HSB = 'hsv'
+# HSV = 'hsv'
+# CENTER = 'center'
+# CORNER = 'corner'
+# RADIUS = 'radius'
+# random = np.random.uniform
+# randomseed = np.random.seed
+# randomseed = np.random.seed
+# radians = canvas.radians
+# degrees = canvas.degrees
+# noise = canvas.noise
+# noise_detail = canvas.noise_detail
+# noise_seed = canvas.noise_seed
 
-map  = canvas.map
-sin  = np.sin
-cos  = np.cos
-floor = lambda x: np.floor(x).astype(int)
-ceil = lambda x: np.ceil(x).astype(int)
-round = lambda x: np.round(x).astype(int)
+# map   = canvas.map
+# sin   = np.sin
+# cos   = np.cos
+# floor = lambda x: np.floor(x).astype(int)
+# ceil  = lambda x: np.ceil(x).astype(int)
+# round = lambda x: np.round(x).astype(int)
 
 _canvas = None
 

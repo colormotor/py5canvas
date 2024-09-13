@@ -24,6 +24,7 @@ It will probably be significantly slow when using a large canvas size
 import numpy as np
 import os, sys, time
 from py5canvas import canvas, sketch_params
+from py5canvas import globals as glob
 import traceback
 import importlib
 import threading
@@ -198,6 +199,7 @@ class Sketch:
         self.runtime_error = False
         self.fps = 0
         self.first_load = True
+        self._no_loop = False
 
         # Frame grabbing utils (OpenCV dependent)
         self.grabbing = ''
@@ -260,6 +262,16 @@ class Sketch:
             self.oscclient = None
             self.server_thread = None
             self.osc_enabled = False
+
+    @property
+    def mouse_x(self):
+        ''' The horizontal coordinate of the mouse position'''
+        return self.mouse_pos[0]
+
+    @property
+    def mouse_y(self):
+        ''' The vertical coordinate of the mouse position'''
+        return self.mouse_pos[1]
 
     @property
     def frame_count(self):
@@ -477,6 +489,8 @@ class Sketch:
 
         # self.is_fullscreen = flag
 
+    def no_loop(self):
+        self._no_loop = True
 
     def set_gui_theme(self, hue):
         if self.gui is not None:
@@ -612,19 +626,24 @@ class Sketch:
             for func in dir(self.canvas):
                 if '__' not in func and callable(getattr(self.canvas, func)):
                     var_context[func] = wrap_canvas_method(self, func)
-            var_context['TWO_PI'] = 2*np.pi
-            var_context['PI'] = np.pi
-            var_context['random'] = np.random.uniform
-            var_context['random_seed'] = np.random.seed
-            var_context['random_seed'] = np.random.seed
-            var_context['radians'] = canvas.radians
-            var_context['degrees'] = canvas.degrees
-            var_context['map'] = canvas.map
-            var_context['sin'] = np.sin
-            var_context['cos'] = np.cos
-            var_context['floor'] = lambda x: np.floor(x).astype(int)
-            var_context['ceil'] = lambda x: np.ceil(x).astype(int)
-            var_context['round'] = lambda x: np.round(x).astype(int)
+
+            for g in dir(glob):
+                if '__' not in g:
+                    var_context[g] = getattr(glob, g)
+
+            # var_context['TWO_PI'] = 2*np.pi
+            # var_context['PI'] = np.pi
+            # var_context['random'] = np.random.uniform
+            # var_context['random_seed'] = np.random.seed
+            # var_context['random_seed'] = np.random.seed
+            # var_context['radians'] = canvas.radians
+            # var_context['degrees'] = canvas.degrees
+            # var_context['map'] = canvas.map
+            # var_context['sin'] = np.sin
+            # var_context['cos'] = np.cos
+            # var_context['floor'] = lambda x: np.floor(x).astype(int)
+            # var_context['ceil'] = lambda x: np.ceil(x).astype(int)
+            # var_context['round'] = lambda x: np.round(x).astype(int)
 
             # And basic functions from sketch
             var_context['frame_rate'] = wrap_method(self, 'frame_rate')
@@ -688,8 +707,7 @@ class Sketch:
         self.var_context['frame_count'] = self._frame_count
         self.var_context['width'] = self.width
         self.var_context['height'] = self.height
-        # Expose canvas globally
-        self.var_context['c'] = self.canvas
+
         # HACK keep mouse_pressed as a flag for backwards compatibility, but must be deprecated
 
         if 'mouse_pressed' not in self.var_context or not callable(self.var_context['mouse_pressed']):
@@ -697,6 +715,9 @@ class Sketch:
         self.var_context['dragging'] = self.dragging
         self.var_context['mouse_delta'] = self.mouse_delta
         self.var_context['mouse_pos'] = self.mouse_pos
+        self.var_context['mouse_x'] = self.mouse_x
+        self.var_context['mouse_y'] = self.mouse_y
+
 
     def _update(self, dt):
         # Almost a dummy function.
@@ -710,10 +731,8 @@ class Sketch:
     # internal update
     def frame(self):
 
-        # Setting the framerate in pyglet run seems to break things
-        # so make sure it is set when starting up the sketch
         if self.first_load:
-            self.frame_rate(self.fps)
+            # Do stuff on first load
             self.first_load = False
 
         self._update_mouse()
@@ -946,7 +965,7 @@ class Sketch:
         print("End cleanup")
 
 
-def main(path='', standalone=False):
+def main(path='', fps=0, standalone=False):
     from importlib import reload
     mouse_moving = False
 
@@ -993,6 +1012,7 @@ def main(path='', standalone=False):
         return
 
     sketch = Sketch(path, 512, 512, standalone=standalone)
+    sketch.fps = fps
 
     def canvas_pos(x, y):
         return np.array([x, sketch.window_height-y-sketch.toolbar_height])
@@ -1202,7 +1222,7 @@ def main(path='', standalone=False):
 
     first_frame = True
 
-    prev_t = time.perf_counter()
+    prev_t = 100000 #time.perf_counter()
 
     while not glfw.window_should_close(sketch.window):
         # Updates input and calls draw in the sketch
@@ -1217,14 +1237,13 @@ def main(path='', standalone=False):
             if time.perf_counter() - prev_t >= 1.0 / sketch.fps:
                 do_frame = True
 
-        if do_frame:
+        if do_frame and not sketch._no_loop:
             sketch.frame()
             prev_t = time.perf_counter()
-
+            sketch.canvas_tex.write(sketch.canvas.get_buffer())
 
         sketch.impl.process_inputs()
 
-        sketch.canvas_tex.write(sketch.canvas.get_buffer())
         sketch.glctx.clear(1.0, 1.0, 1.0)  # Clear the screen to white
         prev_viewport = sketch.glctx.viewport
         sketch.glctx.viewport = (0, 0, sketch.canvas.width, sketch.canvas.height)
@@ -1256,7 +1275,8 @@ def main(path='', standalone=False):
                 sketch.runtime_error = True
                 print_traceback()
 
-                sketch.impl.process_inputs()
+                if sketch.impl is not None:
+                    sketch.impl.process_inputs()
 
 
         if imgui is not None:

@@ -22,6 +22,7 @@ from math import fmod, pi
 import types
 from PIL import Image
 import importlib
+from contextlib import contextmanager
 
 perlin_loader = importlib.find_loader('perlin_noise')
 if perlin_loader is not None:
@@ -85,8 +86,7 @@ class Canvas:
         ctx = MultiContext(surf) #cairo.Context(surf)
 
         # Create SVG surface for saving
-        self.color_scale = 255.0
-
+        self.color_scale = np.ones(4)*255.0
 
         # This is useful for py5sketch to reset SVG each time background is cleared
         self.clear_callback = clear_callback
@@ -149,7 +149,9 @@ class Canvas:
 
         - ~scale~ (float): the color scale. if we want to specify colors in the ~0...255~ range,
         ~scale~ will be ~255~. If we want to specify colors in the ~0...1~ range, ~scale~ will be ~1~"""
-        self.color_scale = scale
+        if is_number(scale):
+            scale = np.ones(4)*scale
+        self.color_scale[:len(scale)] = scale
 
     def rect_mode(self, mode):
         """ Set the "mode" for drawing rectangles.
@@ -174,6 +176,10 @@ class Canvas:
             print('choose one among: corner, center')
             return
         self._ellipse_mode = mode
+
+    def Color(self, *args):
+        """ Create a color"""
+        return np.array(args)
 
     @property
     def cur_fill(self):
@@ -208,6 +214,14 @@ class Canvas:
         return np.array([self._width/2,
                          self._height/2])
 
+    def get_width(self):
+        """ The width of canvas"""
+        return self._width
+
+    def get_height(self):
+        """ The height of canvas"""
+        return self._height
+
     @property
     def width(self):
         """ The width of canvas"""
@@ -230,7 +244,7 @@ class Canvas:
         """ Do not stroke subsequent shapes"""
         self.stroke(None)
 
-    def color_mode(self, mode, scale=None):
+    def color_mode(self, mode, *args):
         """ Set the color mode for the canvas
 
         Arguments:
@@ -239,11 +253,17 @@ class Canvas:
         - ~scale~ (float): the scale for the color values (e.g. 255 for 0...255 range, 1 for 0...1 range)
         """
         self._color_mode = mode
-        if scale is not None:
-            self.color_scale = scale
+        if len(args):
+            if len(args)==1:
+                # Assume we set all scale to be equal
+                self.set_color_scale(args[0])
+            else:
+                # Specify each component
+                self.set_color_scale(args)
 
     def _apply_colormode(self, clr):
-        if self._color_mode == 'hsv':
+        mode = self._color_mode.lower()
+        if mode == 'hsv' or mode == 'hsb':
             return hsv_to_rgb(clr)
         return clr
 
@@ -382,12 +402,42 @@ class Canvas:
         """
         self.ctx.select_font_face(font)
 
+    def push_matrix(self):
+        """
+        Save the current transformation
+        """
+        @contextmanager
+        def popmanager():
+            pass
+            try:
+                yield
+            finally:
+                self.pop_matrix()
+
+        self.ctx.save()
+        return popmanager()
+
+    def pop_matrix(self):
+        """
+        Restore the previous transformation
+        """
+        self.ctx.restore()
+
     def push(self):
         """
         Save the current drawing state and transformations
         """
+        @contextmanager
+        def popmanager():
+            pass
+            try:
+                yield
+            finally:
+                self.pop()
+
         self.ctx.save()
         self.draw_states.append(copy.deepcopy(self.draw_states[-1]))
+        return popmanager()
 
     def pop(self):
         """
@@ -490,9 +540,9 @@ class Canvas:
             size = args[2:]
         p = np.array(p).astype(float)
         size = np.array(size).astype(float)
-        if self._rect_mode == 'center':
+        if self._rect_mode.lower() == 'center':
             p -= size/2
-        elif self._rect_mode == 'radius':
+        elif self._rect_mode.lower() == 'radius':
             p -= size
             size *= 2
 
@@ -645,7 +695,7 @@ class Canvas:
 
         self.push()
         self.translate(center)
-        if self._ellipse_mode == 'corner':
+        if self._ellipse_mode.lower() == 'corner':
             self.translate(w/2, h/2)
         self.scale([w/2,h/2])
 
@@ -924,6 +974,10 @@ class Canvas:
     #     else:
     #         self.quadratic(*args)
 
+    def create_graphics(self, w, h):
+        ''' Create a new canvas with the specified width and height'''
+        return Canvas(w, h)
+
     def load_image(self, path):
         '''Load an image from disk. Actually returns a PIL image'''
         return Image.open(path)
@@ -933,7 +987,7 @@ class Canvas:
 
         Arguments:
 
-        - ~img~: The input image. Can be either a PIL image, a numpy array or a pyCairo surface (e.g. another canvas).
+        - ~img~: The input image. Can be either a PIL image, a numpy array, a Canvas or a pyCairo surface.
         - optional arguments: position and size can be specified with the following formats:
             - ~x, y~:  position only
             - ~x, y, w, h~: position and size
@@ -946,6 +1000,8 @@ class Canvas:
         """
         if isinstance(img, Image.Image):
             img = np.array(img)
+        if isinstance(img, Canvas):
+            img = img.surf
         if type(img) == np.ndarray:
             img = numpy_to_surface(img)
         self.ctx.save()
@@ -1175,36 +1231,36 @@ class Canvas:
     def _convert_rgb(self, x):
         if len(x)==1:
             if not is_number(x[0]): # array like input
-                return np.array(x[0])/self.color_scale
-            return (x[0]/self.color_scale,
-                    x[0]/self.color_scale,
-                    x[0]/self.color_scale)
-        return (x[0]/self.color_scale,
-                x[1]/self.color_scale,
-                x[2]/self.color_scale)
+                return np.array(x[0])/self.color_scale[:len(x[0])]
+            return (x[0]/self.color_scale[0],
+                    x[0]/self.color_scale[0],
+                    x[0]/self.color_scale[0])
+        return (x[0]/self.color_scale[0],
+                x[1]/self.color_scale[1],
+                x[2]/self.color_scale[2])
 
     def _convert_rgba(self, x):
         if len(x)==1:
             if type(x[0]) == str:
                 return self._convert_html_color(x[0])
             elif not is_number(x[0]): # array like input
-                return np.array(x[0])/self.color_scale
-            return (x[0]/self.color_scale,
-                    x[0]/self.color_scale,
-                    x[0]/self.color_scale, 1.0)
+                return np.array(x[0])/self.color_scale[:len(x[0])]
+            return (x[0]/self.color_scale[0],
+                    x[0]/self.color_scale[0],
+                    x[0]/self.color_scale[0], 1.0)
         elif len(x) == 3:
-            return (x[0]/self.color_scale,
-                    x[1]/self.color_scale,
-                    x[2]/self.color_scale, 1.0)
+            return (x[0]/self.color_scale[0],
+                    x[1]/self.color_scale[1],
+                    x[2]/self.color_scale[2], 1.0)
         elif len(x) == 2:
-            return (x[0]/self.color_scale,
-                    x[0]/self.color_scale,
-                    x[0]/self.color_scale,
-                    x[1]/self.color_scale)
-        return (x[0]/self.color_scale,
-                x[1]/self.color_scale,
-                x[2]/self.color_scale,
-                x[3]/self.color_scale)
+            return (x[0]/self.color_scale[0],
+                    x[0]/self.color_scale[0],
+                    x[0]/self.color_scale[0],
+                    x[1]/self.color_scale[3])
+        return (x[0]/self.color_scale[0],
+                x[1]/self.color_scale[1],
+                x[2]/self.color_scale[2],
+                x[3]/self.color_scale[3])
 
 def map(value, start1, stop1, start2, stop2, within_bounds=False):
     ''' Re-maps a number from one range to another. '''
