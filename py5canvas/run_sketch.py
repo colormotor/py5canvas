@@ -749,6 +749,8 @@ class Sketch:
             #     self.impl = create_renderer(self.window)
 
             # imgui.new_frame()
+        #print('Display scale', self.impl.io.display_fb_scale)
+
         if self.saving_to_file:
             self.done_saving = True
 
@@ -1138,14 +1140,28 @@ def main(path='', standalone=False):
                 sketch.var_context['mouse_released'](*params[:len(sig.parameters)])
 
     def window_content_scale_callback(window, xscale, yscale):
-        print("Content scale", xscale, yscale)
+        #print("Content scale", xscale, yscale)
+        pass
+        # if sketch.impl is not None:
+        #     sketch.impl.process_inputs() #io.display_size = glfw.get_framebuffer_size(window)
+        #print(sketch.impl.io.display_fb_scale, sketch.impl.io.display_size)
+
+    def framebuffer_size_callback(window, w, h):
+        pass
+        # print("Fb size", w, h)
+        # if sketch.impl is not None:
+        #     sketch.impl.process_inputs() #
+        # #
+    def window_pos_callback(window, x, y):
+        pass #print("Window pos", x, y)
 
     # pdb.set_trace()
     glfw.set_window_content_scale_callback(sketch.window, window_content_scale_callback)
     glfw.set_key_callback(sketch.window, key_callback)
     glfw.set_cursor_pos_callback(sketch.window, cursor_position_callback)
     glfw.set_mouse_button_callback(sketch.window, mouse_button_callback)
-
+    glfw.set_framebuffer_size_callback(sketch.window, framebuffer_size_callback)
+    glfw.set_window_pos_callback(sketch.window, window_pos_callback)
     # sketch.window.push_handlers(on_key_press,
     #                             on_mouse_motion,
     #                             on_mouse_drag,
