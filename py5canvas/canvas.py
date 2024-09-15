@@ -112,9 +112,6 @@ class Canvas:
 
         self.no_draw = False
 
-        self.ctx.select_font_face("sans-serif")
-        self.ctx.set_font_size(16)
-        self.line_cap('round')
 
         self.tension = 0.5
 
@@ -125,6 +122,7 @@ class Canvas:
         self.QUARTER_PI = pi/4
         self.CENTER = 'center'
         self.CORNER = 'corner'
+        self.CORNERS = 'corners'
         self.RADIUS = 'radius'
         self.HSB = 'hsv'
         self.HSV = 'hsv'
@@ -142,6 +140,10 @@ class Canvas:
         else:
             print("Not creating recording context")
 
+        self.ctx.select_font_face("sans-serif")
+        self.ctx.set_font_size(16)
+        self.line_cap('round')
+
     def set_color_scale(self, scale):
         """Set color scale:
 
@@ -152,34 +154,6 @@ class Canvas:
         if is_number(scale):
             scale = np.ones(4)*scale
         self.color_scale[:len(scale)] = scale
-
-    def rect_mode(self, mode):
-        """ Set the "mode" for drawing rectangles.
-
-        Arguments:
-        - ~mode~ (string): can be one of 'corner', 'center', 'radius'
-        """
-        if mode not in ['corner', 'center', 'radius']:
-            print('rect_mode: invalid mode')
-            print('choose one among: corner, center, radius')
-            return
-        self._rect_mode = mode
-
-    def ellipse_mode(self, mode):
-        """ Set the "mode" for drawing rectangles.
-
-        Arguments:
-        - ~mode~ (string): can be one of 'corner', 'center'
-        """
-        if mode not in ['corner', 'center']:
-            print('rect_mode: invalid mode')
-            print('choose one among: corner, center')
-            return
-        self._ellipse_mode = mode
-
-    def Color(self, *args):
-        """ Create a color"""
-        return np.array(args)
 
     @property
     def cur_fill(self):
@@ -423,6 +397,27 @@ class Canvas:
         """
         self.ctx.restore()
 
+    def push_style(self):
+        """
+        Save the current drawing state
+        """
+        @contextmanager
+        def popmanager():
+            pass
+            try:
+                yield
+            finally:
+                self.pop_style()
+
+        self.draw_states.append(copy.deepcopy(self.draw_states[-1]))
+        return popmanager()
+
+    def pop_style(self):
+        """
+        Restore the previously pushed drawing state
+        """
+        self.draw_states.pop()
+
     def push(self):
         """
         Save the current drawing state and transformations
@@ -516,20 +511,52 @@ class Canvas:
             self.ctx.set_source_rgba(*self.cur_stroke)
             self.ctx.stroke()
 
-    def rectangle(self, *args):
+    def rect_mode(self, mode):
+        """ Set the "mode" for drawing rectangles.
+
+        Arguments:
+        - ~mode~ (string): can be one of 'corner', 'corners', 'center', 'radius'
+
+        """
+        if mode not in ['corner', 'center', 'radius']:
+            print('rect_mode: invalid mode')
+            print('choose one among: corner, center, radius')
+            return
+        self._rect_mode = mode
+
+    def ellipse_mode(self, mode):
+        """ Set the "mode" for drawing rectangles.
+
+        Arguments:
+        - ~mode~ (string): can be one of 'corner', 'center'
+        """
+        if mode not in ['corner', 'center']:
+            print('rect_mode: invalid mode')
+            print('choose one among: corner, center')
+            return
+        self._ellipse_mode = mode
+
+    def rectangle(self, *args, mode=None):
         """Draw a rectangle given top-left corner, width and heght.
 
         Arguments:
-
+        The first sequence of arguments is one of
          - ~[topleft_x, topleft_y], [width, height]~,
          - ~[topleft_x, topleft_y], width, height~,
          - ~topleft_x, topleft_y, width, height~
          - '[[topleft_x, topleft_y], [bottomright_x, bottomright_y]]'
+        The last option will ignore the rect mode since it explictly defines the corners of the rect
+
+        The optional named ~mode~ argument can be used to override the current rect mode.
         """
+
+        if mode is None:
+            mode = self._rect_mode
 
         if len(args) == 1:
             p = args[0][0]
             size = [args[0][1][0]-args[0][0][0], args[0][1][1]-args[0][0][1]]
+            mode = 'corner' # Force the mode to corner since we explicitly defined the rect
         elif len(args) == 2:
             p, size = args
         elif len(args) == 3:
@@ -540,16 +567,32 @@ class Canvas:
             size = args[2:]
         p = np.array(p).astype(float)
         size = np.array(size).astype(float)
-        if self._rect_mode.lower() == 'center':
+
+        if mode.lower() == 'center':
             p -= size/2
-        elif self._rect_mode.lower() == 'radius':
+        elif mode.lower() == 'radius':
             p -= size
             size *= 2
+        elif mode.lower() == 'corners':
+            # Interpret 'size' as the bottom right corner
+            size = size - p
 
         self.ctx.rectangle(*p, *size)
         self._fillstroke()
 
-    def rect(self, *args):
+    def square(self, *args, mode=None):
+        if mode is None:
+            mode = self._rect_mode
+        if mode == 'corners':
+            mode = 'corner'
+        if len(args) == 2:
+            self.rectangle(args[0], [args[1], args[1]], mode=mode)
+        elif len(args) == 3:
+            self.rectangle(args[0], args[1], args[2], args[2], mode=mode)
+        else:
+            raise ValueError('square: wrong number of arguments')
+
+    def rect(self, *args, mode=None):
         """Draw a rectangle given top-left corner, width and heght.
 
         Input arguments can be in the following formats:
@@ -559,7 +602,7 @@ class Canvas:
          - ~topleft_x, topleft_y, width, height~
 
         """
-        return self.rectangle(*args)
+        return self.rectangle(*args, mode=mode)
 
     def quad(self, *args):
         """Draws a quadrangle given four points
@@ -655,7 +698,7 @@ class Canvas:
         else:
             self.polygon([[args[i*2], args[i*2+1]] for i in range(3)])
 
-    def circle(self, *args):
+    def circle(self, *args, mode='center'):
         """Draw a circle given center and radius
 
         Input arguments can be in the following formats:
@@ -669,11 +712,15 @@ class Canvas:
             radius = args[2]
         else:
             center, radius = args
+        x, y = center
+        if mode.lower() != 'center':
+            x += radius
+            y += radius
         self.ctx.new_sub_path()
         self.ctx.arc(*center, radius, 0, np.pi*2.)
         self._fillstroke()
 
-    def ellipse(self, *args):
+    def ellipse(self, *args, mode=None):
         """Draw an ellipse with center, width and height.
 
         Input arguments can be in the following formats:
@@ -682,6 +729,9 @@ class Canvas:
         - ~[center_x, center_y], width, height~,
         - ~center_x, center_y, width, height~
         """
+
+        if mode is None:
+            mode = self._ellipse_mode
 
         if len(args) == 3:
             center = args[0]
@@ -693,10 +743,18 @@ class Canvas:
             center = args[0]
             w, h = args[1]
 
+        if mode.lower() == 'corners':
+            x1, y1 = center
+            x2, y2 = w, h
+            center = np.array([x1 + x2, y1 + y2])/2
+            w, h = abs(x2 - x1), abs(y2 - y1)
+
         self.push()
         self.translate(center)
-        if self._ellipse_mode.lower() == 'corner':
+
+        if mode.lower() == 'corner':
             self.translate(w/2, h/2)
+
         self.scale([w/2,h/2])
 
         self.ctx.new_sub_path()
@@ -901,49 +959,45 @@ class Canvas:
     #         self.ctx.line_to(x, y)
     #     self._cur_point = [x, y]
 
-    # def cubic(self, *args):
-    #     ''' Draw a cubic bezier curve
-    #     Arguments:
-    #     Input arguments can be in the following formats:
-    #      ~[x1, y1], [x2, y2], [x3, y3]~
-    #      ~x1, y1, x2, y2, x3, y3~
-    #     '''
-    #     if len(args) == 3:
-    #         p1, p2, p3 = args
-    #     else:
-    #         p1 = args[:2]
-    #         p2 = args[2:4]
-    #         p3 = args[4:6]
-    #     self._cur_point = [*p3]
-    #     self.ctx.curve_to(*p1, *p2, *p3)
-    # cvertex = cubic
+    def cubic(self, *args):
+        ''' Draw a cubic bezier curve
+        Arguments:
+        Input arguments can be in the following formats:
+         ~[x1, y1], [x2, y2], [x3, y3]~
+         ~x1, y1, x2, y2, x3, y3~
+        '''
+        if len(args) == 4:
+            p0, p1, p2, p3 = args
+        else:
+            p0 = args[:2]
+            p1 = args[2:4]
+            p2 = args[4:6]
+            p4 = args[6:8]
+        self.ctx.move_to(*p0)
+        self.ctx.curve_to(*p1, *p2, *p3)
+        self._fillstroke()
 
-    # def quadratic(self, *args):
-    #     ''' Draw a quadratic bezier curve
-    #     Arguments:
-    #     Input arguments can be in the following formats:
-    #         ~[x1, y1], [x2, y2]~
-    #         ~x1, y1, x2, y2~
-    #     '''
-    #     if len(args) == 2:
-    #         (x1, y1), (x2, y2) = args
-    #     else:
-    #         x1, y1, x2, y2 = args
+    def quadratic(self, *args):
+        ''' Draw a quadratic bezier curve
+        Arguments:
+        Input arguments can be in the following formats:
+            ~[x1, y1], [x2, y2]~
+            ~x1, y1, x2, y2~
+        '''
+        if len(args) == 3:
+            (x0, y0), (x1, y1), (x2, y2) = args
+        else:
+            x0, y0, x1, y1, x2, y2 = args
 
-    #     if not self._cur_point:
-    #         print("Need an inital point to construct quadratic bezier curve")
-    #         raise ValueError
+        self.ctx.move_to(*p0)
+        self.ctx.curve_to(
+            (2 * x1 + x0) / 3,
+            (2 * y1 + y0) / 3,
+            (2 * x1 + x2) / 3,
+            (2 * y1 + y2) / 3,
+            x2, y2)
+        self._fillstroke()
 
-    #     x0, y0 = self._cur_point
-    #     self.ctx.curve_to(
-    #         (2 * x1 + x0) / 3,
-    #         (2 * y1 + y0) / 3,
-    #         (2 * x1 + x2) / 3,
-    #         (2 * y1 + y2) / 3,
-    #         x2, y2)
-
-    #     self._cur_point = [x2, y2]
-    # qvertex = quadratic
 
     # def quadratic_to_cubic(self, x1, y1, x2, y2):
     #     ''' Convert a quadratic bezier curve to a cubic bezier curve
@@ -959,28 +1013,24 @@ class Canvas:
     #                         2.0 / 3.0 * y1 + 1.0 / 3.0 * y2,
     #                         y1, y2)
 
-    # def bezier(self, *args):
-    #     ''' Draws a bezier curve segment from current point
-    #         The degree of the curve (2 or 3) depends on the input arguments
-    #     Arguments:
-    #     Input arguments can be in the following formats:
-    #         ~[x1, y1], [x2, y2], [x3, y3]~ is cubic
-    #         ~x1, y1, x2, y2, x3, y3~ is cubic
-    #         ~[x1, y1], [x2, y2]~ is quadratic
-    #         ~x1, y1, x2, y2~ is quadratic
-    #     '''
-    #     if len(args) == 3 or len(args)==6:
-    #         self.cubic(*args)
-    #     else:
-    #         self.quadratic(*args)
+    def bezier(self, *args):
+        ''' Draws a bezier curve segment from current point
+            The degree of the curve (2 or 3) depends on the input arguments
+        Arguments:
+        Input arguments can be in the following formats:
+            ~[x1, y1], [x2, y2], [x3, y3]~ is cubic
+            ~x1, y1, x2, y2, x3, y3~ is cubic
+            ~[x1, y1], [x2, y2]~ is quadratic
+            ~x1, y1, x2, y2~ is quadratic
+        '''
+        if len(args) == 4 or len(args)==8:
+            self.cubic(*args)
+        else:
+            self.quadratic(*args)
 
     def create_graphics(self, w, h):
         ''' Create a new canvas with the specified width and height'''
         return Canvas(w, h)
-
-    def load_image(self, path):
-        '''Load an image from disk. Actually returns a PIL image'''
-        return Image.open(path)
 
     def image(self, img, *args, opacity=1.0):
         """Draw an image at position with (optional) size and (optional) opacity
@@ -1055,20 +1105,47 @@ class Canvas:
             self.polyline(P, closed=closed)
         self.end_shape()
 
-    def text(self, pos, text, center=False):
+    def text(self, text, pos, align='left', valign='bottom', center=None, *args, **kwargs):
         ''' Draw text at a given position
 
         Arguments:
             if center=True the text will be horizontally centered
         '''
 
+        if type(pos)==str:
+            # Backwards compat, args were flipped.
+            # Keeping default to p5js syntax
+            pos, text = text, pos
+
         if self.cur_fill is not None:
             self.ctx.set_source_rgba(*self.cur_fill)
-        if center:
-            (x, y, w, h, dx, dy) = self.ctx.text_extents(text)
-            self.ctx.move_to(pos[0]-w/2-x, pos[1])
-        else:
-            self.ctx.move_to(*pos)
+        if center is not None:
+            if center:
+                align = 'center'
+            else:
+                align = 'left'
+
+
+        (x_bearing, y_bearing, w, h, x_advance, y_advance) = self.ctx.text_extents(text)
+        # if align=='center':
+        #      (x, y, w, h, dx, dy) = self.ctx.text_extents(text)
+        #      print(x,y,w,h)
+        #      self.ctx.move_to(pos[0]-w/2-x, pos[1])
+        # else:
+        #      self.ctx.move_to(*pos)
+
+        ox = 0
+        oy = 0
+        if align == 'center':
+            ox = -(w/2 + x_bearing)
+        elif align == 'right':
+            ox = -(w + x_bearing)
+        if valign == 'top':
+            oy = -y_bearing
+        elif valign == 'center':
+            oy = -(h/2 + y_bearing)
+
+        self.ctx.move_to(pos[0]+ox, pos[1]+oy)
         self.ctx.text_path(text)
         self.ctx.fill()
 
@@ -1244,7 +1321,8 @@ class Canvas:
             if type(x[0]) == str:
                 return self._convert_html_color(x[0])
             elif not is_number(x[0]): # array like input
-                return np.array(x[0])/self.color_scale[:len(x[0])]
+                return self._convert_rgba(*x)
+                #return np.array(x[0])/self.color_scale[:len(x[0])]
             return (x[0]/self.color_scale[0],
                     x[0]/self.color_scale[0],
                     x[0]/self.color_scale[0], 1.0)
@@ -1261,13 +1339,6 @@ class Canvas:
                 x[1]/self.color_scale[1],
                 x[2]/self.color_scale[2],
                 x[3]/self.color_scale[3])
-
-def map(value, start1, stop1, start2, stop2, within_bounds=False):
-    ''' Re-maps a number from one range to another. '''
-    t = ((value - start1) / (stop1 - start1))
-    if within_bounds:
-        t = max(0.0, min(t, 1.0))
-    return start2 + (stop2 - start2) * t
 
 def radians(x):
     ''' Get radians given x degrees'''
