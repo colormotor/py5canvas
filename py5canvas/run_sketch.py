@@ -209,7 +209,7 @@ class Sketch:
         # self.frame_rate(60)
         self.startup_error = False
         self.runtime_error = False
-        self.fps = 0
+        self.fps = 60
         self.first_load = True
         self._no_loop = False
 
@@ -644,8 +644,12 @@ class Sketch:
             # And also expose canvas as 'c' since the functions in the canvas are quite common names and
             # might be easily overwritten
             self.update_globals()
-            # var_context['c'] = self.canvas
+
+            # Default setup, so user is not obliged to define it
+            var_context['setup'] = lambda: self.create_canvas(512, 512)
+
             exec(prog, var_context)
+
 
             for func in dir(self.canvas):
                 if '__' not in func and callable(getattr(self.canvas, func)):
@@ -736,6 +740,15 @@ class Sketch:
 
         print('update')
 
+    def check_reload(self):
+        if self.path:
+            if self.must_reload or self.watcher.modified(): # Every frame check for file modification
+                print("reloading")
+                # Reload in global namespace
+                self.reload(self.var_context)
+                self.must_reload = False
+                self.first_load = True
+
     # internal update
     def frame(self):
 
@@ -745,14 +758,6 @@ class Sketch:
 
         self._update_mouse()
         self.update_globals()
-
-        if self.path:
-            if self.must_reload or self.watcher.modified(): # Every frame check for file modification
-                print("reloading")
-                # Reload in global namespace
-                self.reload(self.var_context)
-                self.must_reload = False
-
 
         if imgui is not None:
             # For some reason this only works here and not in the constructor.
@@ -1225,7 +1230,6 @@ def main(path='', fps=0, standalone=False):
         sketch.cleanup()
         print("End close")
 
-    first_frame = True
 
     prev_t = 100000 #time.perf_counter()
 
@@ -1245,9 +1249,11 @@ def main(path='', fps=0, standalone=False):
         if sketch._no_loop:
             do_frame = False
 
-        if first_frame:
-            first_frame = False
+        if sketch.first_load:
             do_frame = True
+
+        # Check if we need to reload
+        sketch.check_reload()
 
         if do_frame:  # and not sketch._no_loop:
             sketch.frame()
