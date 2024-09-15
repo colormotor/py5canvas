@@ -775,12 +775,13 @@ class Canvas:
         """Draw an arc given the center of the ellipse ~x, y~
         the size of the ellipse ~w, h~ and the initial and final angles
         in radians  ~start, stop~.
+        NB. this differs from Processing/P5js as it always draws
 
         Input arguments can be in the following formats:
 
-          -~x, y, w, h, start, stop~
-          -~[x, y]', '[w, h]', '[start, stop]'
-          -~[x, y]', w, h, start, stop~
+          - ~x, y, w, h, start, stop~
+          - ~[x, y]~, ~[w, h]~, ~[start, stop]~
+          - ~[x, y]~, ~w, h, start, stop~
 
         """
         if len(args) == 3:
@@ -796,19 +797,28 @@ class Canvas:
         self.push()
         self.translate(x, y)
         self.scale(w/2,h/2)
-        self.ctx.new_sub_path()
-        self.ctx.arc(0, 0, 1, start, stop)
+
         if self.cur_fill is not None:
             self.ctx.set_source_rgba(*self.cur_fill)
-            if self.cur_stroke is not None:
-                self.ctx.fill_preserve()
-            else:
-                self.ctx.fill()
+            self.ctx.new_sub_path()
+            self.ctx.move_to(0, 0)
+            self.ctx.arc(0, 0, 1, start, stop)
+            self.ctx.fill()
+        if self.cur_stroke is not None:
+            lw = self.ctx.get_line_width()
+            self.ctx.set_line_width(lw*(2.0/min(w, h)))
+            self.ctx.set_source_rgba(*self.cur_stroke)
+            self.ctx.new_sub_path()
+            self.ctx.arc(0, 0, 1, start, stop)
+            self.ctx.stroke()
+            self.ctx.set_line_width(lw)
+
+            # if self.cur_stroke is not None:
+            #     self.ctx.fill_preserve()
+            # else:
+            #     self.ctx.fill()
         self.pop()
 
-        if self.cur_stroke is not None:
-            self.ctx.set_source_rgba(*self.cur_stroke)
-            self.ctx.stroke()
 
 
     def clear_segments(self):
@@ -1105,17 +1115,24 @@ class Canvas:
             self.polyline(P, closed=closed)
         self.end_shape()
 
-    def text(self, text, pos, align='left', valign='bottom', center=None, *args, **kwargs):
+    def text(self, text, *args, align='left', valign='bottom', center=None, **kwargs):
         ''' Draw text at a given position
 
         Arguments:
             if center=True the text will be horizontally centered
         '''
 
-        if type(pos)==str:
-            # Backwards compat, args were flipped.
-            # Keeping default to p5js syntax
-            pos, text = text, pos
+        # Backwards compatibility since previous version has position first
+        if type(text) != str:
+            if len(args) != 1:
+                raise ValueError("text: wrong number of args")
+            pos, text = text, args[0]
+        if len(args) == 2:
+            pos = args
+        elif len(args) == 1:
+            pos = args[0]
+        else:
+            raise ValueError("text: wrong number of args")
 
         if self.cur_fill is not None:
             self.ctx.set_source_rgba(*self.cur_fill)
