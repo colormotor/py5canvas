@@ -115,6 +115,19 @@ class FileWatcher:
             return True
         return False
 
+class Key:
+    def __init__(self, name, chars):
+        self.chars = chars
+        self.name = name
+
+    def __repr__(self):
+        return self.name
+
+    def __eq__(self, other):
+        if other in self.chars:
+            return True
+        return False
+
 # Code injection
 def wrap_method(obj, func):
     # print('wrapping ' + func)
@@ -143,7 +156,6 @@ class Sketch:
         #                           samples=4,
         #                           depth_size=16,
         #                           double_buffer=True, )
-        self.title = title
         # display = pyglet.canvas.get_display()
         # screens = display.get_screens()
 
@@ -368,6 +380,7 @@ class Sketch:
         if self.canvas_tex is not None:
             self.canvas_tex.release()
         self.canvas_tex = self.glctx.texture(canvas_size, 4, self.canvas.get_buffer())
+        self.canvas_tex.swizzle = 'BGRA' # Internal Cairo format
 
         # # Create image and copy initial canvas buffer to it
         # buf = self.canvas.get_buffer()
@@ -573,6 +586,7 @@ class Sketch:
         print("Reloading sketch code")
         self.finalize_grab()
 
+        var_context = {}
         self.var_context = var_context
 
         self._frame_count = 0
@@ -621,8 +635,18 @@ class Sketch:
                 self.prog_uses_imgui = False
                 
             prog = compile(prog_text, self.path, 'exec')
-            # Expose canvas to the sketch
-            print('exposing vars')
+            print(type(prog))
+
+            # Exposes classes before load because these might be used outside of functions
+            var_context['VideoInput'] = canvas.VideoInput
+            var_context['__loaded_py5sketch__'] = True
+
+            # And also expose canvas as 'c' since the functions in the canvas are quite common names and
+            # might be easily overwritten
+            self.update_globals()
+            # var_context['c'] = self.canvas
+            exec(prog, var_context)
+
             for func in dir(self.canvas):
                 if '__' not in func and callable(getattr(self.canvas, func)):
                     var_context[func] = wrap_canvas_method(self, func)
@@ -631,37 +655,19 @@ class Sketch:
                 if '__' not in g:
                     var_context[g] = getattr(glob, g)
 
-            # var_context['TWO_PI'] = 2*np.pi
-            # var_context['PI'] = np.pi
-            # var_context['random'] = np.random.uniform
-            # var_context['random_seed'] = np.random.seed
-            # var_context['random_seed'] = np.random.seed
-            # var_context['radians'] = canvas.radians
-            # var_context['degrees'] = canvas.degrees
-            # var_context['map'] = canvas.map
-            # var_context['sin'] = np.sin
-            # var_context['cos'] = np.cos
-            # var_context['floor'] = lambda x: np.floor(x).astype(int)
-            # var_context['ceil'] = lambda x: np.ceil(x).astype(int)
-            # var_context['round'] = lambda x: np.round(x).astype(int)
-
             # And basic functions from sketch
+            var_context['title'] = wrap_method(self, 'title')
             var_context['frame_rate'] = wrap_method(self, 'frame_rate')
             var_context['create_canvas'] = wrap_method(self, 'create_canvas')
             var_context['size'] = var_context['create_canvas'] # For compatibility
             var_context['create_canvas_gui'] = wrap_method(self, 'create_canvas_gui')
             var_context['save_svg'] = wrap_method(self, 'dump_canvas')
             var_context['save_canvas'] = wrap_method(self, 'dump_canvas')
-            var_context['VideoInput'] = canvas.VideoInput
-            # And also expose canvas as 'c' since the functions in the canvas are quite common names and
-            # might be easily overwritten
-            self.update_globals()
-            # var_context['c'] = self.canvas
-            exec(prog, var_context)
-
+            var_context['no_loop'] = wrap_method(self, 'no_loop')
             if self.params is not None:
                 print('Preload params')
                 self.params.load()
+
             # call setup
             var_context['setup']()
             # User might create parameters in setup
@@ -685,6 +691,7 @@ class Sketch:
     def _update_mouse(self):
         # workaround for backwards compatibility (deprecating 'mouse_pressed')
         self.mouse_pressed = self.dragging
+
         if self._mouse_pos is None:
             return
 
@@ -713,6 +720,7 @@ class Sketch:
         if 'mouse_pressed' not in self.var_context or not callable(self.var_context['mouse_pressed']):
             self.var_context['mouse_pressed'] = self.dragging
         self.var_context['dragging'] = self.dragging
+        self.var_context['mouse_is_pressed'] = self.dragging # For compatibility with p5py
         self.var_context['mouse_delta'] = self.mouse_delta
         self.var_context['mouse_pos'] = self.mouse_pos
         self.var_context['mouse_x'] = self.mouse_x
@@ -881,19 +889,8 @@ class Sketch:
             self.done_saving = False
 
 
-        # NB need to check pyglet's draw loop, but clearing here will break when the frame-rate
-        # is low or in other cases?
-        # # Draw to window
-        # self.window.clear()
-        # self.image.blit(0, 0)
-
-        # if self.startup_error or self.runtime_error:
-        #     self.error_label.draw()
-
-        # if imgui is not None:
-        #     imgui.render()
-        #     self.impl.render(imgui.get_draw_data())
-
+    def title(self, title):
+        glfw.set_window_title(self.window, title)
 
     def frame_rate(self, fps):
         self.fps = fps
@@ -1099,15 +1096,23 @@ def main(path='', fps=0, standalone=False):
             if imgui_focus():
                 return
             if check_callback('key_pressed'):
-                print("Key pressed")
-                params = [key, mods]
-                sig = signature(sketch.var_context['key_pressed'])
-                sketch.var_context['key_pressed'](*params[:len(sig.parameters)])
+                name = glfw.get_key_name(key, scancode)
+                if name is None: # If name is not none consider this a char
+                    if key in glfw_keymap:
+                        params = [glfw_keymap[key], mods]
+                        sig = signature(sketch.var_context['key_pressed'])
+                        sketch.var_context['key_pressed'](*params[:len(sig.parameters)])
 
 
     def char_callback(window, char):
         if sketch.impl is not None:
             sketch.impl.char_callback(window, char)
+        if imgui_focus():
+            return
+        if check_callback('key_pressed'):
+            params = [chr(char), None]
+            sig = signature(sketch.var_context['key_pressed'])
+            sketch.var_context['key_pressed'](*params[:len(sig.parameters)])
         pass
 
     def scroll_callback(window, x, y):
@@ -1139,7 +1144,6 @@ def main(path='', fps=0, standalone=False):
     def mouse_button_callback(window, button, action, mods):
         sketch.modifiers = mods
         pos = sketch._mouse_pos
-        print("Button")
         if action == glfw.PRESS:
             if imgui_focus():
                 return
@@ -1178,6 +1182,7 @@ def main(path='', fps=0, standalone=False):
     # pdb.set_trace()
     glfw.set_window_content_scale_callback(sketch.window, window_content_scale_callback)
     glfw.set_key_callback(sketch.window, key_callback)
+    glfw.set_char_callback(sketch.window, char_callback)
     glfw.set_cursor_pos_callback(sketch.window, cursor_position_callback)
     glfw.set_mouse_button_callback(sketch.window, mouse_button_callback)
     glfw.set_framebuffer_size_callback(sketch.window, framebuffer_size_callback)
@@ -1199,9 +1204,9 @@ def main(path='', fps=0, standalone=False):
     if sketch.path:
         if 'exit' in sketch.var_context:
             sketch.var_context['exit']()
-        sketch.reload(locals())
+        sketch.reload({}) #locals())
     else:
-        sketch.var_context = locals()
+        sketch.var_context = {} #locals()
 
     def close():
         # Stop grabbing and finalize
@@ -1237,7 +1242,14 @@ def main(path='', fps=0, standalone=False):
             if time.perf_counter() - prev_t >= 1.0 / sketch.fps:
                 do_frame = True
 
-        if do_frame and not sketch._no_loop:
+        if sketch._no_loop:
+            do_frame = False
+
+        if first_frame:
+            first_frame = False
+            do_frame = True
+
+        if do_frame:  # and not sketch._no_loop:
             sketch.frame()
             prev_t = time.perf_counter()
             sketch.canvas_tex.write(sketch.canvas.get_buffer())
@@ -1315,6 +1327,78 @@ void main() {
 }
 """
 
+# Key to string map, glfw
+glfw_keymap = {
+    glfw.KEY_ESCAPE: "ESCAPE",
+    glfw.KEY_ENTER: "ENTER",
+    glfw.KEY_TAB: "TAB",
+    glfw.KEY_BACKSPACE: "BACKSPACE",
+    glfw.KEY_INSERT: "INSERT",
+    glfw.KEY_DELETE: "DELETE",
+    glfw.KEY_RIGHT: "RIGHT",
+    glfw.KEY_LEFT: "LEFT",
+    glfw.KEY_DOWN: "DOWN",
+    glfw.KEY_UP: "UP",
+    glfw.KEY_PAGE_UP: "PAGE_UP",
+    glfw.KEY_PAGE_DOWN: "PAGE_DOWN",
+    glfw.KEY_HOME: "HOME",
+    glfw.KEY_END: "END",
+    glfw.KEY_CAPS_LOCK: "CAPS_LOCK",
+    glfw.KEY_SCROLL_LOCK: "SCROLL_LOCK",
+    glfw.KEY_NUM_LOCK: "NUM_LOCK",
+    glfw.KEY_PRINT_SCREEN: "PRINT_SCREEN",
+    glfw.KEY_PAUSE: "PAUSE",
+    glfw.KEY_F1: "F1",
+    glfw.KEY_F2: "F2",
+    glfw.KEY_F3: "F3",
+    glfw.KEY_F4: "F4",
+    glfw.KEY_F5: "F5",
+    glfw.KEY_F6: "F6",
+    glfw.KEY_F7: "F7",
+    glfw.KEY_F8: "F8",
+    glfw.KEY_F9: "F9",
+    glfw.KEY_F10: "F10",
+    glfw.KEY_F11: "F11",
+    glfw.KEY_F12: "F12",
+    glfw.KEY_F13: "F13",
+    glfw.KEY_F14: "F14",
+    glfw.KEY_F15: "F15",
+    glfw.KEY_F16: "F16",
+    glfw.KEY_F17: "F17",
+    glfw.KEY_F18: "F18",
+    glfw.KEY_F19: "F19",
+    glfw.KEY_F20: "F20",
+    glfw.KEY_F21: "F21",
+    glfw.KEY_F22: "F22",
+    glfw.KEY_F23: "F23",
+    glfw.KEY_F24: "F24",
+    glfw.KEY_F25: "F25",
+    glfw.KEY_KP_0: "KP_0",
+    glfw.KEY_KP_1: "KP_1",
+    glfw.KEY_KP_2: "KP_2",
+    glfw.KEY_KP_3: "KP_3",
+    glfw.KEY_KP_4: "KP_4",
+    glfw.KEY_KP_5: "KP_5",
+    glfw.KEY_KP_6: "KP_6",
+    glfw.KEY_KP_7: "KP_7",
+    glfw.KEY_KP_8: "KP_8",
+    glfw.KEY_KP_9: "KP_9",
+    glfw.KEY_KP_DECIMAL: "KP_DECIMAL",
+    glfw.KEY_KP_DIVIDE: "KP_DIVIDE",
+    glfw.KEY_KP_MULTIPLY: "KP_MULTIPLY",
+    glfw.KEY_KP_SUBTRACT: "KP_SUBTRACT",
+    glfw.KEY_KP_ADD: "KP_ADD",
+    glfw.KEY_KP_ENTER: "KP_ENTER",
+    glfw.KEY_KP_EQUAL: "KP_EQUAL",
+    glfw.KEY_LEFT_SHIFT: "LEFT_SHIFT",
+    glfw.KEY_LEFT_CONTROL: "LEFT_CONTROL",
+    glfw.KEY_LEFT_ALT: "LEFT_ALT",
+    glfw.KEY_LEFT_SUPER: "LEFT_SUPER",
+    glfw.KEY_RIGHT_SHIFT: "RIGHT_SHIFT",
+    glfw.KEY_RIGHT_CONTROL: "RIGHT_CONTROL",
+    glfw.KEY_RIGHT_ALT: "RIGHT_ALT",
+    glfw.KEY_RIGHT_SUPER: "RIGHT_SUPER",
+}
 
 if __name__ == '__main__':
     main()
