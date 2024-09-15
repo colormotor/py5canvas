@@ -43,7 +43,7 @@ def create_canvas(w, h):
 
 size = create_canvas
 
-def run(frame_rate=0, renderer=''):
+def run(frame_rate=60, renderer=''):
     if renderer:
         print("Only Cairo renderer is currently supported")
     # Make sure we are in a Python script if this is called,
@@ -52,7 +52,6 @@ def run(frame_rate=0, renderer=''):
     caller_frame = inspect.stack()[1].frame
     var_context = caller_frame.f_globals
     caller_module = inspect.getmodule(caller_frame)
-    print(var_context)
     if '__loaded_py5sketch__' in var_context:
         pass
     else:
