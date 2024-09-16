@@ -150,7 +150,8 @@ class Sketch:
                        width,
                        height,
                        title="Sketch",
-                       standalone=False):
+                       inject=False,
+                       show_toolbar=False):
         # config = pyglet.gl.Config(major_version=2, minor_version=1,
         #                           sample_buffers=1,
         #                           samples=4,
@@ -185,7 +186,8 @@ class Sketch:
         self.quad_vao = self.glctx.simple_vertex_array(prog, vbo, 'in_vert', 'in_text')
 
         #self.window.set_vsync(False)
-        self.standalone = standalone
+        self.inject = inject
+        self.show_toolbar = show_toolbar
         self.width, self.height = width, height
         self.canvas_tex = None
         self.var_context = {}
@@ -193,7 +195,7 @@ class Sketch:
         self.gui = None
         self.gui_callback = None
         self.gui_focus = False
-        if standalone:
+        if not show_toolbar:
             self.toolbar_height = 0
         else:
             self.toolbar_height = 30
@@ -667,32 +669,35 @@ class Sketch:
             # One reasonable solution would be to add a flag to the "run" function,
             # so that it can stop the injection from happening. Then these parameters
             # would be accesible through the ~sketch~ variable.
-            for func in dir(self.canvas):
-                if '__' not in func and callable(getattr(self.canvas, func)):
-                    var_context[func] = wrap_canvas_method(self, func)
+            if self.inject:
+                for func in dir(self.canvas):
+                    if '__' not in func and callable(getattr(self.canvas, func)):
+                        var_context[func] = wrap_canvas_method(self, func)
 
             for g in dir(glob):
                 if '__' not in g:
                     var_context[g] = getattr(glob, g)
 
             # And basic functions from sketch
-            export_methods = ['title',
-                              'frame_rate',
-                              'create_canvas',
-                              'create_canvas_gui',
-                              'dump_canvas',
-                              'no_loop',
-                              'grab_movie',
-                              'grab_image_sequence',
-                              'fullscreen',
-                              'toggle_fullscreen',
-                              'open_file_dialog',
-                              'save_file_dialog',
-                              'open_folder_dialog']
-            for method in export_methods:
-                var_context[method] = wrap_method(self, method)
-            # For compatibility expose "size"
-            var_context['size'] = wrap_method(self, 'create_canvas')
+            if self.inject:
+                export_methods = ['title',
+                                'frame_rate',
+                                'create_canvas',
+                                'create_canvas_gui',
+                                'dump_canvas',
+                                'no_loop',
+                                'grab_movie',
+                                'grab_image_sequence',
+                                'fullscreen',
+                                'toggle_fullscreen',
+                                'open_file_dialog',
+                                'save_file_dialog',
+                                'open_folder_dialog']
+                for method in export_methods:
+                    var_context[method] = wrap_method(self, method)
+                # For compatibility expose "size"
+                var_context['size'] = wrap_method(self, 'create_canvas')
+
             # var_context['title'] = wrap_method(self, 'title')
             # var_context['frame_rate'] = wrap_method(self, 'frame_rate')
             # var_context['create_canvas'] = wrap_method(self, 'create_canvas')
@@ -904,7 +909,7 @@ class Sketch:
                     # self.error_label.text = str(e)
                     self.runtime_error = True
                     print_traceback()
-            if not self.standalone:
+            if self.show_toolbar:
                 self.gui.toolbar(self)
             # Required for render to work in draw callback
             try:
@@ -1007,7 +1012,7 @@ class Sketch:
         print("End cleanup")
 
 
-def main(path='', fps=0, standalone=False):
+def main(path='', fps=0, inject=True, show_toolbar=False):
     from importlib import reload
     mouse_moving = False
 
@@ -1053,7 +1058,7 @@ def main(path='', fps=0, standalone=False):
         print("GLFW init failed")
         return
 
-    sketch = Sketch(path, 512, 512, standalone=standalone)
+    sketch = Sketch(path, 512, 512, inject=inject, show_toolbar=show_toolbar)
     sketch.fps = fps
 
     def canvas_pos(x, y):

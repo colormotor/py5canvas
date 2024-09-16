@@ -43,7 +43,7 @@ def create_canvas(w, h):
 
 size = create_canvas
 
-def run(frame_rate=60, renderer=''):
+def run(frame_rate=60, inject=True, show_toolbar=False, renderer=''):
     if renderer:
         print("Only Cairo renderer is currently supported")
     # Make sure we are in a Python script if this is called,
@@ -57,4 +57,4 @@ def run(frame_rate=60, renderer=''):
     else:
         from . import run_sketch
         filename = caller_module.__file__
-        run_sketch.main(filename, fps=frame_rate, standalone=True)
+        run_sketch.main(filename, fps=frame_rate, inject=inject, show_toolbar=show_toolbar)
