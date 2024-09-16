@@ -118,6 +118,14 @@ While the whole package can be installed with
 pip install py5canvas
 #+end_example
 This can cause problems on mac with pyCairo, which at this time does not install the required C++ libraries when installed with pip.
+** Installing on Google colab
+To install on Google Colab, and Linux if you don't want to use conda
+#+BEGIN_SRC jupyter-python :session py
+!apt-get install libcairo2-dev libjpeg-dev libgif-dev
+!pip install py5canvas
+#+END_SRC
+
+
 
 ** Optional (but suggested) extensions
 **** Open Sound Control (OSC)
