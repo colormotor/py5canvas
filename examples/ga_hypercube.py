@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from py5canvas import *
 import time
 import math
 import os
@@ -12,7 +13,6 @@ print(numba.__version__)
 from math import e, pi
 from clifford import Cl
 from itertools import combinations
-
 
 dim = 4
 
@@ -36,6 +36,7 @@ print(rotation_bases)
 
 
 def hypercube_graph(dim, R, offset=None):
+    c = sketch.canvas
     w, h = c.width, c.height
     bases = [blades['e%d'%(i+1)] for i in range(dim)]
     def point(p):
@@ -76,6 +77,7 @@ def setup():
 
 
 def draw():
+    c = sketch.canvas
     c.set_color_scale(1.0)
 
     c.background(0)
@@ -95,3 +97,5 @@ def draw():
     for p1, p2 in segments:
         c.circle(p1, 4)
         c.circle(p2, 4)
+
+run()

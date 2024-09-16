@@ -1,17 +1,14 @@
 # Face recognition test using https://pypi.org/project/face-recognition/
-from py5canvas import canvas
-from importlib import reload
-reload(canvas)
+from py5canvas import *
 import numpy as np
 import face_recognition
 import time
 
-
 video_size = 160
-video = canvas.VideoInput(1, size=(video_size, video_size))
+video = VideoInput(size=(video_size, video_size))
 
 def setup():
-    sketch.create_canvas(512, 512)
+    create_canvas(512, 512)
 
 def draw():
     c = sketch.canvas # Get the base canvas
@@ -42,3 +39,5 @@ def draw():
         c.fill(255, 0, 0, 90)
         cig_size = 2
         c.ellipse(mouth_pos, [20, 10])
+
+run()

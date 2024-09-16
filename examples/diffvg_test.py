@@ -2,9 +2,7 @@
 Using py5sketch with differentiable rasterization to approximate an image.
 Uses diffvg https://github.com/BachiLi/diffvg and pytorch
 '''
-from importlib import reload
-from py5canvas import canvas
-reload(canvas)
+from py5canvas import *
 
 from skimage import io
 import numpy as np
@@ -15,7 +13,7 @@ from array import array
 img = None
 
 # Load grayscale image
-img = io.imread('images/frida128.png')
+img = np.array(load_image('images/frida128.png'))
 img = img[:, :, 0]
 img = img / 255.0
 w, h = img.shape[1], img.shape[0]
@@ -38,7 +36,7 @@ def numpy_image(img):
 # Setup diffvg primitives
 img = to_tensor(img)
 n = 5
-degree = 2
+degree = 3
 num_control_points = to_tensor([degree-1 for _ in range(n-1)], torch.int32)
 num_points = (n-1) * degree + 1
 primitives = []
@@ -104,6 +102,7 @@ def gui():
             # sketch.grab_image_sequence('./test_seq', 30)
 
 def draw():
+    c = sketch.canvas
     c.background(255)
     # Optimize
     im = render()
@@ -141,6 +140,8 @@ def draw():
         c.begin_contour()
         c.vertex(pts[0])
         for i in range(1, len(pts), degree):
-            c.bezier(*pts[i:i+degree])
+            c.bezier_vertex(*pts[i:i+degree])
         c.end_contour()
     c.pop()
+
+run()
