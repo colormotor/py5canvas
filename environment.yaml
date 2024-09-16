@@ -2,7 +2,7 @@ name: py5
 channels:
     - conda-forge
 dependencies:
-    - python>=3.9
+    - python=3.10
     - jupyter
     - pip
     - numpy
