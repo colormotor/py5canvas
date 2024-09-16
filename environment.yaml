@@ -1,0 +1,13 @@
+name: py5
+channels:
+    - conda-forge
+dependencies:
+    - python>=3.9
+    - jupyter
+    - pip
+    - numpy
+    - pycairo
+    - matplotlib
+    - opencv
+    - pyglfw
+    - moderngl
