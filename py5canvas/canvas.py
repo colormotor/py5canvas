@@ -121,6 +121,8 @@ class Canvas:
         self.HALF_PI = pi/2
         self.QUARTER_PI = pi/4
         self.CENTER = 'center'
+        self.TOP = 'top'
+        self.BOTTOM = 'bottom'
         self.CORNER = 'corner'
         self.CORNERS = 'corners'
         self.RADIUS = 'radius'
@@ -143,6 +145,8 @@ class Canvas:
         self.ctx.select_font_face("sans-serif")
         self.ctx.set_font_size(16)
         self.line_cap('round')
+        self.text_halign = 'left'
+        self.text_valign = 'bottom'
 
     def set_color_scale(self, scale):
         """Set color scale:
@@ -358,6 +362,16 @@ class Canvas:
             return
 
         self.ctx.set_line_cap(caps[cap])
+
+    def text_align(self, halign, valign='bottom'):
+        """Specify the text alignment
+
+        Arguments:
+        - ~halign~ (string): Horizontal alignment. One of "left", "center" or "right"
+        - ~valign~ (string): Horizontal alignment. One of "bottom" (default), "top" or "center"
+        """
+        self.text_halign = halign
+        self.text_valign = valign
 
     def text_size(self, size):
         """Specify the text size
@@ -1115,7 +1129,7 @@ class Canvas:
             self.polyline(P, closed=closed)
         self.end_shape()
 
-    def text(self, text, *args, align='left', valign='bottom', center=None, **kwargs):
+    def text(self, text, *args, align='', valign='', center=None, **kwargs):
         ''' Draw text at a given position
 
         Arguments:
@@ -1136,6 +1150,10 @@ class Canvas:
 
         if self.cur_fill is not None:
             self.ctx.set_source_rgba(*self.cur_fill)
+        if not align:
+            align = self.text_halign
+        if not valign:
+            valign = self.text_valign
         if center is not None:
             if center:
                 align = 'center'
@@ -1277,8 +1295,11 @@ class Canvas:
             self.save_image(path)
 
 
-    def show(self):
+    def show(self, size=None):
         ''' Display the canvas in a notebook'''
+        if size is not None:
+            display(Image.fromarray(self.get_image()).resize(size))
+            return
         display(Image.fromarray(self.get_image()))
 
     def show_plt(self, size=None, title='', axis=False):
