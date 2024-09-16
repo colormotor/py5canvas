@@ -2,8 +2,7 @@
 Stress test for the canvas
 A simple genetic algorithm that reconstructs an image with rectangles
 '''
-
-from skimage import io
+from py5canvas import *
 import numpy as np
 
 population = []
@@ -12,14 +11,12 @@ tournament_size = 5
 num_rects = 200
 num_parameters = 6
 fitness = []
-img = None
-
+img = np.array(load_image('./images/frida128.png'))
 
 def setup():
     print('setup')
     global population, fitness, img
 
-    img = io.imread('images/frida128.png')
     create_canvas(512, 512)
     # create initial population
     for i in range(population_size):
@@ -32,7 +29,7 @@ def setup():
 def draw():
     global population, fitness
 
-    c.background(255)
+    background(255)
 
     # evolve new generation
     population = evolve(population, fitness)
@@ -41,20 +38,21 @@ def draw():
     fittest = np.argmax(fitness)
 
     # draw the fittest result, but scale to the whole canvas sie
-    c.background(255)
-    c.push()
-    scale_amt = c.width/img.shape[1]
-    c.scale(scale_amt)
-    # c.image(img, 0, 0)
+    background(255)
+    push()
+    scale_amt = width/img.shape[1]
+    scale(scale_amt)
+    # image(img, 0, 0)
     draw_phenotype(population[fittest])
-    c.pop()
+    pop()
 
     # if the method is working this should be increasing
-    c.fill(0)
-    c.rect(0, 0, c.width, 30)
-    c.fill(255)
-    c.text_size(20)
-    c.text([20, 20], "Generation %d, fitness: %.3f"%(sketch.frame_count+1, fitness[fittest]))
+    fill(0)
+    rect(0, 0, width, 30)
+    fill(255)
+    text_size(20)
+    text("Generation %d, fitness: %.3f"%(frame_count+1, fitness[fittest]), 
+         [20,20])
 
 
 # tournament selection
@@ -86,25 +84,23 @@ def calc_phenotype(dna):
 
 # draws an individual
 def draw_phenotype(dna):
-    c = sketch.canvas
     phenotype = calc_phenotype(dna)
     for r in phenotype:
-        c.no_stroke()
-        c.fill(0, r['opacity']*0.5)
-        c.push()
-        c.translate(r['x'], r['y'])
-        c.rotate(r['rotation'])
-        c.rect(r['width']*0.5, r['height']*0.5, r['width'], r['height'])
-        c.pop()
+        no_stroke()
+        fill(0, r['opacity']*0.5)
+        push()
+        translate(r['x'], r['y'])
+        rotate(r['rotation'])
+        rect(r['width']*0.5, r['height']*0.5, r['width'], r['height'])
+        pop()
 
 
 # computes fitness given a chromosome
 def compute_fitness(dna):
-    c = sketch.canvas
-    c.background(255)
+    background(255)
     draw_phenotype(dna)
     # grab the resulting image
-    canvas_img = c.get_image()[:img.shape[0],:img.shape[1]]
+    canvas_img = get_image()[:img.shape[0],:img.shape[1]]
     cost = (canvas_img/255 - img/255)**2
     return -np.sum(cost)
 
@@ -144,3 +140,5 @@ def mutate(dna, prob=0.001):
     mut = np.random.uniform(0, 1, n)
     I = np.where(p < prob)
     dna[I] = mut[I]
+
+run()

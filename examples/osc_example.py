@@ -11,13 +11,13 @@ a default setup would look like this
 }
 These parameters will not change until you restart py5sketch
 '''
-
+from py5canvas import *
 import numpy as np
 
 bg = 255
 
 def setup():
-    sketch.create_canvas(512, 512)
+    create_canvas(512, 512)
 
 def draw():
     c = sketch.canvas
@@ -29,3 +29,5 @@ def received_osc(addr, val):
     print('recv')
     if 'bg' in addr:
         bg = val
+
+run()

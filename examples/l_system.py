@@ -1,3 +1,5 @@
+from py5canvas import *
+
 # Converted L-system example from here:
 # https://p5js.org/examples/simulate-l-systems.html
 # This can be done almost directly using ChatGPT with the following prompt:
@@ -97,3 +99,5 @@ def draw_it(k):
     # draw the stuff:
     fill(r, g, b, a)
     ellipse(x, y, radius, radius)
+
+run()

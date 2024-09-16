@@ -1,5 +1,6 @@
 ''' A simple mandelbrot zoom
     using numpy for computation and matplotlib for colors'''
+from py5canvas import *
 import numpy as np
 import matplotlib
 
@@ -11,6 +12,7 @@ def setup():
 
 def draw():
     global scale
+    c = canvas
     # Here we will use `c` to reference to the sketch canvas
     # since we redefined `scale` as a global variable and the corresponding
     # global function would not work anymore
@@ -32,3 +34,5 @@ def draw():
     c.image(img, [0, 0], [c.width, c.height])
     # zoom in
     scale *= 1.1
+
+run()

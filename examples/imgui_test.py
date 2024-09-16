@@ -1,6 +1,7 @@
 ''' Simple example demonstrating how to manually create
 a UI with pyImgui'''
 
+from py5canvas import *
 import numpy as np
 import imgui
 
@@ -17,7 +18,6 @@ circle_color = [255, 0, 0, 255]
 frame_interval = 60
 
 def setup():
-    sketch.set_gui_callback(gui)
     create_canvas(800, 600)
     color_mode('rgb', 1.0)
 
@@ -51,26 +51,25 @@ def gui():
 def draw():
     global a, b, radius, circle_color # we are modifying these
 
-    c.background(0, 0, 0, 0.02) # Clear with alpha will create the "trail effect"
+    background(0, 0, 0, 0.02) # Clear with alpha will create the "trail effect"
     # Center of screen
-    c.translate(c.width/2, c.height/2)
+    translate(width/2, height/2)
 
-    print('size:', sketch.window_width, sketch.window_height)
     # Every cycle update points
-    if sketch.frame_count%frame_interval == 0:
+    if frame_count%frame_interval == 0:
         a, b = b, a
         b = new_points()
 
     # interpolation step
-    t = (sketch.frame_count%frame_interval)/frame_interval
+    t = (frame_count%frame_interval)/frame_interval
     points = a + (b - a)*t
 
-    c.stroke(1)
-    c.no_fill()
-    c.polyline(points)
-    c.stroke(*circle_color)
+    stroke(1)
+    no_fill()
+    polyline(points)
+    stroke(*circle_color)
     for p in points:
-        c.circle(p, radius)
+        circle(p, radius)
 
     imgui.begin("A window", True)
     # See https://pyimgui.readthedocs.io/en/latest/reference/imgui.core.html
@@ -80,9 +79,7 @@ def draw():
     #print(circle_color)
     imgui.end()
 
-def key_pressed(event, mod=0):
-    sketch.toggle_fullscreen()
-    print('yo')
-if __name__== '__main__':
-    import py5canvas
-    py5canvas.run()
+def key_pressed(key):
+    toggle_fullscreen()
+    
+run()

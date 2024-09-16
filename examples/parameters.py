@@ -1,25 +1,25 @@
+from py5canvas import *
+
 import numpy as np
 
-params = {'Width': (100.0, {'min': 10, 'max': 200}),
-          'Height': (100.0, {'min': 10, 'max': 200}),
-          'Color': ([255, 0, 0], {'type':'color'}),
-          'Hue': (0.0, {'min': 0, 'max': 1}),
-          'Show' : True,
-          'Other': { # Unused parameters for demo purposes
+def parameters():
+    # This will expose a 'params' variable
+    return {'Width': (100.0, {'min': 10, 'max': 200}),
+            'Height': (100.0, {'min': 10, 'max': 200}),
+            'Color': ([255, 0, 0], {'type':'color'}),
+            'Hue': (0.0, {'min': 0, 'max': 1}),
+            'Show' : True,
+            'Other': { # Unused parameters for demo purposes
                 'A text' : ('Hello World', {'multiline': True, 'buf_length': 2024}),
                 'Selection' : (0, {'selection': ['First option', 'Second option', 'Third option']}),
                 'A real number': 0.0,
                 'An integer': 0,
                 'Int slider' : (0, {'min': 0, 'max': 10}),
                 }
-          }
+            }
 
 def setup():
-    create_canvas_gui(512, 512, 300)
-    # Note this needs to be here and not global to the script
-    # for a standalone script to work
-    global params
-    params = sketch.parameters(params)
+    create_canvas(512, 512)
 
 def draw():
     background(0)
@@ -38,6 +38,4 @@ def draw():
         sketch.set_gui_theme(params.hue)
         print('Hue changed')
 
-if __name__== '__main__':
-    import py5canvas
-    py5canvas.run()
+run()

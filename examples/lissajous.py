@@ -1,3 +1,4 @@
+from py5canvas import *
 import numpy as np
 
 def lissajous(t, a, b, omega, delta):
@@ -7,13 +8,13 @@ def lissajous(t, a, b, omega, delta):
 def setup():
     create_canvas(800, 600)
     
-
 def draw():
     global a, b # we are modifying these, so we need to declare them as globals
-
+    
     # To increase similarity to p5, the canvas functions can be called as globals, but
     # the function names are quite common and it is easy to ovveride them by mistake.
     # As a result, we can always access them through a global Canvas instance `c`
+    c = canvas
     c.background(0) 
     # Center of screen
     c.translate(c.width/2, c.height/2)

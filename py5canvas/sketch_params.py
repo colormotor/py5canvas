@@ -388,12 +388,13 @@ if imgui is not None:
                         elif param_type == 'checkbox':
                             changed, params[key] = imgui.checkbox(name, params[key])
                         elif param_type == 'color':
-                            clr = np.array(params[key]) / self.sketch.canvas.color_scale
+                            clr = np.array(params[key], dtype=np.float32)
+                            clr /= self.sketch.canvas.color_scale[:len(clr)]
                             if len(clr) == 3:
                                 changed, clr = imgui.color_edit3(name, *clr) #, imgui.COLOR_EDIT_DISPLAY_HSV)
                             else:
                                 changed, clr = imgui.color_edit4(name, *clr) #, imgui.COLOR_EDIT_DISPLAY_HSV)
-                            params[key] = np.array(clr)*self.sketch.canvas.color_scale
+                            params[key] = np.array(clr)*self.sketch.canvas.color_scale[:len(clr)]
                         if changed:
                             self.changed.add(parent + key)
                             if parent:

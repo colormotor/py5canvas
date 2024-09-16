@@ -1,7 +1,7 @@
 import inspect
 import numpy as np
 import os
-from .canvas import Canvas
+from .canvas import Canvas, VideoInput
 
 # Tricks the linter into knowing the symbols we inject
 from .dummy_globals import *

@@ -400,6 +400,13 @@ class Sketch:
             self.gui = sketch_params.SketchGui(gui_width)
             self._create_canvas(w, h + self.toolbar_height, (w, h), fullscreen, screen=screen)
 
+        # Expose canvas to script
+        self.var_context['canvas'] = self.canvas
+
+    @property
+    def current_canvas(self):
+        return self.canvas
+
     @property
     def canvas_display_width(self):
         if self._gui_visible:
@@ -422,7 +429,7 @@ class Sketch:
     def get_pixel_ratio(self):
         return 1
 
-    def dump_canvas(self, path):
+    def save_canvas(self, path):
         ''' Tells the sketch to dump the next frame to an SVG file '''
         if '~' in path:
             path = os.path.expanduser(path)
@@ -433,7 +440,7 @@ class Sketch:
         # Add the recording context so we can replay and save later
         self.canvas.ctx.push_context(self.recording_context)
 
-    save_canvas = dump_canvas
+    dump_canvas = save_canvas
 
     # def get_screen(self):
     #     window_x, window_y = self.window.get_location()
@@ -647,10 +654,19 @@ class Sketch:
 
             # Default setup, so user is not obliged to define it
             var_context['setup'] = lambda: self.create_canvas(512, 512)
+            var_context['sketch'] = self
 
             exec(prog, var_context)
 
-
+            # *ISSUE* here. This injects all the canvas functionalities as globals
+            # in the script. However, this means that any conflicting global in the
+            # script will be overridden. As an example, if the script defines ~scale~ as a number
+            # then this will be overridden by the ~Canvas.scale~ function.
+            # The opposite behavior would be possible, but that would not allow to include
+            # the "dummy_globals.py" file that tricks linters into knowing the funtions.
+            # One reasonable solution would be to add a flag to the "run" function,
+            # so that it can stop the injection from happening. Then these parameters
+            # would be accesible through the ~sketch~ variable.
             for func in dir(self.canvas):
                 if '__' not in func and callable(getattr(self.canvas, func)):
                     var_context[func] = wrap_canvas_method(self, func)
@@ -660,27 +676,51 @@ class Sketch:
                     var_context[g] = getattr(glob, g)
 
             # And basic functions from sketch
-            var_context['title'] = wrap_method(self, 'title')
-            var_context['frame_rate'] = wrap_method(self, 'frame_rate')
-            var_context['create_canvas'] = wrap_method(self, 'create_canvas')
-            var_context['size'] = var_context['create_canvas'] # For compatibility
-            var_context['create_canvas_gui'] = wrap_method(self, 'create_canvas_gui')
-            var_context['save_svg'] = wrap_method(self, 'dump_canvas')
-            var_context['save_canvas'] = wrap_method(self, 'dump_canvas')
-            var_context['no_loop'] = wrap_method(self, 'no_loop')
+            export_methods = ['title',
+                              'frame_rate',
+                              'create_canvas',
+                              'create_canvas_gui',
+                              'dump_canvas',
+                              'no_loop',
+                              'grab_movie',
+                              'grab_image_sequence',
+                              'fullscreen',
+                              'toggle_fullscreen',
+                              'open_file_dialog',
+                              'save_file_dialog',
+                              'open_folder_dialog']
+            for method in export_methods:
+                var_context[method] = wrap_method(self, method)
+            # For compatibility expose "size"
+            var_context['size'] = wrap_method(self, 'create_canvas')
+            # var_context['title'] = wrap_method(self, 'title')
+            # var_context['frame_rate'] = wrap_method(self, 'frame_rate')
+            # var_context['create_canvas'] = wrap_method(self, 'create_canvas')
+            # var_context['size'] = var_context['create_canvas'] # For compatibility
+            # var_context['create_canvas_gui'] = wrap_method(self, 'create_canvas_gui')
+            # var_context['save_svg'] = wrap_method(self, 'dump_canvas')
+            # var_context['save_canvas'] = wrap_method(self, 'dump_canvas')
+            # var_context['no_loop'] = wrap_method(self, 'no_loop')
+            # var_context['grab_movie'] = wrap_method(self, 'grab_movie')
+            # var_context['grab_image_sequence'] = wrap_method(self, 'grab_movie')
+
+            # Check if user defined a parameters callback
+            if 'parameters' in var_context and callable(var_context['parameters']):
+                self.params = sketch_params.SketchParams(var_context['parameters'](), self.path)
+                var_context['params'] = self.params.params # Expose to script
+
             if self.params is not None:
-                print('Preload params')
+                print('Preloading params')
                 self.params.load()
 
             # call setup
             var_context['setup']()
             # User might create parameters in setup
-            print('Maybe load params')
             if self.params is not None:
-                print('Load params after setup')
+                # print('Load params after setup')
                 self.params.load()
             self.startup_error = False
-            print("Success")
+
         except Exception as e:
             print('Error in sketch setup')
             print(e)

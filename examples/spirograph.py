@@ -1,3 +1,5 @@
+from py5canvas import *
+
 # Converted spirograph example from here:
 # https://p5js.org/examples/simulate-spirograph.html
 # This can be done almost directly using ChatGPT with the following prompt:
@@ -65,3 +67,5 @@ def key_pressed(c, modifier):
     global trace
     trace = not trace
     background(255)
+
+run()

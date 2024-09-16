@@ -1,8 +1,9 @@
+from py5canvas import *
 import numpy as np
-import torch
 
-params = {'background':(30.0, {'min':0.0, 'max':255.0})}
-params = sketch.parameters(params)
+def parameters():
+    params = {'background':(30.0, {'min':0.0, 'max':255.0})}
+    return params
 
 def new_points():
     points = np.random.uniform(-200, 200, (10, 2))*2
@@ -19,7 +20,7 @@ def setup():
     
 def draw():
     global a, b # we are modifying these
-
+    c = sketch.canvas
     background(params.background, 50) # Clear with alpha will create the "trail effect"
     #
     # Center of screen
@@ -37,3 +38,5 @@ def draw():
     stroke(255)
     no_fill()
     polyline(points)
+
+run()

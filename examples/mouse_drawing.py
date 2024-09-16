@@ -1,4 +1,5 @@
-import pyglet
+from py5canvas import *
+
 import numpy as np
 from numpy.linalg import norm # length of a vector
 
@@ -12,7 +13,7 @@ def setup():
     create_canvas(800, 600)
 
 def draw():
-    if dragging:# mouse_pressed:
+    if dragging:
         brush(mouse_pos, mouse_delta)
 
 def key_pressed():
@@ -23,3 +24,5 @@ def mouse_pressed():
 
 def mouse_released():
     print("Mouse up")
+
+run()

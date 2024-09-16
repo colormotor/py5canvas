@@ -1,10 +1,11 @@
 ''' A simple Julia zoom
     using numpy for computation and matplotlib for colors'''
+from py5canvas import *
 import numpy as np
 import matplotlib
 
 cmap = matplotlib.cm.get_cmap('jet') #'jet')
-scale = 300
+scale_factor = 300
 target = complex(-0.1930840493097, -0.080000106)
 
 def setup():
@@ -13,16 +14,17 @@ def setup():
 
 def draw():
     global scale, target
-    c.background(0)
+    background(0)
 
     iterations = 300
 
-    w, h = c.width//2, c.height//2
-    a, b = np.meshgrid(np.linspace(-w/scale, w/scale, w), np.linspace(-h/scale, h/scale, h))
+    w, h = width//2, height//2
+    a, b = np.meshgrid(np.linspace(-w/scale_factor, w/scale_factor, w), 
+                       np.linspace(-h/scale_factor, h/scale_factor, h))
     z = a + b*1j
 
     # Rotate "camera"
-    rot = np.exp(sketch.frame_count/30*1j)
+    rot = np.exp(frame_count/30*1j)
     z = z*rot + target
 
     #C = -0.835 - 0.2321 * 1j
@@ -39,7 +41,9 @@ def draw():
         img[inds] = img[inds] + 1
 
     img = cmap(np.mod(img/10, 1))  # fixme
-    c.image(img, [0, 0], [c.width, c.height])
+    image(img, [0, 0], [width, height])
 
     # zoom in
     scale *= 1.1
+
+run()

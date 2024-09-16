@@ -1,3 +1,4 @@
+from py5canvas import *
 import numpy as np
 from py5canvas.turtle import Turtle 
 
@@ -6,7 +7,7 @@ def setup():
     
 def draw():
     background(0)
-    translate(c.width/2, c.height/2)
+    translate(width/2, height/2)
     t = Turtle()
     for i in range(36):
         t.right(10)
@@ -14,3 +15,5 @@ def draw():
     stroke(255)
     no_fill()
     shape(t.paths)
+
+run()
