@@ -1306,10 +1306,10 @@ def main(path='', fps=0, inject=True, show_toolbar=False):
             sketch.canvas_tex.write(sketch.canvas.get_buffer())
 
         sketch.impl.process_inputs()
-
+        content_scale = glfw.get_window_content_scale(sketch.window)
         sketch.glctx.clear(1.0, 1.0, 1.0)  # Clear the screen to white
         prev_viewport = sketch.glctx.viewport
-        sketch.glctx.viewport = (0, 0, sketch.canvas.width, sketch.canvas.height)
+        sketch.glctx.viewport = (0, 0, sketch.canvas.width*content_scale[0], sketch.canvas.height*content_scale[1])
         sketch.quad_vao.render(mgl.TRIANGLES)  # Render the VAO
         sketch.glctx.viewport = prev_viewport
         # if sketch.keep_aspect_ratio:

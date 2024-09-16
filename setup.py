@@ -1,8 +1,10 @@
 from setuptools import setup
-
+# PyPi steps
+# python -m build
+# twine upload dist/*
 setup(
     name='py5canvas',
-    version='0.3.2',
+    version='0.3.4',
     description='Library to create drawings and animations with an interface similar to p5js and Processing.',
     author='Daniel Berio',
     author_email='drand48@gmail.com',
