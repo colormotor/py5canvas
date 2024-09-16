@@ -6,9 +6,9 @@
 Py5canvas is a simple library that allows to draw 2d graphics in Python with an interface that is designed for users that are familiar to Processing and P5js.
 The library is designed to work inside Jupyter notebooks and/or interactively as a "sketch" structured similarly to Processing.
 
-The main idea behind this system is to facilitate the development of creative and interactive applications with Python, while enabling access to the huge number of packages available in Python echosystem.
+The main idea behind this system is to facilitate the development of creative and interactive applications with Python, while enabling access to the huge number of packages available in Python echosystem. The project started with the development of a simple interface to allow students in [[https://www.gold.ac.uk/pg/ma-computational-arts/][Goldsmiths computational arts]] to create graphics inside notebooks with an interface similar to P5js. It has since developed into a bigger framework that implements a Phthon "flavour" of Processing, mainly focused towards 2d vector graphics.
 
-Refer to [[https://github.com/colormotor/py5canvas/blob/main/examples/canvas_tutorial.ipynb][this notebook]] for an overview of using Py5canvas in a Jupyter notebook. Download or clone the code in [[https://github.com/colormotor/py5canvas-examples][this example repository]] for examples of interactive scripts. The latter is a fork and extension of [[https://github.com/p5py/p5-examples][the examples for p5py project]], another similar Python port of Processing. See below for how this project differs from p5py.
+Refer to [[https://github.com/colormotor/py5canvas-examples/blob/master/other/canvas_tutorial.ipynb][this notebook]] for an overview of using Py5canvas in a Jupyter notebook. Download or clone the code in [[https://github.com/colormotor/py5canvas-examples][this example repository]] for examples of interactive scripts. The latter is a fork and extension of [[https://github.com/p5py/p5-examples][the examples for p5py project]], another similar Python port of Processing. See below for how this project differs from p5py.
 
 
 * Table of contents
