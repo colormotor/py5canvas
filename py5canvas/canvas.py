@@ -78,6 +78,11 @@ class Canvas:
     - ~width~ : (~int~), width of the canvas in pixels
     - ~height~ : (~int~), height of the canvas in pixels
     - ~clear_callback~ (optional): function, a callback to be called when the canvas is cleared (for internal use mostly)
+
+    In a notebook you can create a canvas globally with either of:
+
+    - ~size(width, height)~
+    - ~create_canvas(width, height)~
     """
     def __init__(self, width, height, background=(128.0, 128.0, 128.0, 255.0), clear_callback=lambda: None, output_file='', recording=True):
         """Constructor"""

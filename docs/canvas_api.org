@@ -10,6 +10,11 @@ Constructor arguments:
 - ~height~ : (~int~), height of the canvas in pixels
 - ~clear_callback~ (optional): function, a callback to be called when the canvas is cleared (for internal use mostly)
 
+In a notebook you can create a canvas globally with either of:
+
+- ~size(width, height)~
+- ~create_canvas(width, height)~
+
 *** ~set_color_scale(...)~
 Set color scale:
 
@@ -47,7 +52,7 @@ Arguments:
 - ~mode~ (string): can be one of 'rgb', 'hsv' depending on the desired color mode
 - ~scale~ (float): the scale for the color values (e.g. 255 for 0...255 range, 1 for 0...1 range)
 
-*** ~fill()~
+*** ~fill(...)~
 Set the color of the current fill
 
 Arguments:
@@ -57,7 +62,7 @@ Arguments:
 - Three arguments specify a color depending on the color mode (rgb or hsv)
 - Four arguments specify a color with opacity
 
-*** ~stroke()~
+*** ~stroke(...)~
 Set the color of the current stroke
 
 Arguments:
@@ -130,7 +135,7 @@ Save the current drawing state and transformations
 *** ~pop()~
 Restore the previously pushed drawing state and transformations
 
-*** ~translate()~
+*** ~translate(...)~
 Translate by specifying ~x~ and ~y~ offset.
 
 Arguments:
@@ -138,7 +143,7 @@ Arguments:
 - The offset can be specified as an array/list (e.g ~c.translate([x,y])~
   or as single arguments (e.g. ~c.translate(x, y)~)
 
-*** ~scale()~
+*** ~scale(...)~
 Apply a scaling transformation.
 
 Arguments:
@@ -169,7 +174,7 @@ Set the "mode" for drawing rectangles.
 Arguments:
 - ~mode~ (string): can be one of 'corner', 'center'
 
-*** ~rectangle()~
+*** ~rectangle(...)~
 Draw a rectangle.
 Can use ~rect~ equivalently.
 
@@ -184,7 +189,7 @@ The last option will ignore the rect mode since it explictly defines the corners
 The interpretation of ~x~ and ~y~ depends on the current rect mode. These indicate the
 center of the rectangle if the rect mode is ~"center"~ and the top left corner otherwise.
 
-*** ~square()~
+*** ~square(...)~
 Draw a square.
 
 Arguments:
@@ -196,7 +201,7 @@ The first sequence of arguments is one of
 The interpretation of ~x~ and ~y~ depends on the current rect mode. These indicate the
 center of the rectangle if the rect mode is ~"center"~ and the top left corner otherwise.
 
-*** ~rect()~
+*** ~rect(...)~
 Draws a rectangle.
 
 Input arguments can be in the following formats:
@@ -207,7 +212,7 @@ Input arguments can be in the following formats:
 
 Depending on
 
-*** ~quad()~
+*** ~quad(...)~
 Draws a quadrangle given four points
 
 Input arguments can be in the following formats:
@@ -215,7 +220,7 @@ Input arguments can be in the following formats:
  - ~a, b, c, d~ (Four points specified as lists/tuples/numpy arrays
  - ~x1, y1, x2, y2, x3, y3, x4, y4~, a sequence of numbers, one for each coordinate
 
-*** ~line()~
+*** ~line(...)~
 Draws a line between two points
 
 Input arguments can be in the following formats:
@@ -223,7 +228,7 @@ Input arguments can be in the following formats:
  - ~a, b~ (Two points specified as lists/tuples/numpy arrays
  - ~x1, y1, x2, y2~, a sequence of numbers, one for each coordinate
 
-*** ~point()~
+*** ~point(...)~
 Draw a point at a given position
 
 Input arguments can be in the following formats:
@@ -234,7 +239,7 @@ Input arguments can be in the following formats:
 *** ~arrow(...)~
 Draw an arrow between two points ~a~ and ~b~
 
-*** ~triangle()~
+*** ~triangle(...)~
 Draws a triangle given three points
 
 Input arguments can be in the following formats:
@@ -242,7 +247,7 @@ Input arguments can be in the following formats:
  - ~a, b, c~ (Four points specified as lists/tuples/numpy arrays
  - ~x1, y1, x2, y2, x3, y3~
 
-*** ~circle()~
+*** ~circle(...)~
 Draw a circle given center and radius
 
 Input arguments can be in the following formats:
@@ -250,7 +255,7 @@ Input arguments can be in the following formats:
 - ~[center_x, center_y], radius~,
 - ~center_x, center_y, raidus~
 
-*** ~ellipse()~
+*** ~ellipse(...)~
 Draw an ellipse with center, width and height.
 
 Input arguments can be in the following formats:
@@ -259,7 +264,7 @@ Input arguments can be in the following formats:
 - ~[center_x, center_y], width, height~,
 - ~center_x, center_y, width, height~
 
-*** ~arc()~
+*** ~arc(...)~
 Draw an arc given the center of the ellipse ~x, y~
 the size of the ellipse ~w, h~ and the initial and final angles
 in radians  ~start, stop~.
@@ -303,7 +308,7 @@ Input arguments can be in the following formats:
 - ~[x, y]~
 - ~x, y~
 
-*** ~bezier_vertex()~
+*** ~bezier_vertex(...)~
 Draw a cubic Bezier segment from the current point
 requires a first control point to be already defined with ~vertex~.
 
@@ -317,7 +322,7 @@ Requires three points. Input arguments can be in the following formats:
 Sets the 'tension' parameter for the curve used when using ~curve_vertex~
 
 
-*** ~cubic()~
+*** ~cubic(...)~
 Draw a cubic bezier curve
 
 Input arguments can be in the following formats:
@@ -325,7 +330,7 @@ Input arguments can be in the following formats:
 - ~[x1, y1], [x2, y2], [x3, y3]~
 - ~x1, y1, x2, y2, x3, y3~
 
-*** ~quadratic()~
+*** ~quadratic(...)~
 Draw a quadratic bezier curve
 
 Input arguments can be in the following formats:
@@ -333,7 +338,7 @@ Input arguments can be in the following formats:
 -    ~[x1, y1], [x2, y2]~
 -    ~x1, y1, x2, y2~
 
-*** ~bezier()~
+*** ~bezier(...)~
 Draws a bezier curve segment from current point
     The degree of the curve (2 or 3) depends on the input arguments
 Arguments:
@@ -371,7 +376,7 @@ Draw text at a given position
 Arguments:
     if center=True the text will be horizontally centered
 
-*** ~polygon()~
+*** ~polygon(...)~
 Draw a *closed* polygon
 
 The polyline is specified as either:
@@ -379,7 +384,7 @@ The polyline is specified as either:
 - a list of ~[x,y]~ pairs (e.g. ~[[0, 100], [200, 100], [200, 200]]~)
 - a numpy array with shape ~(n, 2)~, representing ~n~ points (a point for each row and a coordinate for each column)
 
-*** ~polyline()~
+*** ~polyline(...)~
 Draw a polyline.
 
 The polyline is specified as either:
@@ -389,7 +394,7 @@ The polyline is specified as either:
 
 To close the polyline set the named closed argument to ~True~, e.g. ~c.polyline(points, closed=True)~.
 
-*** ~background()~
+*** ~background(...)~
 Clear the canvas with a given color
 
 *** ~get_image()~

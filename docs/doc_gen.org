@@ -1,6 +1,6 @@
 #+title: Canvas Api
 
-#+BEGIN_SRC python :results output raw :exports none
+#+BEGIN_SRC python :results output raw :exports none :async no
 from py5canvas import canvas
 from importlib import reload
 import ast
@@ -31,12 +31,12 @@ def parse_class_with_docs_and_args(file_path, class_name):
 
                     # Get method arguments (skip 'self')
                     args = [arg.arg for arg in n.args.args if arg.arg != 'self']
-
                     is_property = any(
                         isinstance(decorator, ast.Name) and decorator.id == 'property'
                         for decorator in n.decorator_list
                     )
-
+                    if n.args.vararg:
+                        args.append('*' + n.args.vararg.arg)
                     # Get docstring (if exists)
                     docstring = ast.get_docstring(n)
                     if docstring:
