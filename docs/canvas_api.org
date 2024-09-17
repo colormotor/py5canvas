@@ -1,7 +1,6 @@
 #+title: Canvas Api
 
 
-
 ** ~Canvas~ class
 Creates a drawing canvas (pyCairo) that behaves similarly to p5js
 
@@ -19,14 +18,14 @@ Arguments:
 - ~scale~ (float): the color scale. if we want to specify colors in the ~0...255~ range,
 ~scale~ will be ~255~. If we want to specify colors in the ~0...1~ range, ~scale~ will be ~1~
 
-*** ~rect_mode(...)~
-Set the "mode" for drawing rectangles.
-
-Arguments:
-- ~mode~ (string): can be one of 'corner', 'center', 'radius'
-
 *** ~center~ (property)
 The center of the canvas (as a 2d numpy array)
+
+*** ~get_width()~
+The width of canvas
+
+*** ~get_height()~
+The height of canvas
 
 *** ~width~ (property)
 The width of canvas
@@ -93,6 +92,13 @@ Arguments:
 
 - ~cap~ (string): can be one of "butt", "round" or "square"
 
+*** ~text_align(...)~
+Specify the text alignment
+
+Arguments:
+- ~halign~ (string): Horizontal alignment. One of "left", "center" or "right"
+- ~valign~ (string): Horizontal alignment. One of "bottom" (default), "top" or "center"
+
 *** ~text_size(...)~
 Specify the text size
 
@@ -105,6 +111,18 @@ Specify the font to use for text rendering
 Arguments:
 
 - ~font~ (string): the name of a system font
+
+*** ~push_matrix()~
+Save the current transformation
+
+*** ~pop_matrix()~
+Restore the previous transformation
+
+*** ~push_style()~
+Save the current drawing state
+
+*** ~pop_style()~
+Restore the previously pushed drawing state
 
 *** ~push()~
 Save the current drawing state and transformations
@@ -139,24 +157,55 @@ Apply an affine (3x3) transformation matrix
 *** ~rotate_deg(...)~
 Rotate using degrees
 
+*** ~rect_mode(...)~
+Set the "mode" for drawing rectangles.
+
+Arguments:
+- ~mode~ (string): can be one of 'corner', 'corners', 'center', 'radius'
+
+*** ~ellipse_mode(...)~
+Set the "mode" for drawing rectangles.
+
+Arguments:
+- ~mode~ (string): can be one of 'corner', 'center'
+
 *** ~rectangle()~
-Draw a rectangle given top-left corner, width and heght.
+Draw a rectangle.
+Can use ~rect~ equivalently.
+
+Arguments:
+The first sequence of arguments is one of
+ - ~[x, y], [width, height]~,
+ - ~[x, y], width, height~,
+ - ~x, y, width, height~
+ - '[[topleft_x, topleft_y], [bottomright_x, bottomright_y]]'
+The last option will ignore the rect mode since it explictly defines the corners of the rect
+
+The interpretation of ~x~ and ~y~ depends on the current rect mode. These indicate the
+center of the rectangle if the rect mode is ~"center"~ and the top left corner otherwise.
+
+*** ~square()~
+Draw a square.
 
 Arguments:
 
- - ~[topleft_x, topleft_y], [width, height]~,
- - ~[topleft_x, topleft_y], width, height~,
- - ~topleft_x, topleft_y, width, height~
- - '[[topleft_x, topleft_y], [bottomright_x, bottomright_y]]'
+The first sequence of arguments is one of
+ - ~[x, y], size~,
+ - ~x, y, size~
+
+The interpretation of ~x~ and ~y~ depends on the current rect mode. These indicate the
+center of the rectangle if the rect mode is ~"center"~ and the top left corner otherwise.
 
 *** ~rect()~
-Draw a rectangle given top-left corner, width and heght.
+Draws a rectangle.
 
 Input arguments can be in the following formats:
 
  - ~[topleft_x, topleft_y], [width, height]~,
  - ~[topleft_x, topleft_y], width, height~,
  - ~topleft_x, topleft_y, width, height~
+
+Depending on
 
 *** ~quad()~
 Draws a quadrangle given four points
@@ -165,6 +214,22 @@ Input arguments can be in the following formats:
 
  - ~a, b, c, d~ (Four points specified as lists/tuples/numpy arrays
  - ~x1, y1, x2, y2, x3, y3, x4, y4~, a sequence of numbers, one for each coordinate
+
+*** ~line()~
+Draws a line between two points
+
+Input arguments can be in the following formats:
+
+ - ~a, b~ (Two points specified as lists/tuples/numpy arrays
+ - ~x1, y1, x2, y2~, a sequence of numbers, one for each coordinate
+
+*** ~point()~
+Draw a point at a given position
+
+Input arguments can be in the following formats:
+
+ - ~[x, y]~: a single point specified as a tuple/list/numpy array
+ - ~x1, y1~: two coordinates
 
 *** ~arrow(...)~
 Draw an arrow between two points ~a~ and ~b~
@@ -198,12 +263,13 @@ Input arguments can be in the following formats:
 Draw an arc given the center of the ellipse ~x, y~
 the size of the ellipse ~w, h~ and the initial and final angles
 in radians  ~start, stop~.
+NB. this differs from Processing/P5js as it always draws
 
 Input arguments can be in the following formats:
 
-  -~x, y, w, h, start, stop~
-  -~[x, y]', '[w, h]', '[start, stop]'
-  -~[x, y]', w, h, start, stop~
+  - ~x, y, w, h, start, stop~
+  - ~[x, y]~, ~[w, h]~, ~[start, stop]~
+  - ~[x, y]~, ~w, h, start, stop~
 
 *** ~begin_shape()~
 Begin drawing a compound shape
@@ -217,31 +283,75 @@ Begin drawing a contour
 *** ~end_contour(...)~
 End drawing a contour
 
+Arguments:
+
+- ~close~ (bool, optional): if ~True~ close the contour
+
 *** ~vertex(...)~
 Add a vertex to current contour
 
 Input arguments can be in the following formats:
 
- ~[x, y]'
- ~x, y~
+- ~[x, y]~
+- ~x, y~
 
 *** ~curve_vertex(...)~
 Add a curved vertex to current contour
 
 Input arguments can be in the following formats:
 
- ~[x, y]'
- ~x, y~
+- ~[x, y]~
+- ~x, y~
 
-*** ~load_image(...)~
-Load an image from disk. Actually returns a PIL image
+*** ~bezier_vertex()~
+Draw a cubic Bezier segment from the current point
+requires a first control point to be already defined with ~vertex~.
+
+
+Requires three points. Input arguments can be in the following formats:
+
+- ~[x1, y1], [x2, y2], [x3, y3]~
+- ~x1, y1, x2, y2, x3, y3~
+
+*** ~curve_tightness(...)~
+Sets the 'tension' parameter for the curve used when using ~curve_vertex~
+
+
+*** ~cubic()~
+Draw a cubic bezier curve
+
+Input arguments can be in the following formats:
+
+- ~[x1, y1], [x2, y2], [x3, y3]~
+- ~x1, y1, x2, y2, x3, y3~
+
+*** ~quadratic()~
+Draw a quadratic bezier curve
+
+Input arguments can be in the following formats:
+
+-    ~[x1, y1], [x2, y2]~
+-    ~x1, y1, x2, y2~
+
+*** ~bezier()~
+Draws a bezier curve segment from current point
+    The degree of the curve (2 or 3) depends on the input arguments
+Arguments:
+Input arguments can be in the following formats:
+    ~[x1, y1], [x2, y2], [x3, y3]~ is cubic
+    ~x1, y1, x2, y2, x3, y3~ is cubic
+    ~[x1, y1], [x2, y2]~ is quadratic
+    ~x1, y1, x2, y2~ is quadratic
+
+*** ~create_graphics(...)~
+Create a new canvas with the specified width and height
 
 *** ~image(...)~
 Draw an image at position with (optional) size and (optional) opacity
 
 Arguments:
 
-- ~img~: The input image. Can be either a PIL image, a numpy array or a pyCairo surface (e.g. another canvas).
+- ~img~: The input image. Can be either a PIL image, a numpy array, a Canvas or a pyCairo surface.
 - optional arguments: position and size can be specified with the following formats:
     - ~x, y~:  position only
     - ~x, y, w, h~: position and size
@@ -263,13 +373,17 @@ Arguments:
 
 *** ~polygon()~
 Draw a *closed* polygon
+
 The polyline is specified as either:
+
 - a list of ~[x,y]~ pairs (e.g. ~[[0, 100], [200, 100], [200, 200]]~)
 - a numpy array with shape ~(n, 2)~, representing ~n~ points (a point for each row and a coordinate for each column)
 
 *** ~polyline()~
 Draw a polyline.
+
 The polyline is specified as either:
+
 - a list of ~[x,y]~ pairs (e.g. ~[[0, 100], [200, 100], [200, 200]]~)
 - a numpy array with shape ~(n, 2)~, representing ~n~ points (a point for each row and a coordinate for each column)
 
@@ -296,13 +410,14 @@ Save the canvas to an svg file
 *** ~save(...)~
 Save the canvas to an image
 
-*** ~show()~
+*** ~show(...)~
 Display the canvas in a notebook
 
 *** ~show_plt(...)~
 Show the canvas in a notebook with matplotlib
 
 Arguments:
-size (tuple, optional): The size of the displayed image, by default this is the size of the canvas
-title (string, optional): A title for the figure
-axis (bool, optional): If ~True~ shows the coordinate axes
+
+- ~size~ (tuple, optional): The size of the displayed image, by default this is the size of the canvas
+- ~title~ (string, optional): A title for the figure
+- ~axis~ (bool, optional): If ~True~ shows the coordinate axes

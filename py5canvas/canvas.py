@@ -551,17 +551,19 @@ class Canvas:
         self._ellipse_mode = mode
 
     def rectangle(self, *args, mode=None):
-        """Draw a rectangle given top-left corner, width and heght.
+        """Draw a rectangle.
+        Can use ~rect~ equivalently.
 
         Arguments:
         The first sequence of arguments is one of
-         - ~[topleft_x, topleft_y], [width, height]~,
-         - ~[topleft_x, topleft_y], width, height~,
-         - ~topleft_x, topleft_y, width, height~
+         - ~[x, y], [width, height]~,
+         - ~[x, y], width, height~,
+         - ~x, y, width, height~
          - '[[topleft_x, topleft_y], [bottomright_x, bottomright_y]]'
         The last option will ignore the rect mode since it explictly defines the corners of the rect
 
-        The optional named ~mode~ argument can be used to override the current rect mode.
+        The interpretation of ~x~ and ~y~ depends on the current rect mode. These indicate the
+        center of the rectangle if the rect mode is ~"center"~ and the top left corner otherwise.
         """
 
         if mode is None:
@@ -594,7 +596,20 @@ class Canvas:
         self.ctx.rectangle(*p, *size)
         self._fillstroke()
 
+    rect = rectangle
+
     def square(self, *args, mode=None):
+        """Draw a square.
+
+        Arguments:
+
+        The first sequence of arguments is one of
+         - ~[x, y], size~,
+         - ~x, y, size~
+
+        The interpretation of ~x~ and ~y~ depends on the current rect mode. These indicate the
+        center of the rectangle if the rect mode is ~"center"~ and the top left corner otherwise.
+        """
         if mode is None:
             mode = self._rect_mode
         if mode == 'corners':
@@ -606,8 +621,9 @@ class Canvas:
         else:
             raise ValueError('square: wrong number of arguments')
 
+
     def rect(self, *args, mode=None):
-        """Draw a rectangle given top-left corner, width and heght.
+        """Draws a rectangle.
 
         Input arguments can be in the following formats:
 
@@ -615,6 +631,7 @@ class Canvas:
          - ~[topleft_x, topleft_y], width, height~,
          - ~topleft_x, topleft_y, width, height~
 
+        Depending on
         """
         return self.rectangle(*args, mode=mode)
 
@@ -656,6 +673,14 @@ class Canvas:
             self.cur_stroke = None
 
     def point(self, *args):
+        ''' Draw a point at a given position
+
+        Input arguments can be in the following formats:
+
+         - ~[x, y]~: a single point specified as a tuple/list/numpy array
+         - ~x1, y1~: two coordinates
+
+        '''
         nostroke = False
         if self.cur_stroke is None:
             nostroke = True
@@ -913,8 +938,8 @@ class Canvas:
 
         Input arguments can be in the following formats:
 
-         ~[x, y]'
-         ~x, y~
+        - ~[x, y]~
+        - ~x, y~
         '''
         if y is None:
             x, y = x
@@ -929,8 +954,8 @@ class Canvas:
 
         Input arguments can be in the following formats:
 
-         ~[x, y]'
-         ~x, y~
+        - ~[x, y]~
+        - ~x, y~
         '''
         if y is None:
             x, y = x
@@ -943,11 +968,11 @@ class Canvas:
         ''' Draw a cubic Bezier segment from the current point
         requires a first control point to be already defined with ~vertex~.
 
-        Arguments:
 
         Requires three points. Input arguments can be in the following formats:
-         ~[x1, y1], [x2, y2], [x3, y3]~
-         ~x1, y1, x2, y2, x3, y3~
+
+        - ~[x1, y1], [x2, y2], [x3, y3]~
+        - ~x1, y1, x2, y2, x3, y3~
         '''
         if len(args) == 3:
             p1, p2, p3 = args
@@ -985,10 +1010,11 @@ class Canvas:
 
     def cubic(self, *args):
         ''' Draw a cubic bezier curve
-        Arguments:
+
         Input arguments can be in the following formats:
-         ~[x1, y1], [x2, y2], [x3, y3]~
-         ~x1, y1, x2, y2, x3, y3~
+
+        - ~[x1, y1], [x2, y2], [x3, y3]~
+        - ~x1, y1, x2, y2, x3, y3~
         '''
         if len(args) == 4:
             p0, p1, p2, p3 = args
@@ -1003,10 +1029,11 @@ class Canvas:
 
     def quadratic(self, *args):
         ''' Draw a quadratic bezier curve
-        Arguments:
+
         Input arguments can be in the following formats:
-            ~[x1, y1], [x2, y2]~
-            ~x1, y1, x2, y2~
+
+        -    ~[x1, y1], [x2, y2]~
+        -    ~x1, y1, x2, y2~
         '''
         if len(args) == 3:
             (x0, y0), (x1, y1), (x2, y2) = args
@@ -1186,14 +1213,18 @@ class Canvas:
 
     def polygon(self, *args):
         ''' Draw a *closed* polygon
+
         The polyline is specified as either:
+
         - a list of ~[x,y]~ pairs (e.g. ~[[0, 100], [200, 100], [200, 200]]~)
         - a numpy array with shape ~(n, 2)~, representing ~n~ points (a point for each row and a coordinate for each column)'''
         self.polyline(*args, closed=True)
 
     def polyline(self, *args, closed=False):
-        ''' Draw a polyline. 
+        ''' Draw a polyline.
+
         The polyline is specified as either:
+
         - a list of ~[x,y]~ pairs (e.g. ~[[0, 100], [200, 100], [200, 200]]~)
         - a numpy array with shape ~(n, 2)~, representing ~n~ points (a point for each row and a coordinate for each column)
         
@@ -1306,9 +1337,10 @@ class Canvas:
         ''' Show the canvas in a notebook with matplotlib
 
         Arguments:
-        size (tuple, optional): The size of the displayed image, by default this is the size of the canvas
-        title (string, optional): A title for the figure
-        axis (bool, optional): If ~True~ shows the coordinate axes
+
+        - ~size~ (tuple, optional): The size of the displayed image, by default this is the size of the canvas
+        - ~title~ (string, optional): A title for the figure
+        - ~axis~ (bool, optional): If ~True~ shows the coordinate axes
         '''
         import matplotlib.pyplot as plt
         if size is not None:
@@ -1485,9 +1517,11 @@ class VideoInput:
     Video Input utility (requires OpenCV to be installed).
     Allows for reading frames from a video file or camera.
 
-    param name: Either an integer indicating the device number, or a string indicating the path of a video file
-    param size: A tuple indicating the desired size of the video frames (width, height)
-    param resize_mode: A string indicating the desired resize mode. Can be 'crop' or 'stretch'
+    Arguments:
+
+    - ~name~: Either an integer indicating the device number, or a string indicating the path of a video file
+    - ~size~: A tuple indicating the desired size of the video frames (width, height)
+    - ~resize_mode~: A string indicating the desired resize mode. Can be 'crop' or 'stretch'
     '''
     def __init__(self, name=0, size=None, resize_mode='crop'):
         ''' Constructor'''
