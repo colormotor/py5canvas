@@ -1172,8 +1172,10 @@ class Canvas:
         if type(text) != str:
             if len(args) != 1:
                 raise ValueError("text: wrong number of args")
+            print("Position before text is deprecated")
+            print('Use text("text", pos) instead')
             pos, text = text, args[0]
-        if len(args) == 2:
+        elif len(args) == 2:
             pos = args
         elif len(args) == 1:
             pos = args[0]
