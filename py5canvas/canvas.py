@@ -134,6 +134,8 @@ class Canvas:
         self.HSB = 'hsv'
         self.HSV = 'hsv'
         self.RGB = 'rgb'
+        self.CLOSE = 'close'
+        self.OPEN = 'open'
 
         # Utils
         self._cur_point = []
@@ -895,6 +897,11 @@ class Canvas:
 
         - ~close~ (bool, optional): if ~True~ close the contour
         '''
+        if isinstance(close, str):
+            if close.lower() == 'close':
+                close = True
+            else:
+                close = False
         if not self.curve_segments:
             if close:
                 self.ctx.close_path()
