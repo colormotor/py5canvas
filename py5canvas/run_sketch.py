@@ -44,10 +44,11 @@ if IPython_loader is not None:
 #from tkinter import filedialog
 
 # Optionally import imgui
-imgui_loader = importlib.find_loader('imgui')
+#imgui_loader = importlib.find_loader('imgui')
+imgui_loader = importlib.find_loader('imgui_bundle')
 if imgui_loader is not None:
-    import imgui
-    from imgui.integrations.glfw import GlfwRenderer
+    from imgui_bundle import imgui
+    # from imgui.integrations.glfw import GlfwRenderer
     #from imgui.integrations.glfw import create_renderer
 else:
     imgui = None
@@ -152,6 +153,7 @@ class Sketch:
                        title="Sketch",
                        inject=False,
                        show_toolbar=False):
+        import platform
         # config = pyglet.gl.Config(major_version=2, minor_version=1,
         #                           sample_buffers=1,
         #                           samples=4,
@@ -160,10 +162,26 @@ class Sketch:
         # display = pyglet.canvas.get_display()
         # screens = display.get_screens()
 
-        glfw.window_hint(glfw.CONTEXT_VERSION_MAJOR, 3)
-        glfw.window_hint(glfw.CONTEXT_VERSION_MINOR, 3)
-        glfw.window_hint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)
+        if platform.system() == "Darwin":
+            self.glsl_version = "#version 330"
+            glfw.window_hint(glfw.CONTEXT_VERSION_MAJOR, 3)
+            glfw.window_hint(glfw.CONTEXT_VERSION_MINOR, 2)
+            glfw.window_hint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)  # // 3.2+ only
+            glfw.window_hint(glfw.OPENGL_FORWARD_COMPAT, True)
+        else:
+            # GL 3.0 + GLSL 130
+            self.glsl_version = "#version 330"
+            glfw.window_hint(glfw.CONTEXT_VERSION_MAJOR, 3)
+            glfw.window_hint(glfw.CONTEXT_VERSION_MINOR, 0)
+            # glfw.window_hint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE) # // 3.2+ only
+            # glfw.window_hint(glfw.OPENGL_FORWARD_COMPAT, GL_TRUE)
+
+
+        # glfw.window_hint(glfw.CONTEXT_VERSION_MAJOR, 3)
+        # glfw.window_hint(glfw.CONTEXT_VERSION_MINOR, 3)
+        # glfw.window_hint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)
         glfw.window_hint(glfw.OPENGL_FORWARD_COMPAT, True)
+
         glfw.window_hint(glfw.RESIZABLE, False)
 
         self.window = glfw.create_window(width, height, title, None, None)
@@ -808,12 +826,34 @@ class Sketch:
             # For some reason this only works here and not in the constructor.
             if self.impl is None:
                 imgui.create_context()
+                #imgui.set_current_context()
+                io = imgui.get_io()
+                io.config_flags |= (
+                    imgui.ConfigFlags_.nav_enable_keyboard
+                )  # Enable Keyboard Controls
+                #
+
+                #sketch_params.set_theme()
+                # Setup Platform/Renderer backends
+                import ctypes
+
+                # You need to transfer the window address to imgui.backends.glfw_init_for_opengl
+                # proceed as shown below to get it.
+                window_address = ctypes.cast(self.window, ctypes.c_void_p).value
+                imgui.backends.glfw_init_for_opengl(window_address, True)
+
+                imgui.backends.opengl3_init(self.glsl_version)
+                self.impl = True
                 # Forwarding callbacks manually since Imgui eats these otherwise
-                self.impl = GlfwRenderer(self.window, attach_callbacks=False)
-                sketch_params.set_theme()
+                #self.impl = GlfwRenderer(self.window, attach_callbacks=False)
+
             try:
+                # Start the Dear ImGui frame
+                imgui.backends.opengl3_new_frame()
+                imgui.backends.glfw_new_frame()
                 imgui.new_frame()
-            except imgui.core.ImGuiError as e:
+                # imgui.new_frame()
+            except RuntimeError as e:
                 print('Error in imgui new_frame')
                 print(e)
                 #self.error_label.text = str(e)
@@ -898,7 +938,7 @@ class Sketch:
                 if (self.params or
                     self.gui_callback is not None or
                     self.prog_uses_imgui):
-                    self.gui.from_params(self, self.gui_callback, init=False)
+                    pass #self.gui.from_params(self, self.gui_callback, init=False)
             if ('gui_window' in self.var_context and
                 callable(self.var_context['gui_window'])):
                 try:
@@ -912,10 +952,10 @@ class Sketch:
             if self.show_toolbar:
                 self.gui.toolbar(self)
             # Required for render to work in draw callback
-            try:
-                imgui.end_frame()
-            except imgui.core.ImGuiError as e:
-                print(e)
+            # try:
+            #     imgui.end_frame()
+            # except imgui.core.ImGuiError as e:
+            #     print(e)
 
         if self.saving_to_file and self.done_saving:
             print('saving to ', self.saving_to_file)
@@ -944,7 +984,6 @@ class Sketch:
 
     def frame_rate(self, fps):
         self.fps = fps
-
 
     def start_osc(self):
         # Load server/client data from json
@@ -1005,7 +1044,10 @@ class Sketch:
             print("Stopped")
         if imgui is not None:
             print("Stopping imgui")
-            self.impl.shutdown()
+            imgui.backends.opengl3_shutdown()
+            imgui.backends.glfw_shutdown()
+            imgui.destroy_context()
+            #self.impl.shutdown()
         if self.params is not None and not self.has_error():
             print("Saving params")
             self.params.save()
@@ -1244,9 +1286,9 @@ def main(path='', fps=0, inject=True, show_toolbar=False):
     #                             on_mouse_release)
 
     # Load settings if they exist
-    settings = sketch_params.load_json(os.path.join(app_path, 'settings.json'))
-    if settings:
-        app_settings.update(settings)
+    # settings = sketch_params.load_json(os.path.join(app_path, 'settings.json'))
+    # if settings:
+    #     app_settings.update(settings)
 
     if not sketch.path:
         sketch.path = app_settings['script']
@@ -1270,8 +1312,8 @@ def main(path='', fps=0, inject=True, show_toolbar=False):
         if 'exit' in sketch.var_context:
             sketch.var_context['exit']()
 
-        print("Saving settings")
-        sketch_params.save_json(app_settings, os.path.join(app_path, 'settings.json'))
+        #print("Saving settings")
+        #sketch_params.save_json(app_settings, os.path.join(app_path, 'settings.json'))
         sketch.cleanup()
         print("End close")
 
@@ -1300,16 +1342,20 @@ def main(path='', fps=0, inject=True, show_toolbar=False):
         # Check if we need to reload
         sketch.check_reload()
 
+
         if do_frame:  # and not sketch._no_loop:
             sketch.frame()
             prev_t = time.perf_counter()
             sketch.canvas_tex.write(sketch.canvas.get_buffer())
 
-        sketch.impl.process_inputs()
+        #sketch.impl.process_inputs()
+        sketch.canvas_tex.use(0)
         content_scale = glfw.get_window_content_scale(sketch.window)
         sketch.glctx.clear(1.0, 1.0, 1.0)  # Clear the screen to white
         prev_viewport = sketch.glctx.viewport
-        sketch.glctx.viewport = (0, 0, sketch.canvas.width*content_scale[0], sketch.canvas.height*content_scale[1])
+        sketch.glctx.viewport = (0, 0,
+                                 sketch.canvas.width*content_scale[0],
+                                 sketch.canvas.height*content_scale[1])
         sketch.quad_vao.render(mgl.TRIANGLES)  # Render the VAO
         sketch.glctx.viewport = prev_viewport
         # if sketch.keep_aspect_ratio:
@@ -1345,8 +1391,13 @@ def main(path='', fps=0, inject=True, show_toolbar=False):
         if imgui is not None:
             try:
                 imgui.render()
-                sketch.impl.render(imgui.get_draw_data())
-            except imgui.core.ImGuiError as e:
+
+
+                imgui.backends.opengl3_render_draw_data(imgui.get_draw_data())
+
+                #imgui.render()
+                #sketch.impl.render(imgui.get_draw_data())
+            except RuntimeError as e:
                 print('Error in imgui render')
                 print(e)
 

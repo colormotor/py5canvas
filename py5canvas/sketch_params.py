@@ -18,11 +18,12 @@ It will probably be significantly slow when using a large canvas size
 
 import importlib
 import traceback
+import pdb
 
 # Optionally import imgui
-imgui_loader = importlib.find_loader('imgui')
+imgui_loader = importlib.find_loader('imgui_bundle')
 if imgui_loader is not None:
-    import imgui
+    from imgui_bundle import imgui, ImVec2
     # from imgui.integrations.pyglet import create_renderer
 else:
     imgui = None
@@ -206,8 +207,8 @@ if imgui is not None:
         col_back = imgui.color_convert_hsv_to_rgb(hue, col_back_sat, col_back_val)
         col_area = imgui.color_convert_hsv_to_rgb(hue, col_area_sat, col_area_val)
 
+        imgui.style_colors_dark() # optional: set base colors from "Dark" (or any other) style
         style = imgui.get_style() # override active style
-        imgui.style_colors_dark(style) # optional: set base colors from "Dark" (or any other) style
 
         style.window_rounding = 0.0
         style.indent_spacing = 5
@@ -411,9 +412,9 @@ if imgui is not None:
             self.sketch = sketch
             # Top bar
             ratio = sketch.get_pixel_ratio()
-            imgui.set_next_window_size(sketch.window_width, sketch.toolbar_height)
-            imgui.set_next_window_position(0, 0)
-            imgui.begin("Toolbar", True, (imgui.WINDOW_NO_RESIZE |
+            imgui.set_next_window_size((sketch.window_width, sketch.toolbar_height))
+            imgui.set_next_window_pos(ImVec(0, 0))
+            imgui.begin("Toolbar", True, (imgui.WindowFlags.NO_RESIZE |
                                             imgui.WINDOW_NO_TITLE_BAR |
                                             imgui.WINDOW_NO_SAVED_SETTINGS |
                                             imgui.WINDOW_NO_SCROLLBAR))
@@ -467,22 +468,22 @@ if imgui is not None:
         def begin_gui(self, sketch):
             self.sketch = sketch
             ratio = 1 #sketch.window.get_pixel_ratio()
-            imgui.set_next_window_size(self.width, (sketch.window_height - sketch.toolbar_height)*ratio)
-            imgui.set_next_window_position((sketch.window_width - self.width)*ratio, sketch.toolbar_height)
-            imgui.begin("Py5sketch", True, (imgui.WINDOW_NO_RESIZE |
-                                            imgui.WINDOW_NO_TITLE_BAR |
-                                            imgui.WINDOW_NO_SAVED_SETTINGS))
+            imgui.set_next_window_size((self.width, (sketch.window_height - sketch.toolbar_height)*ratio))
+            imgui.set_next_window_pos(ImVec2((sketch.window_width - self.width)*ratio, sketch.toolbar_height))
+            imgui.begin("Py5sketch", True, (imgui.WindowFlags_.no_resize |
+                                            imgui.WindowFlags_.no_title_bar |
+                                            imgui.WindowFlags_.no_saved_settings))
             imgui.begin_child("Sketch")
 
         def show_sketch_controls(self):
-            return imgui.collapsing_header("Controls", None, imgui.TREE_NODE_DEFAULT_OPEN)[0]
+            return imgui.collapsing_header("Controls", None, imgui.TreeNodeFlags_._DEFAULT_OPEN)[0]
 
         def from_params(self, sketch, callback=None, init=True):
             self.sketch = sketch
             self.changed = set()
             if init:
                 self.begin_gui()
-            
+
 
             if imgui.collapsing_header("Parameters", None, imgui.TREE_NODE_DEFAULT_OPEN)[0]:
                 if sketch.params is not None:
