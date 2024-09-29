@@ -1306,12 +1306,14 @@ def main(path='', fps=0, inject=True, show_toolbar=False):
             sketch.canvas_tex.write(sketch.canvas.get_buffer())
 
         sketch.impl.process_inputs()
+        sketch.canvas_tex.use(0)
         content_scale = glfw.get_window_content_scale(sketch.window)
         sketch.glctx.clear(1.0, 1.0, 1.0)  # Clear the screen to white
         prev_viewport = sketch.glctx.viewport
         sketch.glctx.viewport = (0, 0, sketch.canvas.width*content_scale[0], sketch.canvas.height*content_scale[1])
         sketch.quad_vao.render(mgl.TRIANGLES)  # Render the VAO
         sketch.glctx.viewport = prev_viewport
+
         # if sketch.keep_aspect_ratio:
         #     sketch.blit_scale_factor = (sketch.canvas_display_height / sketch.canvas.height,
         #                                 sketch.canvas_display_height / sketch.canvas.height)
@@ -1341,14 +1343,18 @@ def main(path='', fps=0, inject=True, show_toolbar=False):
                 if sketch.impl is not None:
                     sketch.impl.process_inputs()
 
-
         if imgui is not None:
             try:
                 imgui.render()
-                sketch.impl.render(imgui.get_draw_data())
+                # pdb.set_trace()
+                try:
+                    sketch.impl.render(imgui.get_draw_data())
+                except Exception:
+                    pass
             except imgui.core.ImGuiError as e:
                 print('Error in imgui render')
                 print(e)
+
 
 
         # Swap front and back buffers
