@@ -2,6 +2,7 @@ import inspect
 import numpy as np
 import os
 from .canvas import Canvas, VideoInput
+import pdb
 
 # Tricks the linter into knowing the symbols we inject
 from .dummy_globals import *
@@ -32,6 +33,7 @@ def create_canvas(w, h):
     # Inject functions in caller globals
     for func in dir(_canvas):
         if '__' not in func and callable(getattr(_canvas, func)):
+            #pdb.set_trace()
             var_context[func] = wrap_method(_canvas, func)
 
     # Inject properties

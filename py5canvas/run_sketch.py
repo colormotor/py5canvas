@@ -26,7 +26,7 @@ import os, sys, time
 from py5canvas import canvas, sketch_params
 from py5canvas import globals as glob
 import traceback
-import importlib
+import importlib, inspect
 import threading
 import cairo
 from inspect import signature
@@ -402,8 +402,6 @@ class Sketch:
             self.gui = sketch_params.SketchGui(gui_width)
             self._create_canvas(w, h + self.toolbar_height, (w, h), fullscreen, screen=screen)
 
-        # Expose canvas to script
-        self.var_context['canvas'] = self.canvas
 
     @property
     def current_canvas(self):
@@ -595,7 +593,7 @@ class Sketch:
         print("Reloading sketch code")
         self.finalize_grab()
 
-        var_context = {}
+        #var_context = {}
         self.var_context = var_context
 
         self._frame_count = 0
@@ -669,10 +667,19 @@ class Sketch:
             # One reasonable solution would be to add a flag to the "run" function,
             # so that it can stop the injection from happening. Then these parameters
             # would be accesible through the ~sketch~ variable.
+            def can_inject(func):
+                return (func not in var_context or
+                        'dummy_globals' in inspect.getmodule(var_context[func]).__name__ or
+                        'py5canvas' in inspect.getmodule(var_context[func]).__name__)
+
             if self.inject:
                 for func in dir(self.canvas):
                     if '__' not in func and callable(getattr(self.canvas, func)):
-                        var_context[func] = wrap_canvas_method(self, func)
+                        if can_inject(func):
+                            var_context[func] = wrap_canvas_method(self, func)
+                        # else:
+                        #     import inspect
+                        #     pdb.set_trace()
 
             for g in dir(glob):
                 if '__' not in g:
@@ -694,9 +701,13 @@ class Sketch:
                                 'save_file_dialog',
                                 'open_folder_dialog']
                 for method in export_methods:
+                    #if method not in var_context:
                     var_context[method] = wrap_method(self, method)
                 # For compatibility expose "size"
-                var_context['size'] = wrap_method(self, 'create_canvas')
+                if can_inject('size'):
+                    var_context['size'] = wrap_method(self, 'create_canvas')
+                # else:
+                #     pdb.set_trace()
 
             # var_context['title'] = wrap_method(self, 'title')
             # var_context['frame_rate'] = wrap_method(self, 'frame_rate')
@@ -795,11 +806,11 @@ class Sketch:
                 self.first_load = True
 
     # internal update
-    def frame(self):
-
+    def frame(self, draw_frame):
         if self.first_load:
             # Do stuff on first load
             self.first_load = False
+            draw_frame = True
 
         self._update_mouse()
         self.update_globals()
@@ -860,7 +871,7 @@ class Sketch:
         with perf_timer('update'):
             if not self.runtime_error or self._frame_count==0:
                 try:
-                    if 'draw' in self.var_context:
+                    if 'draw' in self.var_context and draw_frame:
                         self.var_context['draw']()
                     else:
                         pass
@@ -886,11 +897,13 @@ class Sketch:
 
         # self.image.set_data("BGRA", -pitch, buf) # Looks like negative sign takes care of C-contiguity
 
-        if self.grabbing and not self.must_reload:
+        if self.grabbing and not self.must_reload and draw_frame:
             self.grab()
 
-        # Update timers etc
-        self._frame_count += 1
+        # Update timers and copy to texture
+        if draw_frame:
+            self.canvas_tex.write(self.canvas.get_buffer())
+            self._frame_count += 1
 
         # Finalize gui visualization
         if imgui is not None and self._gui_visible:
@@ -1254,9 +1267,9 @@ def main(path='', fps=0, inject=True, show_toolbar=False):
     if sketch.path:
         if 'exit' in sketch.var_context:
             sketch.var_context['exit']()
-        sketch.reload({}) #locals())
+        sketch.reload({}) #globals()) #{}) #locals())
     else:
-        sketch.var_context = {} #locals()
+        sketch.var_context = {} #globals() #{} #locals()
 
     def close():
         # Stop grabbing and finalize
@@ -1290,6 +1303,7 @@ def main(path='', fps=0, inject=True, show_toolbar=False):
         else:
             if time.perf_counter() - prev_t >= 1.0 / sketch.fps:
                 do_frame = True
+                prev_t = time.perf_counter()
 
         if sketch._no_loop:
             do_frame = False
@@ -1300,19 +1314,18 @@ def main(path='', fps=0, inject=True, show_toolbar=False):
         # Check if we need to reload
         sketch.check_reload()
 
-        if do_frame:  # and not sketch._no_loop:
-            sketch.frame()
-            prev_t = time.perf_counter()
-            sketch.canvas_tex.write(sketch.canvas.get_buffer())
+        sketch.frame(do_frame)
+
 
         sketch.impl.process_inputs()
         sketch.canvas_tex.use(0)
         content_scale = glfw.get_window_content_scale(sketch.window)
         sketch.glctx.clear(1.0, 1.0, 1.0)  # Clear the screen to white
-        prev_viewport = sketch.glctx.viewport
+        #prev_viewport = sketch.glctx.viewport
         sketch.glctx.viewport = (0, 0, sketch.canvas.width*content_scale[0], sketch.canvas.height*content_scale[1])
         sketch.quad_vao.render(mgl.TRIANGLES)  # Render the VAO
-        sketch.glctx.viewport = prev_viewport
+        sketch.glctx.viewport = (0, 0, sketch.window_width*content_scale[0], sketch.window_height*content_scale[1])
+        #sketch.glctx.viewport = prev_viewport
 
         # if sketch.keep_aspect_ratio:
         #     sketch.blit_scale_factor = (sketch.canvas_display_height / sketch.canvas.height,
@@ -1343,14 +1356,13 @@ def main(path='', fps=0, inject=True, show_toolbar=False):
                 if sketch.impl is not None:
                     sketch.impl.process_inputs()
 
+
         if imgui is not None:
             try:
                 imgui.render()
                 # pdb.set_trace()
-                try:
-                    sketch.impl.render(imgui.get_draw_data())
-                except Exception:
-                    pass
+                sketch.impl.render(imgui.get_draw_data())
+
             except imgui.core.ImGuiError as e:
                 print('Error in imgui render')
                 print(e)
