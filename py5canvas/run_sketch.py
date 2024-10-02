@@ -295,7 +295,7 @@ class Sketch:
     def delta_time(self):
         return self._delta_time
 
-    def parameters(self, params):
+    def _prepare_parameters(self, params):
         self.params = sketch_params.SketchParams(params, self.path)
         print('Setting params', self.params)
         self.params.load()
