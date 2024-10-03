@@ -1034,7 +1034,7 @@ class Canvas:
             p0 = args[:2]
             p1 = args[2:4]
             p2 = args[4:6]
-            p4 = args[6:8]
+            p3 = args[6:8]
         self.ctx.move_to(*p0)
         self.ctx.curve_to(*p1, *p2, *p3)
         self._fillstroke()
