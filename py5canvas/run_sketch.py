@@ -45,7 +45,7 @@ if IPython_loader is not None:
 
 # Optionally import imgui
 imgui_loader = importlib.find_loader('imgui')
-if False: #imgui_loader is not None:
+if imgui_loader is not None:
     import imgui
     from imgui.integrations.glfw import GlfwRenderer
     #from imgui.integrations.glfw import create_renderer
