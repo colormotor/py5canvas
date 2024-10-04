@@ -45,7 +45,7 @@ if IPython_loader is not None:
 
 # Optionally import imgui
 imgui_loader = importlib.find_loader('imgui')
-if imgui_loader is not None:
+if False: #imgui_loader is not None:
     import imgui
     from imgui.integrations.glfw import GlfwRenderer
     #from imgui.integrations.glfw import create_renderer
@@ -1317,7 +1317,9 @@ def main(path='', fps=0, inject=True, show_toolbar=False):
         sketch.frame(do_frame)
 
 
-        sketch.impl.process_inputs()
+        if sketch.impl is not None:
+            sketch.impl.process_inputs()
+
         sketch.canvas_tex.use(0)
         content_scale = glfw.get_window_content_scale(sketch.window)
         sketch.glctx.clear(1.0, 1.0, 1.0)  # Clear the screen to white
