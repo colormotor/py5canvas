@@ -14,7 +14,7 @@ from math import e, pi
 from clifford import Cl
 from itertools import combinations
 
-
+#!/usr/bin/env bash
 
 
 
