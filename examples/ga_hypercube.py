@@ -17,7 +17,6 @@ from itertools import combinations
 #!/usr/bin/env bash
 
 
-
 dim = 4
 
 layout, blades = Cl(dim, 0, 1, firstIdx=0)
