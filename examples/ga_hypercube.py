@@ -14,6 +14,7 @@ from math import e, pi
 from clifford import Cl
 from itertools import combinations
 
+
 dim = 4
 
 layout, blades = Cl(dim, 0, 1, firstIdx=0)
