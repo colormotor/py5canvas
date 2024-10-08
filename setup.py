@@ -4,7 +4,7 @@ from setuptools import setup
 # twine upload dist/*
 setup(
     name='py5canvas',
-    version='0.4.1',
+    version='0.4.2',
     description='Library to create drawings and animations with an interface similar to p5js and Processing.',
     author='Daniel Berio',
     author_email='drand48@gmail.com',
