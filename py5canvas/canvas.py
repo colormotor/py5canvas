@@ -161,7 +161,7 @@ class Canvas:
         Arguments:
 
         - ~scale~ (float): the color scale. if we want to specify colors in the ~0...255~ range,
-        ~scale~ will be ~255~. If we want to specify colors in the ~0...1~ range, ~scale~ will be ~1~"""
+         ~scale~ will be ~255~. If we want to specify colors in the ~0...1~ range, ~scale~ will be ~1~"""
         if is_number(scale):
             scale = np.ones(4)*scale
         self.color_scale[:len(scale)] = scale
@@ -236,6 +236,10 @@ class Canvas:
 
         - ~mode~ (string): can be one of 'rgb', 'hsv' depending on the desired color mode
         - ~scale~ (float): the scale for the color values (e.g. 255 for 0...255 range, 1 for 0...1 range)
+
+        Examples:
+
+        - ~color_mode('rgb', 1.0)~ will set the color mode to RGB in the 0-1 range.
         """
         self._color_mode = mode
         if len(args):
@@ -257,8 +261,8 @@ class Canvas:
 
         Arguments:
 
-        - A single argument specifies a grayscale value, e.g ~c.fill(128)~ will fill with 50% gray.
-        - Two arguments specify grayscale with opacity, e.g. ~c.fill(255, 128)~ will fill with transparent white.
+        - A single argument specifies a grayscale value, e.g ~fill(128)~ will fill with 50% gray.
+        - Two arguments specify grayscale with opacity, e.g. ~fill(255, 128)~ will fill with transparent white.
         - Three arguments specify a color depending on the color mode (rgb or hsv)
         - Four arguments specify a color with opacity
         """
@@ -271,9 +275,9 @@ class Canvas:
         """ Set the color of the current stroke
 
         Arguments:
-        - A single argument specifies a grayscale value.
-        - Two arguments specify grayscale with opacity.
-        - Three arguments specify a color depending on the color mode (rgb or hsv)
+        - A single argument specifies a grayscale value, e.g. ~stroke(255)~ will set the stroke to white.
+        - Two arguments specify grayscale with opacity, e.g. ~stroke(0, 128)~ will set the stroke to black with 50% opacity.
+        - Three arguments specify a color depending on the color mode (rgb or hsv), e.g. ~stroke(255, 0, 0)~ will set the stroke to red, when the color mode is RGB
         - Four arguments specify a color with opacity
         """
 
@@ -283,7 +287,11 @@ class Canvas:
             self.cur_stroke = self._apply_colormode(self._convert_rgba(args))
 
     def stroke_weight(self, w):
-        """Set the line width"""
+        """Set the line width
+
+        Arguments:
+        - The width in pixel of the stroke
+        """
         self.ctx.set_line_width(w)
 
     def line_join(self, join):
@@ -467,8 +475,8 @@ class Canvas:
 
         Arguments:
 
-        - The offset can be specified as an array/list (e.g ~c.translate([x,y])~
-          or as single arguments (e.g. ~c.translate(x, y)~)
+        - The offset can be specified as an array/list (e.g ~translate([x,y])~
+          or as single arguments (e.g. ~translate(x, y)~)
         """
         if len(args)==1:
             v = args[0]
@@ -483,8 +491,8 @@ class Canvas:
 
         - Providing a single number will apply a uniform transformation.
         - Providing a pair of number will scale in the x and y directions.
-        - The scale can be specified as an array/list (e.g ~c.scale([x,y])~
-        or as single arguments (e.g. ~c.scale(x, y)~)'''
+        - The scale can be specified as an array/list (e.g ~scale([x,y])~
+        or as single arguments (e.g. ~scale(x, y)~)'''
         """
 
         if len(args)==1:
@@ -563,10 +571,12 @@ class Canvas:
 
         Arguments:
         The first sequence of arguments is one of
+
          - ~[x, y], [width, height]~,
          - ~[x, y], width, height~,
          - ~x, y, width, height~
-         - '[[topleft_x, topleft_y], [bottomright_x, bottomright_y]]'
+         - ~[[topleft_x, topleft_y], [bottomright_x, bottomright_y]]~
+
         The last option will ignore the rect mode since it explictly defines the corners of the rect
 
         The interpretation of ~x~ and ~y~ depends on the current rect mode. These indicate the
@@ -795,6 +805,9 @@ class Canvas:
             center = np.array([x1 + x2, y1 + y2])/2
             w, h = abs(x2 - x1), abs(y2 - y1)
 
+        if not (w > 0 and h > 0):
+            return
+
         self.push()
         self.translate(center)
 
@@ -864,8 +877,6 @@ class Canvas:
             # else:
             #     self.ctx.fill()
         self.pop()
-
-
 
     def clear_segments(self):
         self.curve_segments = []
@@ -1092,7 +1103,10 @@ class Canvas:
             self.quadratic(*args)
 
     def create_graphics(self, w, h):
-        ''' Create a new canvas with the specified width and height'''
+        ''' Create a new canvas with the specified width and height
+            E.g. ~c = create_graphics(128, 128)~ will put a new canvas into
+            the variable ~c~. You can draw the contents of the canvas with the ~image~ function.
+        '''
         return Canvas(w, h)
 
     def image(self, img, *args, opacity=1.0):
@@ -1262,7 +1276,9 @@ class Canvas:
         self.ctx.identity_matrix()
 
     def background(self, *args):
-        ''' Clear the canvas with a given color '''
+        ''' Clear the canvas with a given color
+            Accepts either an array with the color components, or single color components (as in ~fill~)
+        '''
         # self.clear_callback()
         self.ctx.identity_matrix()
         self.ctx.set_source_rgba(*self._apply_colormode(self._convert_rgba(args)))
@@ -1285,11 +1301,23 @@ class Canvas:
         return img/255
 
     def save_image(self, path):
-        ''' Save the canvas to an image'''
+        ''' Save the canvas to an image
+
+        Arguments:
+
+        - The path where to save
+
+        '''
         self.surf.write_to_png(path)
 
     def save_svg(self, path):
-        ''' Save the canvas to an svg file'''
+        ''' Save the canvas to an svg file
+
+        Arguments:
+
+        - The path where to save
+
+        '''
         if self.recording_surface is None:
             raise ValueError('No recording surface in canvas')
         surf = cairo.SVGSurface(path, self.width, self.height)
@@ -1298,10 +1326,15 @@ class Canvas:
         ctx.paint()
         surf.finish()
         fix_clip_path(path, path)
-        
 
     def save_pdf(self, path):
-        ''' Save the canvas to an svg file'''
+        ''' Save the canvas to an svg file
+
+        Arguments:
+
+        - The path where to save
+
+        '''
         if self.recording_surface is None:
             raise ValueError('No recording surface in canvas')
         surf = cairo.PDFSurface(path, self.width, self.height)
@@ -1330,7 +1363,9 @@ class Canvas:
     #         self.surf.write_to_png(self.output_file)
 
     def save(self, path):
-        ''' Save the canvas to an image'''
+        ''' Save the canvas into a given file path
+            The file format depends on the file extension
+        '''
         if '.svg' in path:
             self.save_svg(path)
         elif '.pdf' in path:
@@ -1346,6 +1381,7 @@ class Canvas:
             display(Image.fromarray(self.get_image()).resize(size))
             return
         display(Image.fromarray(self.get_image()))
+
 
     def show_plt(self, size=None, title='', axis=False):
         ''' Show the canvas in a notebook with matplotlib
@@ -1425,11 +1461,11 @@ class Canvas:
                 x[3]/self.color_scale[3])
 
 def radians(x):
-    ''' Get radians given x degrees'''
+    ''' Get radians given an angle in degrees'''
     return np.pi/180*x
 
 def degrees(x):
-    ''' Get degrees given x radians'''
+    ''' Get degrees given an angle in radians'''
     return x * (180.0/np.pi)
 
 def numpy_to_surface(arr):

@@ -58,6 +58,26 @@ def Vector(*args):
     ''' Create a color'''
     return np.array(args)
 
+def rotate_vector(*args):
+    """Rotate a 2D vector (x, y) by a given angle in radians.
+       Input can be two numbers ~x, y~ or a tuple/array, followed by the angle in radians
+    """
+    numpy = False
+    if len(args) == 2:
+        x, y = args[0]
+        angle = args[1]
+        if isinstance(args[0], np.ndarray):
+            numpy = True
+    elif len(args) == 3:
+        x, y, angle = args
+    else:
+        raise ValueError("Incorrect number of arguments")
+
+    tx = x * np.cos(angle) - y * np.sin(angle)
+    ty = x * np.sin(angle) + y * np.cos(angle)
+    if numpy:
+        return np.array(tx, ty)
+    return tx, ty
 
 def dist(*args):
     ''' Computes the (Euclidean) distance between two points'''

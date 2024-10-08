@@ -58,5 +58,8 @@ def run(frame_rate=60, inject=True, show_toolbar=False, renderer=''):
         pass
     else:
         from . import run_sketch
-        filename = caller_module.__file__
+        if caller_module is None:
+            filename = caller_frame.f_code.co_filename
+        else:
+            filename = caller_module.__file__
         run_sketch.main(filename, fps=frame_rate, inject=inject, show_toolbar=show_toolbar)

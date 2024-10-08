@@ -63,8 +63,6 @@ else:
 app_path = os.path.dirname(os.path.realpath(__file__))
 print('Running in ' + app_path)
 
-app_settings = {'script': ''}
-
 def print_traceback():
     if IPython_loader is not None:
         # https://stackoverflow.com/questions/14775916/coloring-exceptions-from-python-on-a-terminal
@@ -626,7 +624,6 @@ class Sketch:
             path = os.path.abspath(self.path)
             os.chdir(os.path.dirname(path))
             sys.path.append(os.path.dirname(path))
-            app_settings['script'] = path
 
         # Create filewatcher on first load
         if self.watcher is None:
@@ -1257,12 +1254,12 @@ def main(path='', fps=0, inject=True, show_toolbar=False):
     #                             on_mouse_release)
 
     # Load settings if they exist
-    settings = sketch_params.load_json(os.path.join(app_path, 'settings.json'))
-    if settings:
-        app_settings.update(settings)
+    # settings = sketch_params.load_json(os.path.join(app_path, 'settings.json'))
+    # if settings:
+    #     app_settings.update(settings)
 
-    if not sketch.path:
-        sketch.path = app_settings['script']
+    # if not sketch.path:
+    #     sketch.path = app_settings['script']
 
     if sketch.path:
         if 'exit' in sketch.var_context:
@@ -1283,11 +1280,10 @@ def main(path='', fps=0, inject=True, show_toolbar=False):
         if 'exit' in sketch.var_context:
             sketch.var_context['exit']()
 
-        print("Saving settings")
-        sketch_params.save_json(app_settings, os.path.join(app_path, 'settings.json'))
+        #print("Saving settings")
+        #sketch_params.save_json(app_settings, os.path.join(app_path, 'settings.json'))
         sketch.cleanup()
         print("End close")
-
 
     prev_t = 100000 #time.perf_counter()
 
