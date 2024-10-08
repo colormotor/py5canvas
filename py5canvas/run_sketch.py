@@ -670,9 +670,15 @@ class Sketch:
             # so that it can stop the injection from happening. Then these parameters
             # would be accesible through the ~sketch~ variable.
             def can_inject(func):
-                return (func not in var_context or
-                        'dummy_globals' in inspect.getmodule(var_context[func]).__name__ or
-                        'py5canvas' in inspect.getmodule(var_context[func]).__name__)
+                if func not in var_context:
+                    return True
+                try:
+                    return (func not in var_context or
+                            'dummy_globals' in inspect.getmodule(var_context[func]).__name__ or
+                            'py5canvas' in inspect.getmodule(var_context[func]).__name__)
+                except AttributeError as e:
+                    print("'%s' seems to be defined in script and conflicting with Py5canvas built in function"%func)
+                return False
 
             if self.inject:
                 for func in dir(self.canvas):
