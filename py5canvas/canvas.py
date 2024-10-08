@@ -1275,6 +1275,35 @@ class Canvas:
     def identity(self):
         self.ctx.identity_matrix()
 
+    def copy(self, *args):
+        ''' The first parameter can optionally be an image, if an image is not specified the funtion will use
+        the canvas image, .
+        The next four parameters, sx, sy, sw, and sh determine the region to copy from the source image.
+        (sx, sy) is the top-left corner of the region. sw and sh are the region's width and height.
+        The next four parameters, dx, dy, dw, and dh determine the region of the canvas to copy into.
+        (dx, dy) is the top-left corner of the region. dw and dh are the region's width and height.
+
+        ~copy(src_image, sx, sy, sw, sh, dx, dy, dw, dh)~
+        or
+        ~copy(sx, sy, sw, sh, dx, dy, dw, dh)~
+        '''
+
+        if len(args) % 2 == 1:
+            pdb.set_trace()
+            img = np.array(args[0])
+            args = args[1:]
+        else:
+            img = self.get_image()
+
+        if len(args)==8:
+            sx, sy, sw, sh, dx, dy, dw, dh = args
+        else:
+            ValueError("Unspported number of arguments for copy")
+
+        img = img[sy:sy+sh,
+                  sx:sx+sw]
+        self.image(img, dx, dy, dw, dh)
+
     def background(self, *args):
         ''' Clear the canvas with a given color
             Accepts either an array with the color components, or single color components (as in ~fill~)
