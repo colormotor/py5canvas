@@ -20,7 +20,7 @@ import importlib
 import traceback
 
 # Optionally import imgui
-imgui_loader = importlib.find_loader('imgui')
+imgui_loader = importlib.util.find_spec('imgui')
 if imgui_loader is not None:
     import imgui
     # from imgui.integrations.pyglet import create_renderer
@@ -28,7 +28,7 @@ else:
     imgui = None
 
 # Optionally import easydict
-edict_loader = importlib.find_loader('easydict')
+edict_loader = importlib.util.find_spec('easydict')
 if edict_loader is not None:
     from easydict import EasyDict as edict
 else:

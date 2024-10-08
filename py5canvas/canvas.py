@@ -24,7 +24,7 @@ from PIL import Image
 import importlib
 from contextlib import contextmanager
 
-perlin_loader = importlib.find_loader('perlin_noise')
+perlin_loader = importlib.util.find_spec('perlin_noise')
 if perlin_loader is not None:
     from perlin_noise import PerlinNoise
     perlin = PerlinNoise()
