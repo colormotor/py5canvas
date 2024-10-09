@@ -63,7 +63,6 @@ else:
     edict = None
 
 app_path = os.path.dirname(os.path.realpath(__file__))
-print('Running in ' + app_path)
 
 def print_traceback():
     if IPython_loader is not None:
@@ -148,7 +147,26 @@ def wrap_canvas_method(sketch, func):
 
 
 class Sketch:
-    """Contains our canvas and the glfw window."""
+    """In Py5Canvas a sketch is a Python script with a custom defined ~setup~ and ~draw~ functions,
+    that allow to create interactive apps in a way similar to P5js or Processing. For the system to work
+    you must defiine a sketch similar to what follows:
+
+    #+begin_src python
+    from py5canvas import *
+
+    def setup():
+        create_canvas(400, 400)
+
+    def draw():
+        background(0)
+
+    run()
+    #+end_src
+
+    Canvas drawing code can go in either ~draw~ or ~setup~. To run a sketch, simply run the script from
+    a terminal or from your editor of choice. For the system to work, you must import Py5Canvas at the beginning
+    and call ~run~ at the end.
+    """
     def __init__(self, path,
                        width,
                        height,
@@ -292,6 +310,7 @@ class Sketch:
 
     @property
     def frame_count(self):
+        ''' The number of frames since the script has loaded'''
         return self._frame_count
 
     @property
@@ -308,6 +327,12 @@ class Sketch:
         return self.startup_error or self.runtime_error
 
     def open_file_dialog(self, exts, title='Open file...'):
+        ''' Opens a dialog to select a file to be opened,
+        the first argument is the extension or the file to be opened,
+        e.g. ~'png'~ or a list of extensions, e.g. ~['png', 'jpg']
+
+        The function returns the path of the file if it is selected or an empty string othewise.
+        '''
         # See https://github.com/xMGZx/xdialog
         import xdialog
         if np.isscalar(exts):
@@ -316,6 +341,12 @@ class Sketch:
         return xdialog.open_file(title, filetypes=filetypes, multiple=False)
 
     def save_file_dialog(self, exts, title='Open file...', filename='untitled'):
+        ''' Opens a dialog to select a file to be saved,
+        the first argument is the extension or the file to be saved,
+        e.g. ~'png'~ or a list of extensions, e.g. ~['png', 'jpg']
+
+        The function returns the path of the file if it is selected or an empty string othewise.
+        '''
         import xdialog
         if np.isscalar(exts):
             exts = [exts]
@@ -329,6 +360,10 @@ class Sketch:
         return file_path
 
     def open_folder_dialog(self, title='Open folder...'):
+        ''' Opens a dialog to select a folder/directory to be opened,
+
+        The function returns the path of the directory if it is selected or an empty string othewise.
+        '''
         import xdialog
         return xdialog.directory(title)
 
@@ -476,6 +511,7 @@ class Sketch:
                            flag) #screen=screen)
 
     def toggle_fullscreen(self, toggle_gui=False, screen_index=-1):
+        ''' Toggle between fullscreen and windowed mode'''
         self.fullscreen(not self.is_fullscreen,
                         toggle_gui=toggle_gui,
                         screen_index=screen_index)
@@ -490,6 +526,8 @@ class Sketch:
     #     return None
 
     def fullscreen(self, flag, toggle_gui=False, screen_index=-1):
+        ''' Sets fullscreen or windowed mode depending on the first argument (~True~ or ~False~)
+        '''
         # old_window_width = self.canvas_display_width
         # old_window_height = self.canvas_display_height
         if toggle_gui:
@@ -513,6 +551,7 @@ class Sketch:
         # self.is_fullscreen = flag
 
     def no_loop(self):
+        ''' Stops the drawing loop keeping the last frame fixed on the canvas'''
         self._no_loop = True
 
     def set_gui_theme(self, hue):
@@ -530,6 +569,13 @@ class Sketch:
         self.must_reload = True
 
     def grab_image_sequence(self, path, num_frames, reload=True):
+        ''' Saves a sequence of image files to a directory, one for each frame.
+        By default this will reload the current script.
+
+        Arguments:
+        - ~path~ (string), the directory where to save the images
+        - ~num_frames~ (int), the number of frames to save
+        '''
         if '~' in path:
             path = os.path.expanduser(path)
         path = os.path.abspath(path)
@@ -543,6 +589,13 @@ class Sketch:
         self.num_grab_frames = num_frames
 
     def grab_movie(self, path, num_frames, framerate=30, reload=True):
+        ''' Saves a mp4 movie from a number of frames to a specified path.
+        By default this will reload the current script.
+
+        Arguments:
+        - ~path~ (string), the directory where to save the video
+        - ~num_frames~ (int), the number of frames to save
+        '''
         path = os.path.abspath(path)
         self.grabbing = path
         self.must_reload = reload
@@ -961,9 +1014,11 @@ class Sketch:
 
 
     def title(self, title):
+        ''' Sets the title of the sketch window'''
         glfw.set_window_title(self.window, title)
 
     def frame_rate(self, fps):
+        ''' Set the framerate of the sketch in frames-per-second'''
         self.fps = fps
 
 

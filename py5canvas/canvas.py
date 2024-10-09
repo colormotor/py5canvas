@@ -71,7 +71,7 @@ class CanvasState:
 
 class Canvas:
     """
-    Creates a drawing canvas (pyCairo) that behaves similarly to p5js
+    Defines a drawing canvas (pyCairo) that behaves similarly to p5js
 
     Constructor arguments:
 
@@ -83,7 +83,11 @@ class Canvas:
 
     - ~size(width, height)~
     - ~create_canvas(width, height)~
+
+    When using these functions all the canvas functionalities below will become globally available to the notebook.
+
     """
+
     def __init__(self, width, height, background=(128.0, 128.0, 128.0, 255.0), clear_callback=lambda: None, output_file='', recording=True):
         """Constructor"""
         # See https://pycairo.readthedocs.io/en/latest/reference/context.html
