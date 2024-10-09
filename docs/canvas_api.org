@@ -62,7 +62,7 @@ def doc_methods(methods):
         print('%s\n'%doc)
 
 info = parse_class_with_docs_and_args(canvas.__file__, 'Canvas')
-print('* Canvas API')
+print('\n* Canvas API')
 print('%s\n'%info['docstring'])
 properties = [m for m in info['methods'] if m[2]]
 methods = [m for m in info['methods'] if not m[2]]
@@ -72,7 +72,7 @@ print('** Methods')
 doc_methods(methods)
 
 info = parse_class_with_docs_and_args(run_sketch.__file__, 'Sketch')
-print('* Interactive sketches')
+print('\n* Interactive sketches')
 print('%s\n'%info['docstring'])
 properties = [m for m in info['methods'] if m[2]]
 methods = [m for m in info['methods'] if not m[2]]
@@ -86,6 +86,7 @@ doc_methods(methods)
 #+END_SRC
 
 #+RESULTS:
+
 * Canvas API
 Defines a drawing canvas (pyCairo) that behaves similarly to p5js
 
@@ -552,6 +553,7 @@ Arguments:
 - ~size~ (tuple, optional): The size of the displayed image, by default this is the size of the canvas
 - ~title~ (string, optional): A title for the figure
 - ~axis~ (bool, optional): If ~True~ shows the coordinate axes
+
 
 * Interactive sketches
 In Py5Canvas a sketch is a Python script with a custom defined ~setup~ and ~draw~ functions,
