@@ -22,6 +22,7 @@ from math import fmod, pi
 import types
 from PIL import Image
 import importlib
+import importlib.util
 from contextlib import contextmanager
 
 perlin_loader = importlib.util.find_spec('perlin_noise')

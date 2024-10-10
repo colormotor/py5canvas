@@ -27,10 +27,10 @@ from py5canvas import canvas, sketch_params
 from py5canvas import globals as glob
 import traceback
 import importlib, inspect
+import importlib.util
 import threading
 import cairo
 from inspect import signature
-import importlib.util
 
 import glfw
 import moderngl as mgl

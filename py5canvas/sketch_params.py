@@ -18,6 +18,8 @@ It will probably be significantly slow when using a large canvas size
 
 import importlib
 import traceback
+import importlib.util
+
 
 # Optionally import imgui
 imgui_loader = importlib.util.find_spec('imgui')
