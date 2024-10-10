@@ -1351,7 +1351,7 @@ def main(path='', fps=0, inject=True, show_toolbar=False):
         sketch.cleanup()
         print("End close")
 
-    prev_t = 100000 #time.perf_counter()
+    prev_t = 0 #100000 #time.perf_counter()
 
     while not glfw.window_should_close(sketch.window):
         # Updates input and calls draw in the sketch
