@@ -4,12 +4,20 @@ from setuptools import setup
 # twine upload dist/*
 setup(
     name='py5canvas',
-    version='0.4.5',
+    version='0.4.6',
     description='Library to create drawings and animations with an interface similar to p5js and Processing.',
     author='Daniel Berio',
     author_email='drand48@gmail.com',
     packages=['py5canvas'],
-    install_requires=['pycairo', 'glfw', 'moderngl', 'numpy', 'pillow', 'easydict', 'xdialog', 'perlin-noise'],
+    install_requires=['pycairo',
+                      'glfw',
+                      'moderngl',
+                      'PyOpenGL',
+                      'numpy',
+                      'pillow',
+                      'easydict',
+                      'xdialog',
+                      'perlin-noise'],
     entry_points={
         'console_scripts': [
             'py5sketch = py5canvas.run_sketch:main'
