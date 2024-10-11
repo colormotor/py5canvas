@@ -1384,6 +1384,7 @@ def main(path='', fps=0, inject=True, show_toolbar=False):
 
         sketch.canvas_tex.use(0)
         content_scale = glfw.get_window_content_scale(sketch.window)
+        content_scale = [int(s) for s in content_scale] # Hack for floating point scale?
         sketch.glctx.clear(1.0, 1.0, 1.0)  # Clear the screen to white
         #prev_viewport = sketch.glctx.viewport
         sketch.glctx.viewport = (0, 0, sketch.canvas.width*content_scale[0], sketch.canvas.height*content_scale[1])
