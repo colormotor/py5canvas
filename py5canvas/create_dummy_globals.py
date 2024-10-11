@@ -2,9 +2,10 @@
 ''' Creates a module file `dummy_globals.py` that is used to trick a Python linter
     into knowing the canvas globals that are injected
 '''
-if __name__ == '__main__':
+if True: #__name__ == '__main__':
     import ast
 
+    print('Creating globals')
     def parse_class_methods_with_docs(file_path, class_name):
         with open(file_path, "r") as f:
             tree = ast.parse(f.read())
@@ -40,8 +41,10 @@ if __name__ == '__main__':
         for method_name, args, is_property, docstring in method_info:
             if is_property:
                 if docstring:
-                    f.write(f'# {docstring}\n')
-                f.write("%s = ''\n\n"%method_name)
+                    #f.write(f'# {docstring}\n')
+                    f.write("%s = '%s'\n\n"%(method_name, docstring))
+                else:
+                    f.write("%s = ''\n\n"%(method_name))
             else:
                 if args:
                     f.write('def %s(*args):\n'%method_name)

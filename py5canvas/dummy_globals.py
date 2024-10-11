@@ -6,7 +6,7 @@ def set_color_scale(*args):
 Arguments:
 
 - ~scale~ (float): the color scale. if we want to specify colors in the ~0...255~ range,
-~scale~ will be ~255~. If we want to specify colors in the ~0...1~ range, ~scale~ will be ~1~ """
+ ~scale~ will be ~255~. If we want to specify colors in the ~0...1~ range, ~scale~ will be ~1~ """
     pass  # Dummy method for linter
 
 cur_fill = ''
@@ -19,8 +19,7 @@ cur_stroke = ''
 def cur_stroke(*args):
     pass  # Dummy method for linter
 
-# The center of the canvas (as a 2d numpy array)
-center = ''
+center = 'The center of the canvas (as a 2d numpy array)'
 
 def get_width():
     """The width of canvas """
@@ -30,11 +29,9 @@ def get_height():
     """The height of canvas """
     pass  # Dummy method for linter
 
-# The width of canvas
-width = ''
+width = 'The width of canvas'
 
-# The height of canvas
-height = ''
+height = 'The height of canvas'
 
 surface = ''
 
@@ -52,7 +49,11 @@ def color_mode(*args):
 Arguments:
 
 - ~mode~ (string): can be one of 'rgb', 'hsv' depending on the desired color mode
-- ~scale~ (float): the scale for the color values (e.g. 255 for 0...255 range, 1 for 0...1 range) """
+- ~scale~ (float): the scale for the color values (e.g. 255 for 0...255 range, 1 for 0...1 range)
+
+Examples:
+
+- ~color_mode('rgb', 1.0)~ will set the color mode to RGB in the 0-1 range. """
     pass  # Dummy method for linter
 
 def fill(*args):
@@ -60,8 +61,8 @@ def fill(*args):
 
 Arguments:
 
-- A single argument specifies a grayscale value, e.g ~c.fill(128)~ will fill with 50% gray.
-- Two arguments specify grayscale with opacity, e.g. ~c.fill(255, 128)~ will fill with transparent white.
+- A single argument specifies a grayscale value, e.g ~fill(128)~ will fill with 50% gray.
+- Two arguments specify grayscale with opacity, e.g. ~fill(255, 128)~ will fill with transparent white.
 - Three arguments specify a color depending on the color mode (rgb or hsv)
 - Four arguments specify a color with opacity """
     pass  # Dummy method for linter
@@ -70,14 +71,17 @@ def stroke(*args):
     """Set the color of the current stroke
 
 Arguments:
-- A single argument specifies a grayscale value.
-- Two arguments specify grayscale with opacity.
-- Three arguments specify a color depending on the color mode (rgb or hsv)
+- A single argument specifies a grayscale value, e.g. ~stroke(255)~ will set the stroke to white.
+- Two arguments specify grayscale with opacity, e.g. ~stroke(0, 128)~ will set the stroke to black with 50% opacity.
+- Three arguments specify a color depending on the color mode (rgb or hsv), e.g. ~stroke(255, 0, 0)~ will set the stroke to red, when the color mode is RGB
 - Four arguments specify a color with opacity """
     pass  # Dummy method for linter
 
 def stroke_weight(*args):
-    """Set the line width """
+    """Set the line width
+
+Arguments:
+- The width in pixel of the stroke """
     pass  # Dummy method for linter
 
 def line_join(*args):
@@ -158,8 +162,8 @@ def translate(*args):
 
 Arguments:
 
-- The offset can be specified as an array/list (e.g ~c.translate([x,y])~
-  or as single arguments (e.g. ~c.translate(x, y)~) """
+- The offset can be specified as an array/list (e.g ~translate([x,y])~
+  or as single arguments (e.g. ~translate(x, y)~) """
     pass  # Dummy method for linter
 
 def scale(*args):
@@ -169,8 +173,8 @@ Arguments:
 
 - Providing a single number will apply a uniform transformation.
 - Providing a pair of number will scale in the x and y directions.
-- The scale can be specified as an array/list (e.g ~c.scale([x,y])~
-or as single arguments (e.g. ~c.scale(x, y)~)''' """
+- The scale can be specified as an array/list (e.g ~scale([x,y])~
+or as single arguments (e.g. ~scale(x, y)~)''' """
     pass  # Dummy method for linter
 
 def rotate(*args):
@@ -208,10 +212,12 @@ Can use ~rect~ equivalently.
 
 Arguments:
 The first sequence of arguments is one of
+
  - ~[x, y], [width, height]~,
  - ~[x, y], width, height~,
  - ~x, y, width, height~
- - '[[topleft_x, topleft_y], [bottomright_x, bottomright_y]]'
+ - ~[[topleft_x, topleft_y], [bottomright_x, bottomright_y]]~
+
 The last option will ignore the rect mode since it explictly defines the corners of the rect
 
 The interpretation of ~x~ and ~y~ depends on the current rect mode. These indicate the
@@ -402,7 +408,9 @@ Input arguments can be in the following formats:
     pass  # Dummy method for linter
 
 def create_graphics(*args):
-    """Create a new canvas with the specified width and height """
+    """Create a new canvas with the specified width and height
+E.g. ~c = create_graphics(128, 128)~ will put a new canvas into
+the variable ~c~. You can draw the contents of the canvas with the ~image~ function. """
     pass  # Dummy method for linter
 
 def image(*args):
@@ -456,8 +464,22 @@ To close the polyline set the named closed argument to ~True~, e.g. ~c.polyline(
 def identity():
     pass  # Dummy method for linter
 
+def copy(*args):
+    """The first parameter can optionally be an image, if an image is not specified the funtion will use
+the canvas image, .
+The next four parameters, sx, sy, sw, and sh determine the region to copy from the source image.
+(sx, sy) is the top-left corner of the region. sw and sh are the region's width and height.
+The next four parameters, dx, dy, dw, and dh determine the region of the canvas to copy into.
+(dx, dy) is the top-left corner of the region. dw and dh are the region's width and height.
+
+~copy(src_image, sx, sy, sw, sh, dx, dy, dw, dh)~
+or
+~copy(sx, sy, sw, sh, dx, dy, dw, dh)~ """
+    pass  # Dummy method for linter
+
 def background(*args):
-    """Clear the canvas with a given color  """
+    """Clear the canvas with a given color
+Accepts either an array with the color components, or single color components (as in ~fill~) """
     pass  # Dummy method for linter
 
 def get_buffer():
@@ -472,22 +494,35 @@ def get_image_grayscale():
     pass  # Dummy method for linter
 
 def save_image(*args):
-    """Save the canvas to an image """
+    """Save the canvas to an image
+
+Arguments:
+
+- The path where to save """
     pass  # Dummy method for linter
 
 def save_svg(*args):
-    """Save the canvas to an svg file """
+    """Save the canvas to an svg file
+
+Arguments:
+
+- The path where to save """
     pass  # Dummy method for linter
 
 def save_pdf(*args):
-    """Save the canvas to an svg file """
+    """Save the canvas to an svg file
+
+Arguments:
+
+- The path where to save """
     pass  # Dummy method for linter
 
 def Image():
     pass  # Dummy method for linter
 
 def save(*args):
-    """Save the canvas to an image """
+    """Save the canvas into a given file path
+The file format depends on the file extension """
     pass  # Dummy method for linter
 
 def show(*args):
@@ -504,13 +539,15 @@ Arguments:
 - ~axis~ (bool, optional): If ~True~ shows the coordinate axes """
     pass  # Dummy method for linter
 
-# The horizontal coordinate of the mouse position
-mouse_x = ''
+mouse_x = 'The horizontal coordinate of the mouse position'
 
-# The vertical coordinate of the mouse position
-mouse_y = ''
+mouse_y = 'The vertical coordinate of the mouse position'
 
-frame_count = ''
+frame_count = 'The number of frames since the script has loaded'
+
+dragging = 'Returns ~True~ if mouse is pressed'
+
+mouse_is_pressed = 'Returns ~True~ if mouse is pressed'
 
 delta_time = ''
 
@@ -518,12 +555,25 @@ def has_error():
     pass  # Dummy method for linter
 
 def open_file_dialog(*args):
+    """Opens a dialog to select a file to be opened,
+the first argument is the extension or the file to be opened,
+e.g. ~'png'~ or a list of extensions, e.g. ~['png', 'jpg']
+
+The function returns the path of the file if it is selected or an empty string othewise. """
     pass  # Dummy method for linter
 
 def save_file_dialog(*args):
+    """Opens a dialog to select a file to be saved,
+the first argument is the extension or the file to be saved,
+e.g. ~'png'~ or a list of extensions, e.g. ~['png', 'jpg']
+
+The function returns the path of the file if it is selected or an empty string othewise. """
     pass  # Dummy method for linter
 
 def open_folder_dialog(*args):
+    """Opens a dialog to select a folder/directory to be opened,
+
+The function returns the path of the directory if it is selected or an empty string othewise. """
     pass  # Dummy method for linter
 
 def create_canvas(*args):
@@ -549,12 +599,16 @@ def show_gui(*args):
     pass  # Dummy method for linter
 
 def toggle_fullscreen(*args):
+    """Toggle between fullscreen and windowed mode """
     pass  # Dummy method for linter
 
 def fullscreen(*args):
+    """Sets fullscreen or windowed mode depending on the first argument (~True~ or ~False~)
+         """
     pass  # Dummy method for linter
 
 def no_loop():
+    """Stops the drawing loop keeping the last frame fixed on the canvas """
     pass  # Dummy method for linter
 
 def set_gui_theme(*args):
@@ -567,9 +621,21 @@ def load(*args):
     pass  # Dummy method for linter
 
 def grab_image_sequence(*args):
+    """Saves a sequence of image files to a directory, one for each frame.
+By default this will reload the current script.
+
+Arguments:
+- ~path~ (string), the directory where to save the images
+- ~num_frames~ (int), the number of frames to save """
     pass  # Dummy method for linter
 
 def grab_movie(*args):
+    """Saves a mp4 movie from a number of frames to a specified path.
+By default this will reload the current script.
+
+Arguments:
+- ~path~ (string), the directory where to save the video
+- ~num_frames~ (int), the number of frames to save """
     pass  # Dummy method for linter
 
 def stop_grabbing():
@@ -594,9 +660,11 @@ def frame(*args):
     pass  # Dummy method for linter
 
 def title(*args):
+    """Sets the title of the sketch window """
     pass  # Dummy method for linter
 
 def frame_rate(*args):
+    """Set the framerate of the sketch in frames-per-second """
     pass  # Dummy method for linter
 
 def start_osc():

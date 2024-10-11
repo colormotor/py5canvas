@@ -270,7 +270,7 @@ class Sketch:
         self.prev_mouse = None
         self.mouse_delta = np.zeros(2)
         self.mouse_button = 0
-        self.dragging = False
+        self._dragging = False
         self.mouse_moving = False
         self.modifiers = 0
         self.prog_uses_imgui = False
@@ -312,6 +312,16 @@ class Sketch:
     def frame_count(self):
         ''' The number of frames since the script has loaded'''
         return self._frame_count
+
+    @property
+    def dragging(self):
+        ''' Returns ~True~ if mouse is pressed'''
+        return self._dragging
+
+    @property
+    def mouse_is_pressed(self):
+        ''' Returns ~True~ if mouse is pressed'''
+        return self._dragging
 
     @property
     def delta_time(self):
@@ -1253,7 +1263,7 @@ def main(path='', fps=0, inject=True, show_toolbar=False):
 
     def cursor_position_callback(window, x, y):
         sketch._mouse_pos = pos = canvas_pos(x, y)
-        if sketch.dragging:
+        if sketch._dragging:
             if imgui_focus():
                 return
             if not point_in_canvas(pos):
@@ -1276,14 +1286,14 @@ def main(path='', fps=0, inject=True, show_toolbar=False):
             if not point_in_canvas(pos):
                 return
             sketch.mouse_button = button
-            sketch.dragging = True
+            sketch._dragging = True
             if check_callback('mouse_pressed'):
                 params = [button, mods]
                 sig = signature(sketch.var_context['mouse_pressed'])
                 sketch.var_context['mouse_pressed'](*params[:len(sig.parameters)])
         elif action == glfw.RELEASE:
             sketch.mouse_button = button
-            sketch.dragging = False
+            sketch._dragging = False
             if check_callback('mouse_released'):
                 params = [button, mods]
                 sig = signature(sketch.var_context['mouse_released'])
