@@ -780,6 +780,8 @@ class Sketch:
                 # else:
                 #     pdb.set_trace()
 
+            var_context['save'] = wrap_method(self, 'dump_canvas')
+
             # var_context['title'] = wrap_method(self, 'title')
             # var_context['frame_rate'] = wrap_method(self, 'frame_rate')
             # var_context['create_canvas'] = wrap_method(self, 'create_canvas')
