@@ -35,6 +35,6 @@ def draw():
 def key_pressed(key, modifier):
     if key==' ': # SPACE toggles fullscreen, chr(..) gives the character corresponding to symb
         # `toggle_gui=True` means that we hide the gui when fullscreen
-        toggle_fullscreen(toggle_gui=True)
+        toggle_fullscreen() #toggle_gui=True)
 
 run()

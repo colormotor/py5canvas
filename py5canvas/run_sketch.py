@@ -506,6 +506,10 @@ class Sketch:
 
     #     return None
 
+    def toggle_gui(self, screen_index=-1):
+        ''' Toggle between GUI and non-gui'''
+        self.show_gui(not self._gui_visible)
+
     def show_gui(self, flag, screen_index=-1):
         if self.gui is None:
             return
@@ -513,7 +517,7 @@ class Sketch:
         #screen = self.window.screen
         #if screen_index > -1:
         #    screen = self.get_screen(screen_index)
-        self.window.set_fullscreen(False)
+        #self.window.set_fullscreen(False)
         self.create_canvas(self.canvas.width,
                            self.canvas.height,
                            self.gui.width,
@@ -767,6 +771,8 @@ class Sketch:
                                 'grab_movie',
                                 'grab_image_sequence',
                                 'fullscreen',
+                                'show_gui',
+                                'toggle_gui',
                                 'toggle_fullscreen',
                                 'open_file_dialog',
                                 'save_file_dialog',
