@@ -1130,11 +1130,13 @@ class Canvas:
         - ~opacity~: a value between 0 and 1 specifying image opacity.
 
         """
-        if isinstance(img, Image.Image):
-            img = np.array(img)
+
         if isinstance(img, Canvas):
             img = img.surf
-        if type(img) == np.ndarray:
+        else:
+            if not isinstance(img, np.ndarray):
+                # This should take care of tensors and PIL Images
+                img = np.array(img)
             img = numpy_to_surface(img)
         self.ctx.save()
         if len(args) == 0:
@@ -1514,11 +1516,16 @@ def numpy_to_surface(arr):
             arr = (arr * 255).astype(np.uint8)
     else:
         if arr.shape[2] == 3:
-            #pdb.set_trace()
             if arr.dtype == np.uint8:
                 arr = np.dstack([arr, np.ones(arr.shape[:2], dtype=np.uint8)*255])
             else:
                 arr = np.dstack([arr, np.ones(arr.shape[:2])])
+                arr = (arr * 255).astype(np.uint8)
+        elif arr.shape[2] == 1:
+            if arr.dtype == np.uint8:
+                arr = np.dstack([arr]*3 + [np.ones(arr.shape[:2], dtype=np.uint8)*255])
+            else:
+                arr = np.dstack([arr]*3 + [np.ones(arr.shape[:2])])
                 arr = (arr * 255).astype(np.uint8)
         else:
             if arr.dtype != np.uint8:
