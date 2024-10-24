@@ -41,6 +41,8 @@ cos   = np.cos
 tan   = np.tan
 atan2 = np.arctan2
 dot = np.dot
+exp = np.exp
+log = np.log
 
 floor = lambda x: np.floor(x).astype(int)
 ceil  = lambda x: np.ceil(x).astype(int)
