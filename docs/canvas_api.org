@@ -336,7 +336,12 @@ Input arguments can be in the following formats:
  - ~x1, y1~: two coordinates
 
 *** ~arrow(...)~
-Draw an arrow between two points ~a~ and ~b~
+Draw an arrow between two points
+
+Input arguments can be in the following formats:
+
+ - ~a, b~ (Two points specified as lists/tuples/numpy arrays
+ - ~x1, y1, x2, y2~, a sequence of numbers, one for each coordinate
 
 *** ~triangle(...)~
 Draws a triangle given three points
@@ -587,6 +592,12 @@ The vertical coordinate of the mouse position
 *** ~frame_count~
 The number of frames since the script has loaded
 
+*** ~dragging~
+Returns ~True~ if mouse is pressed
+
+*** ~mouse_is_pressed~
+Returns ~True~ if mouse is pressed
+
 *** ~mouse_pos~
 The current position of the mouse as an array
 
@@ -613,6 +624,9 @@ The function returns the path of the directory if it is selected or an empty str
 
 *** ~save_canvas(...)~
 Tells the sketch to dump the next frame to an SVG file
+
+*** ~toggle_gui(...)~
+Toggle between GUI and non-gui
 
 *** ~toggle_fullscreen(...)~
 Toggle between fullscreen and windowed mode

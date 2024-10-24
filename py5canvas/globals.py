@@ -56,7 +56,48 @@ def Color(*args):
 
 def Vector(*args):
     ''' Create a color'''
-    return np.array(args)
+    return np.array(args, dtype=np.float64)
+
+
+def range_between(a, b, num, endpoint=True):
+    ''' Returns a list of numbers that goes from a and b in a specified number of steps.
+
+        E.g. ~range_betwee(0, 1, 5)~ will give the list ~[0.0, 0.25, 0.5, 0.75, 1.0]~
+
+        Similar to ~np.linspace~
+    '''
+    return list(np.linspace(a, b, num, endpoint))
+
+
+def linspace(a, b, num, endpoint=True):
+    ''' Returns a list of numbers that goes from a and b in a specified number of steps.
+
+        E.g. ~linspace(0, 1, 5)~ will give the list ~[0.0, 0.25, 0.5, 0.75, 1.0]~
+
+        Similar to ~np.linspace~
+    '''
+    return np.linspace(a, b, num, endpoint)
+
+
+def arange(a, b, step):
+    ''' Returns a list of numbers that goes from a and b with equal steps
+
+        E.g. ~arange(0, 1, 0.25)~ will give the list ~[0.0, 0.25, 0.5, 0.75, 1.0]~
+
+        Similar to ~np.linspace~
+    '''
+    return np.arange(a, b, step)
+
+
+def angle_between(*args):
+    ''' Angle between two vectors (2d) [-pi,pi]'''
+    if len(args)==2:
+        a, b = args
+    elif len(args)==4:
+        a = args[:2]
+        b = args[2:]
+    return np.arctan2( a[0]*b[1] - a[1]*b[0], a[0]*b[0] + a[1]*b[1] )
+
 
 def rotate_vector(*args):
     """Rotate a 2D vector (x, y) by a given angle in radians.
@@ -76,8 +117,9 @@ def rotate_vector(*args):
     tx = x * np.cos(angle) - y * np.sin(angle)
     ty = x * np.sin(angle) + y * np.cos(angle)
     if numpy:
-        return np.array(tx, ty)
+        return np.array([tx, ty])
     return tx, ty
+
 
 def dist(*args):
     ''' Computes the (Euclidean) distance between two points'''
@@ -91,12 +133,39 @@ def dist(*args):
         raise ValueError('Wrong number of args to dist')
 
 
+def mag(*args):
+    ''' Returns the magnitude (length) of a vector.
+    Accepts one vector as an argument or a sequenc of coordinates for each component of the vector
+    '''
+    if len(args)==1:
+        return np.linalg.norm(np.array(args[0]))
+    else:
+        return np.linalg.norm(np.array(args))
+
+
+def heading(*args):
+    ''' Returns the heading (orientation) in radians of a 2d vector
+    '''
+    if len(args) == 2:
+        x, y = args
+    elif len(args) == 1:
+        x, y = args[0][0], args[0][1]
+    else:
+        raise ValueError('Wrong number of arguments for heading')
+    return np.arctan2(y, x)
+
+
+def direction(angle):
+    ''' Returns a vector with magnitude 1 and oriented according to an angle specified in radians'''
+    return np.array([np.cos(angle), np.sin(angle)])
+
+
 def lerp(a, b, t):
     ''' Linear interpolation between two values'''
     return a + (b - a)*t
 
 
-def map(value, *args, within_bounds=False):
+def remap(value, *args, within_bounds=False):
     ''' Re-maps a number from one range to another. '''
     if len(args) == 4:
         start1, stop1, start2, stop2 = args
@@ -195,4 +264,4 @@ def eval_bezier(P, t, d=0):
     return (P.T @ B).T
 
 
-remap = map
+#remap = map

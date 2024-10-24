@@ -277,7 +277,12 @@ Input arguments can be in the following formats:
     pass  # Dummy method for linter
 
 def arrow(*args):
-    """Draw an arrow between two points ~a~ and ~b~ """
+    """Draw an arrow between two points
+
+Input arguments can be in the following formats:
+
+ - ~a, b~ (Two points specified as lists/tuples/numpy arrays
+ - ~x1, y1, x2, y2~, a sequence of numbers, one for each coordinate """
     pass  # Dummy method for linter
 
 def triangle(*args):
@@ -593,6 +598,10 @@ def get_pixel_ratio():
 
 def save_canvas(*args):
     """Tells the sketch to dump the next frame to an SVG file  """
+    pass  # Dummy method for linter
+
+def toggle_gui(*args):
+    """Toggle between GUI and non-gui """
     pass  # Dummy method for linter
 
 def show_gui(*args):

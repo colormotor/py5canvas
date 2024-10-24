@@ -408,7 +408,7 @@ class Sketch:
         # for example when automatically creating a UI...
         if canvas_size is None:
             canvas_size = (w, h)
-        self.width, self.height = canvas_size #w, h
+        self.width, self.height = canvas_size # TODO fixme
         self.canvas = canvas.Canvas(*canvas_size, recording=False) #, clear_callback=self.clear_callback)
         # When createing a canvas we create a recording surface
         # This will enable recording of drawing commands that are called in setup, if any,
@@ -853,6 +853,7 @@ class Sketch:
         self.var_context['frame_count'] = self._frame_count
         self.var_context['width'] = self.width
         self.var_context['height'] = self.height
+        self.var_context['center'] = self.canvas.center
 
         # HACK keep mouse_pressed as a flag for backwards compatibility, but must be deprecated
 
@@ -1011,20 +1012,25 @@ class Sketch:
 
         if self.saving_to_file and self.done_saving:
             print('saving to ', self.saving_to_file)
-            if '.svg' in self.saving_to_file:
-                surf = cairo.SVGSurface(self.saving_to_file, self.canvas.width, self.canvas.height)
-            elif '.pdf' in self.saving_to_file:
-                surf = cairo.PDFSurface(self.saving_to_file, self.canvas.width, self.canvas.height)
-            ctx = cairo.Context(surf)
-            #ctx.set_source_surface(self.setup_surface)
-            #ctx.paint()
-            ctx.set_source_surface(self.recording_surface)
-            ctx.paint()
-            surf.finish()
+            if ('.png' in self.saving_to_file or '.jpg' in self.saving_to_file):
+                self.canvas.save(self.saving_to_file)
+            else:
+                if '.svg' in self.saving_to_file:
+                    surf = cairo.SVGSurface(self.saving_to_file, self.canvas.width, self.canvas.height)
+                elif '.pdf' in self.saving_to_file:
+                    surf = cairo.PDFSurface(self.saving_to_file, self.canvas.width, self.canvas.height)
+                else:
+                    surf = self.canvas.surf
+                ctx = cairo.Context(surf)
+                #ctx.set_source_surface(self.setup_surface)
+                #ctx.paint()
+                ctx.set_source_surface(self.recording_surface)
+                ctx.paint()
+                surf.finish()
 
-            # Apply svg fix
-            if '.svg' in self.saving_to_file:
-                canvas.fix_clip_path(self.saving_to_file, self.saving_to_file)
+                # Apply svg fix
+                if '.svg' in self.saving_to_file:
+                    canvas.fix_clip_path(self.saving_to_file, self.saving_to_file)
 
             self.canvas.ctx.pop_context()
             self.saving_to_file = ''

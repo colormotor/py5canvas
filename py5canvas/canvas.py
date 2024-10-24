@@ -721,8 +721,20 @@ class Canvas:
             self.cur_stroke = None
 
 
-    def arrow(self, a, b, size=2.5, overhang=0.7, length=2.0):
-        ''' Draw an arrow between two points ~a~ and ~b~'''
+    def arrow(self, *args, size=2.5, overhang=0.7, length=2.0):
+        ''' Draw an arrow between two points
+
+        Input arguments can be in the following formats:
+
+         - ~a, b~ (Two points specified as lists/tuples/numpy arrays
+         - ~x1, y1, x2, y2~, a sequence of numbers, one for each coordinate
+        '''
+
+        if len(args) == 2:
+            a, b = args
+        elif len(args) == 4:
+            a = args[:2]
+            b = args[2:]
         w = self.ctx.get_line_width()*size
         # Arrow width and 'height' (length)
         h = w*length
@@ -1769,7 +1781,7 @@ def noise(*args):
         x = np.array(args)
     else:
         if not is_number(args[0]):
-            x = np.array([args[0]])
+            x = np.array(args[0])
         else:
             x = args[0]
 
