@@ -44,21 +44,29 @@ dot = np.dot
 exp = np.exp
 log = np.log
 
-floor = lambda x: np.floor(x).astype(int)
-ceil  = lambda x: np.ceil(x).astype(int)
-round = lambda x: np.round(x).astype(int)
+floor = np.floor #lambda x: np.floor(x).astype(int)
+ceil  = np.ceil #lambda x: np.ceil(x).astype(int)
+round = np.round #lambda x: np.round(x).astype(int)
 abs = np.abs
 
 params = None
 
 def Color(*args):
     ''' Create a color'''
-    return np.array(args)
+    if len(args)==1:
+        v = args[0]
+    else:
+        v = args
+    return np.array(v, dtype=np.float32)
 
 
 def Vector(*args):
     ''' Create a color'''
-    return np.array(args, dtype=np.float64)
+    if len(args)==1:
+        v = args[0]
+    else:
+        v = args
+    return np.array(v, dtype=np.float64)
 
 
 def range_between(a, b, num, endpoint=True):

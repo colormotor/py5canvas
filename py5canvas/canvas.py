@@ -89,7 +89,11 @@ class Canvas:
 
     """
 
-    def __init__(self, width, height, background=(128.0, 128.0, 128.0, 255.0), clear_callback=lambda: None, output_file='', recording=True):
+    def __init__(self, width, height, background=(128.0, 128.0, 128.0, 255.0),
+                 clear_callback=lambda: None,
+                 output_file='',
+                 recording=True,
+                 save_background=False):
         """Constructor"""
         # See https://pycairo.readthedocs.io/en/latest/reference/context.html
         surf = cairo.ImageSurface(cairo.FORMAT_ARGB32, width, height)
@@ -122,6 +126,7 @@ class Canvas:
 
         self.no_draw = False
 
+        self._save_background = save_background
 
         self.tension = 0.5
 
@@ -1267,6 +1272,25 @@ class Canvas:
         - a numpy array with shape ~(n, 2)~, representing ~n~ points (a point for each row and a coordinate for each column)'''
         self.polyline(*args, closed=True)
 
+    def curve(self, *args, closed=True):
+        ''' Draw a polyline.
+
+        The polyline is specified as either:
+
+        - a list of ~[x,y]~ pairs (e.g. ~[[0, 100], [200, 100], [200, 200]]~)
+        - a numpy array with shape ~(n, 2)~, representing ~n~ points (a point for each row and a coordinate for each column)
+
+        To close the polyline set the named closed argument to ~True~, e.g. ~c.polyline(points, closed=True)~.
+        '''
+        if len(args)==1:
+            points = args[0]
+        else:
+            points = args
+        self.begin_contour()
+        for p in points:
+            self.curve_vertex(p)
+        self.end_contour(closed)
+
     def polyline(self, *args, closed=False):
         ''' Draw a polyline.
 
@@ -1329,9 +1353,16 @@ class Canvas:
         '''
         # self.clear_callback()
         self.ctx.identity_matrix()
-        self.ctx.set_source_rgba(*self._apply_colormode(self._convert_rgba(args)))
-        self.ctx.rectangle(0, 0, self.width, self.height)
-        self.ctx.fill()
+        # HACK - we don't want to necessarily save the background when exporting SVG
+        # Especially if we want to plot the output, so only draw the background to the
+        # bitmap surface if that is the case.
+        if self._save_background:
+            ctx = self.ctx
+        else:
+            ctx = self.ctx.ctxs[0]
+        ctx.set_source_rgba(*self._apply_colormode(self._convert_rgba(args)))
+        ctx.rectangle(0, 0, self.width, self.height)
+        ctx.fill()
 
     def get_buffer(self):
         return self.surf.get_data()
