@@ -1029,8 +1029,11 @@ class Sketch:
                 surf.finish()
 
                 # Apply svg fix
-                if '.svg' in self.saving_to_file:
-                    canvas.fix_clip_path(self.saving_to_file, self.saving_to_file)
+                try:
+                    if '.svg' in self.saving_to_file:
+                        canvas.fix_clip_path(self.saving_to_file, self.saving_to_file)
+                except AttributeError:
+                    pass
 
             self.canvas.ctx.pop_context()
             self.saving_to_file = ''
