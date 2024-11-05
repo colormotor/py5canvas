@@ -116,6 +116,7 @@ class Canvas:
         ctx.set_source_rgba(*self._apply_colormode(self._convert_rgba(background)))
         ctx.rectangle(0, 0, width, height)
         ctx.fill()
+        self.last_background = background
 
         self.draw_states = [CanvasState(self)]
 
@@ -1352,6 +1353,13 @@ class Canvas:
             Accepts either an array with the color components, or single color components (as in ~fill~)
         '''
         # self.clear_callback()
+        # HACK Save background, this is needed for saving and no_loop in sketches
+        # Since saving has to be done as a postprocess after the frame
+        if len(args)==1:
+            self.last_background = args[0]
+        else:
+            self.last_background = args
+
         self.ctx.identity_matrix()
         # HACK - we don't want to necessarily save the background when exporting SVG
         # Especially if we want to plot the output, so only draw the background to the

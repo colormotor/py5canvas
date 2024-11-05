@@ -377,7 +377,7 @@ class Sketch:
         import xdialog
         return xdialog.directory(title)
 
-    def _create_canvas(self, w, h, canvas_size=None, fullscreen=False, screen=None):
+    def _create_canvas(self, w, h, canvas_size=None, fullscreen=False, screen=None, save_background=False):
         self.is_fullscreen = fullscreen
         glfw.swap_interval(0)
         #if screen is not None:
@@ -409,7 +409,7 @@ class Sketch:
         if canvas_size is None:
             canvas_size = (w, h)
         self.width, self.height = canvas_size # TODO fixme
-        self.canvas = canvas.Canvas(*canvas_size, recording=False) #, clear_callback=self.clear_callback)
+        self.canvas = canvas.Canvas(*canvas_size, recording=False, save_background=save_background) #, clear_callback=self.clear_callback)
         # When createing a canvas we create a recording surface
         # This will enable recording of drawing commands that are called in setup, if any,
         # and then we can pass these into a svg if we want to save one
@@ -437,18 +437,18 @@ class Sketch:
         # buf = (pyglet.gl.GLubyte * len(buf))(*buf)
         # self.image = pyglet.image.ImageData(*canvas_size, "BGRA", buf)
 
-    def create_canvas(self, w, h, gui_width=300, fullscreen=False, with_gui=True, screen=None):
+    def create_canvas(self, w, h, gui_width=300, fullscreen=False, with_gui=True, screen=None, save_background=False):
         if imgui is None or not with_gui:
             print("Creating canvas no gui")
-            self._create_canvas(w, h, fullscreen=fullscreen, screen=screen)
+            self._create_canvas(w, h, fullscreen=fullscreen, screen=screen, save_background=save_background)
             return
         has_gui = 'gui' in self.var_context and callable(self.var_context['gui'])
         if self.params or self.gui_callback is not None or has_gui:
             print("Creating GUI window/canvas")
-            self.create_canvas_gui(w, h, gui_width, fullscreen, screen=screen)
+            self.create_canvas_gui(w, h, gui_width, fullscreen, screen=screen, save_background=save_background)
         else:
             self.gui = sketch_params.SketchGui(gui_width)
-            self._create_canvas(w, h + self.toolbar_height, (w, h), fullscreen, screen=screen)
+            self._create_canvas(w, h + self.toolbar_height, (w, h), fullscreen, screen=screen, save_background=save_background)
 
 
     @property
@@ -467,12 +467,17 @@ class Sketch:
             return self.window_height - self.toolbar_height
         return self.window_height
 
-    def create_canvas_gui(self, w, h, width=300, fullscreen=False, screen=None):
+    def create_canvas_gui(self, w, h, width=300,
+                          fullscreen=False,
+                          screen=None,
+                          save_background=False):
         if imgui is None:
             print('Install ImGui to run UI')
             return self.create_canvas(w, h, fullscreen)
         self.gui = sketch_params.SketchGui(width)
-        self._create_canvas(w + self.gui.width, h + self.toolbar_height, (w, h), fullscreen, screen=screen)
+        self._create_canvas(w + self.gui.width, h + self.toolbar_height, (w, h), fullscreen,
+                            screen=screen,
+                            save_background=save_background)
 
     def get_pixel_ratio(self):
         return 1
@@ -921,8 +926,9 @@ class Sketch:
 
         if self.saving_to_file:
             self.done_saving = True
-
-        # return
+            draw_frame = True
+            if self.no_loop:
+                self.canvas.background(self.canvas.last_background)
 
         # Optional imGUI init and visualization
         if imgui is not None and self._gui_visible:
@@ -1032,7 +1038,8 @@ class Sketch:
                 try:
                     if '.svg' in self.saving_to_file:
                         canvas.fix_clip_path(self.saving_to_file, self.saving_to_file)
-                except AttributeError:
+                except AttributeError as e:
+                    print(e)
                     pass
 
             self.canvas.ctx.pop_context()
