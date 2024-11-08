@@ -1820,7 +1820,7 @@ def noise(*args):
         x = np.array(args)
     else:
         if not is_number(args[0]):
-            x = np.array(args[0])
+            x = np.array(args[0]) #np.array(args[0])
         else:
             x = args[0]
 
@@ -1829,7 +1829,7 @@ def noise(*args):
     v = 0.0
 
     for i in range(_perlin_octaves):
-        v += (perlin(x))*amp
+        v += (perlin(tuple(x)))*amp
         x *= 2
         ampsum += amp
         amp *= _perlin_falloff
