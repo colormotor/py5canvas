@@ -958,6 +958,7 @@ class Sketch:
             if not self.runtime_error or self._frame_count==0:
                 try:
                     if 'draw' in self.var_context and draw_frame:
+                        self.canvas.identity()
                         self.var_context['draw']()
                     else:
                         pass

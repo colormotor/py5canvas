@@ -33,8 +33,8 @@ noise_detail = canvas.noise_detail
 noise_seed = canvas.noise_seed
 constrain = np.clip
 
-def random_gaussian(mean=0.0, std_dev=1.0):
-    return np.random.normal(mean, std_dev)
+def random_gaussian(mean=0.0, std_dev=1.0, size=None):
+    return np.random.normal(mean, std_dev, size)
 
 sin   = np.sin
 cos   = np.cos
