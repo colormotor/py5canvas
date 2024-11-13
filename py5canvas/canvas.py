@@ -1822,7 +1822,7 @@ def noise(*args):
         if not is_number(args[0]):
             x = np.array(args[0]) #np.array(args[0])
         else:
-            x = args[0]
+            x = [args[0]]
 
     amp = 1.0
     ampsum = 0
