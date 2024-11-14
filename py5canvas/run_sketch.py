@@ -695,6 +695,7 @@ class Sketch:
         # And reset
         self.params = None
         self.gui_callback = None
+        self._no_loop = False
 
         # Set current directory to script dir
         if self.path:
