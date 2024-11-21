@@ -43,6 +43,12 @@ def no_stroke():
     """Do not stroke subsequent shapes """
     pass  # Dummy method for linter
 
+def fill_rule(*args):
+    """Sets the fill rule
+
+         """
+    pass  # Dummy method for linter
+
 def color_mode(*args):
     """Set the color mode for the canvas
 
@@ -443,27 +449,76 @@ def text(*args):
     """Draw text at a given position
 
 Arguments:
-    if center=True the text will be horizontally centered """
+
+    - ~text`, the text to display
+    - the position of the text, either a pair of x, y arguments or a list like object (e.g. ~[x, y]~)
+    - ~align~, horizontal alignment, etiher ~'left'~ (default), ~'center'~ or ~'right'~
+    - ~valign~, vertical alignment, etiher ~'bottom'~ (default), ~'center'~ or ~'top'~
+    (Deprecated) if center=True the text will be horizontally centered """
+    pass  # Dummy method for linter
+
+def text_shape(*args):
+    """Retrieves polylines for a given string of text in the current font
+
+Arguments:
+
+- ~text`, the text to sample
+- the position of the text, either a pair of x, y arguments or a list like object (e.g. ~[x, y]~)
+- ~dist~, approximate distance between samples
+- ~align~, horizontal alignment, etiher ~'left'~ (default), ~'center'~ or ~'right'~
+- ~valign~, vertical alignment, etiher ~'bottom'~ (default), ~'center'~ or ~'top'~ """
+    pass  # Dummy method for linter
+
+def text_points(*args):
+    """Retrieves points for a given string of text in the current font
+
+Arguments:
+
+- ~text`, the text to sample
+- the position of the text, either a pair of x, y arguments or a list like object (e.g. ~[x, y]~)
+- ~dist~, approximate distance between samples
+- ~align~ (named), horizontal alignment, etiher ~'left'~ (default), ~'center'~ or ~'right'~
+- ~valign~ (named), vertical alignment, etiher ~'bottom'~ (default), ~'center'~ or ~'top'~ """
+    pass  # Dummy method for linter
+
+def text_bounds(*args):
+    """Returns the bounding box of a string of text at a given position """
     pass  # Dummy method for linter
 
 def polygon(*args):
-    """Draw a *closed* polygon
-
-The polyline is specified as either:
-
-- a list of ~[x,y]~ pairs (e.g. ~[[0, 100], [200, 100], [200, 200]]~)
-- a numpy array with shape ~(n, 2)~, representing ~n~ points (a point for each row and a coordinate for each column) """
-    pass  # Dummy method for linter
-
-def polyline(*args):
-    """Draw a polyline.
+    """Draw a polygon (closed by default).
 
 The polyline is specified as either:
 
 - a list of ~[x,y]~ pairs (e.g. ~[[0, 100], [200, 100], [200, 200]]~)
 - a numpy array with shape ~(n, 2)~, representing ~n~ points (a point for each row and a coordinate for each column)
+- two lists (or numpy array) of numbers, one for each coordinate
 
-To close the polyline set the named closed argument to ~True~, e.g. ~c.polyline(points, closed=True)~. """
+To create an opne polygon set the named ~close~ argument to ~False~, e.g. ~c.polygon(points, close=False)~. """
+    pass  # Dummy method for linter
+
+def curve(*args):
+    """Draw a curve (open by default).
+
+The polyline is specified as either:
+
+- a list of ~[x,y]~ pairs (e.g. ~[[0, 100], [200, 100], [200, 200]]~)
+- a numpy array with shape ~(n, 2)~, representing ~n~ points (a point for each row and a coordinate for each column)
+- two lists (or numpy array) of numbers, one for each coordinate
+
+To close the curve set the named ~close~ argument to ~True~, e.g. ~c.curve(points, close=True)~. """
+    pass  # Dummy method for linter
+
+def polyline(*args):
+    """Draw a polyline (open by default).
+
+The polyline is specified as either:
+
+- a list of ~[x,y]~ pairs (e.g. ~[[0, 100], [200, 100], [200, 200]]~)
+- a numpy array with shape ~(n, 2)~, representing ~n~ points (a point for each row and a coordinate for each column)
+- two lists (or numpy array) of numbers, one for each coordinate
+
+To close the polyline set the named ~close~ argument to ~True~, e.g. ~c.polyline(points, close=True)~. """
     pass  # Dummy method for linter
 
 def identity():

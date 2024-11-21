@@ -17,13 +17,14 @@ Simplistic utilty to mimic [P5js](https://p5js.org) in Python/Jupyter notebooks.
 import numpy as np
 import cairo
 import numbers
-import copy
-from math import fmod, pi
-import types
+import copy, sys, types
+import ctypes as ct
+from math import fmod, pi, comb
 from PIL import Image
 import importlib
 import importlib.util
 from contextlib import contextmanager
+from easydict import EasyDict as edict
 
 perlin_loader = importlib.util.find_spec('perlin_noise')
 if perlin_loader is not None:
@@ -111,7 +112,8 @@ class Canvas:
         self.surf = surf
         self.ctx = ctx
 
-        ctx.set_fill_rule(cairo.FILL_RULE_EVEN_ODD) #FILL_RULE_WINDING) #EVEN_ODD)
+        #ctx.set_fill_rule(cairo.FILL_RULE_EVEN_ODD) #FILL_RULE_WINDING) #EVEN_ODD)
+        ctx.set_fill_rule(cairo.FILL_RULE_WINDING) #FILL_RULE_WINDING) #EVEN_ODD)
         ctx.set_line_join(cairo.LINE_JOIN_MITER)
         ctx.set_source_rgba(*self._apply_colormode(self._convert_rgba(background)))
         ctx.rectangle(0, 0, width, height)
@@ -239,6 +241,18 @@ class Canvas:
     def no_stroke(self):
         """ Do not stroke subsequent shapes"""
         self.stroke(None)
+
+    def fill_rule(self, rule):
+        """ Sets the fill rule
+
+        """
+        rules = {'evenodd':  cairo.FILL_RULE_EVEN_ODD,
+                 'nonzero': cairo.FILL_RULE_WINDING,
+                 'winding': cairo.FILL_RULE_WINDING}
+        if rule not in rules:
+            print('Rule ', rule, ' is not valid')
+            print('Use either "nonzero" or "evenodd"')
+        self.ctx.set_fill_rule(rules[rule])
 
     def color_mode(self, mode, *args):
         """ Set the color mode for the canvas
@@ -414,7 +428,10 @@ class Canvas:
 
         - ~font~ (string): the name of a system font
         """
-        self.ctx.select_font_face(font)
+        if '.ttf' in font:
+            self.ctx.set_font_face(create_cairo_font_face_for_file(font))
+        else:
+            self.ctx.select_font_face(font)
 
     def push_matrix(self):
         """
@@ -1197,21 +1214,26 @@ class Canvas:
         self.ctx.paint_with_alpha(opacity)
         self.ctx.restore()
 
-    def shape(self, poly_list, closed=False):
+    def shape(self, poly_list, close=False):
         '''Draw a shape represented as a list of polylines, see the ~polyline~
         method for the format of each polyline
         '''
 
         self.begin_shape()
         for P in poly_list:
-            self.polyline(P, closed=closed)
+            self.polyline(P, close=close)
         self.end_shape()
 
     def text(self, text, *args, align='', valign='', center=None, **kwargs):
         ''' Draw text at a given position
 
         Arguments:
-            if center=True the text will be horizontally centered
+
+            - ~text`, the text to display
+            - the position of the text, either a pair of x, y arguments or a list like object (e.g. ~[x, y]~)
+            - ~align~, horizontal alignment, etiher ~'left'~ (default), ~'center'~ or ~'right'~
+            - ~valign~, vertical alignment, etiher ~'bottom'~ (default), ~'center'~ or ~'top'~
+            (Deprecated) if center=True the text will be horizontally centered
         '''
 
         # Backwards compatibility since previous version has position first
@@ -1230,24 +1252,121 @@ class Canvas:
 
         if self.cur_fill is not None:
             self.ctx.set_source_rgba(*self.cur_fill)
-        if not align:
-            align = self.text_halign
-        if not valign:
-            valign = self.text_valign
+
         if center is not None:
             if center:
                 align = 'center'
             else:
                 align = 'left'
 
+        ox, oy = self._text_offset(text, align, valign)
 
+        self.ctx.move_to(pos[0]+ox, pos[1]+oy)
+        self.ctx.text_path(text)
+        self._fillstroke()
+
+        #self.ctx.fill()
+
+    # def text_bounds(self, text, *args):
+    #     { x: 5.7, y: 12.1 , w: 9.9, h: 28.6 }.
+
+    def text_shape(self, text, *args, dist=1, align='', valign=''):
+        ''' Retrieves polylines for a given string of text in the current font
+
+        Arguments:
+
+        - ~text`, the text to sample
+        - the position of the text, either a pair of x, y arguments or a list like object (e.g. ~[x, y]~)
+        - ~dist~, approximate distance between samples
+        - ~align~, horizontal alignment, etiher ~'left'~ (default), ~'center'~ or ~'right'~
+        - ~valign~, vertical alignment, etiher ~'bottom'~ (default), ~'center'~ or ~'top'~
+        '''
+
+        if len(args) == 2:
+            if is_number(args[0]):
+                pos = args
+            else:
+                pos = args[0]
+                dist = args[1]
+        elif len(args) == 3:
+            pos = args[:2]
+            dist = args[2]
+        elif len(args) == 1:
+            pos = args[0]
+        else:
+            print(args, len(args))
+            raise ValueError("text: wrong number of args")
+
+        ctx = self.ctx
+        pos = np.array(pos, dtype=np.float32)
+        pos += self._text_offset(text, align, valign)
+        # Extract path data
+        ctx.text_path(text)
+        path = ctx.copy_path()
+        # Clear path so we don't draw
+        ctx.new_path()
+        shape = []
+
+        def prev():
+            return shape[-1][-1][-1]
+
+        def sample_line(points):
+            a = prev()
+            b = np.array(points)
+            s = np.linalg.norm(b - a)
+            n = max(int(s / dist)+1, 2)
+            t = np.linspace(0, 1, n)[1:]
+            res = a + (b - a)*t.reshape(-1, 1)
+            return res
+
+        def sample_cubic(points):
+
+            b, c, d = [np.array(p) for p in [points[:2], points[2:4], points[4:6]]]
+            #return sample_line(d)
+            a = prev()
+            s = approx_arc_length_cubic(a, b, c, d)
+            n = max(int(s / dist)+1, 2)
+            t = np.linspace(0, 1, n)[1:]
+            P = np.array([a, b, c, d])
+            res = eval_bezier(P, t)
+            #print('cubic', res.shape)
+            return res
+
+
+        for kind, points in path:
+            if kind == cairo.PATH_MOVE_TO:
+                shape.append([np.array([points])])
+            elif kind == cairo.PATH_LINE_TO:
+                shape[-1].append(sample_line(points))
+            elif kind == cairo.PATH_CURVE_TO:
+                shape[-1].append(sample_cubic(points))
+            elif kind == cairo.PATH_CLOSE_PATH:
+                shape[-1].append(sample_line(shape[-1][0][0]))
+        res = [np.vstack(P)+pos for P in shape]
+        #print(res)
+        return [P for P in res if len(P) > 1]
+
+    def text_points(self, text, *args, dist=1, align='', valign=''):
+        ''' Retrieves points for a given string of text in the current font
+
+        Arguments:
+
+        - ~text`, the text to sample
+        - the position of the text, either a pair of x, y arguments or a list like object (e.g. ~[x, y]~)
+        - ~dist~, approximate distance between samples
+        - ~align~ (named), horizontal alignment, etiher ~'left'~ (default), ~'center'~ or ~'right'~
+        - ~valign~ (named), vertical alignment, etiher ~'bottom'~ (default), ~'center'~ or ~'top'~
+        '''
+        return np.vstack(self.text_shape(text, *args,
+                                         dist=dist,
+                                         align=align, valign=valign))
+
+    def _text_offset(self, text, align, valign):
         (x_bearing, y_bearing, w, h, x_advance, y_advance) = self.ctx.text_extents(text)
-        # if align=='center':
-        #      (x, y, w, h, dx, dy) = self.ctx.text_extents(text)
-        #      print(x,y,w,h)
-        #      self.ctx.move_to(pos[0]-w/2-x, pos[1])
-        # else:
-        #      self.ctx.move_to(*pos)
+        if not align:
+            align = self.text_halign
+        if not valign:
+            valign = self.text_valign
 
         ox = 0
         oy = 0
@@ -1259,59 +1378,84 @@ class Canvas:
             oy = -y_bearing
         elif valign == 'center':
             oy = -(h/2 + y_bearing)
+        return ox, oy
 
-        self.ctx.move_to(pos[0]+ox, pos[1]+oy)
-        self.ctx.text_path(text)
-        self.ctx.fill()
+    def text_bounds(self, text, *args, align='', valign=''):
+        ''' Returns the bounding box of a string of text at a given position'''
+        if len(args) == 2:
+            pos = args
+        elif len(args) == 1:
+            pos = args[0]
+        else:
+            pos = np.zeros(2)
 
-    def polygon(self, *args):
-        ''' Draw a *closed* polygon
+        (x_bearing, y_bearing, w, h, x_advance, y_advance) = self.ctx.text_extents(text)
+        ox, oy = self._text_offset(text, align, valign)
+        x, y = pos[0]+ox, pos[1]+oy-h
+        return edict({'x':x, 'y':y,
+                      'pos':np.array([x, y]),
+                      'w':w, 'h':h,
+                      'size': np.array([w, h])})
 
-        The polyline is specified as either:
-
-        - a list of ~[x,y]~ pairs (e.g. ~[[0, 100], [200, 100], [200, 200]]~)
-        - a numpy array with shape ~(n, 2)~, representing ~n~ points (a point for each row and a coordinate for each column)'''
-        self.polyline(*args, closed=True)
-
-    def curve(self, *args, closed=True):
-        ''' Draw a polyline.
+    def polygon(self, *args, close=True):
+        ''' Draw a polygon (closed by default).
 
         The polyline is specified as either:
 
         - a list of ~[x,y]~ pairs (e.g. ~[[0, 100], [200, 100], [200, 200]]~)
         - a numpy array with shape ~(n, 2)~, representing ~n~ points (a point for each row and a coordinate for each column)
+        - two lists (or numpy array) of numbers, one for each coordinate
 
-        To close the polyline set the named closed argument to ~True~, e.g. ~c.polyline(points, closed=True)~.
+        To create an opne polygon set the named ~close~ argument to ~False~, e.g. ~c.polygon(points, close=False)~.
+        '''
+        self.polyline(*args, close=close)
+
+    def curve(self, *args, close=True):
+        ''' Draw a curve (open by default).
+
+        The polyline is specified as either:
+
+        - a list of ~[x,y]~ pairs (e.g. ~[[0, 100], [200, 100], [200, 200]]~)
+        - a numpy array with shape ~(n, 2)~, representing ~n~ points (a point for each row and a coordinate for each column)
+        - two lists (or numpy array) of numbers, one for each coordinate
+
+        To close the curve set the named ~close~ argument to ~True~, e.g. ~c.curve(points, close=True)~.
         '''
         if len(args)==1:
             points = args[0]
+        elif len(args)==2:
+            points = np.vstack(args).T
         else:
-            points = args
+            raise ValueError("Wrong number of arguments")
+
         self.begin_contour()
         for p in points:
             self.curve_vertex(p)
-        self.end_contour(closed)
+        self.end_contour(close)
 
-    def polyline(self, *args, closed=False):
-        ''' Draw a polyline.
+    def polyline(self, *args, close=False):
+        ''' Draw a polyline (open by default).
 
         The polyline is specified as either:
 
         - a list of ~[x,y]~ pairs (e.g. ~[[0, 100], [200, 100], [200, 200]]~)
         - a numpy array with shape ~(n, 2)~, representing ~n~ points (a point for each row and a coordinate for each column)
-        
-        To close the polyline set the named closed argument to ~True~, e.g. ~c.polyline(points, closed=True)~.
+        - two lists (or numpy array) of numbers, one for each coordinate
+
+        To close the polyline set the named ~close~ argument to ~True~, e.g. ~c.polyline(points, close=True)~.
         '''
         self.ctx.new_sub_path()
         #self.ctx.new_path()
         if len(args)==1:
             points = args[0]
+        elif len(args)==2:
+            points = np.vstack(args).T
         else:
-            points = args
+            raise ValueError("Wrong number of arguments")
         self.ctx.move_to(*points[0])
         for p in points[1:]:
             self.ctx.line_to(*p)
-        if closed:
+        if close:
             self.ctx.close_path()
 
         self._fillstroke()
@@ -1538,6 +1682,10 @@ class Canvas:
                     x[1]/self.color_scale[1],
                     x[2]/self.color_scale[2], 1.0)
         elif len(x) == 2:
+            if type(x[0]) == str:
+                clr = self._convert_html_color(x[0])
+                clr[-1] = x[1]/self.color_scale[-1]
+                return clr
             return (x[0]/self.color_scale[0],
                     x[0]/self.color_scale[0],
                     x[0]/self.color_scale[0],
@@ -1742,6 +1890,30 @@ def cardinal_spline(Q, c, closed=False):
         P += [p1, p2, p3]
     return np.array(P)
 
+
+def bernstein(n, i):
+    bi = comb(n, i)
+    return lambda t, bi=bi, n=n, i=i: bi * t**i * (1 - t)**(n - i)
+
+
+def eval_bezier(P, t, d=0):
+    '''Bezier curve of degree len(P)-1. d is the derivative order (0 gives positions)'''
+    n = len(P) - 1
+    if d > 0:
+        Q = np.diff(P, axis=0)*n
+        return eval_bezier(Q, t, d-1)
+    B = np.vstack([bernstein(n, i)(t) for i, p in enumerate(P)])
+    return (P.T @ B).T
+
+
+def approx_arc_length_cubic(c0, c1, c2, c3):
+    v0 = np.linalg.norm(c1-c0)*0.15
+    v1 = np.linalg.norm(-0.558983582205757*c0 + 0.325650248872424*c1 + 0.208983582205757*c2 + 0.024349751127576*c3)
+    v2 = np.linalg.norm(c3-c0+c2-c1)*0.26666666666666666
+    v3 = np.linalg.norm(-0.024349751127576*c0 - 0.208983582205757*c1 - 0.325650248872424*c2 + 0.558983582205757*c3)
+    v4 = np.linalg.norm(c3-c2)*.15
+    return v0 + v1 + v2 + v3 + v4
+
 # Fix svg export clip path 
 # RecordingSurface adds a clip-path attribute that breaks Illustrator import
 def fix_namespace(xml_content):
@@ -1835,3 +2007,128 @@ def noise(*args):
         amp *= _perlin_falloff
     v /= ampsum
     return v+0.5
+
+
+# Code adapted from https://www.cairographics.org/cookbook/freetypepython/
+
+_ft_initialized = False
+def create_cairo_font_face_for_file (filename, faceindex=0, loadoptions=0):
+    "given the name of a font file, and optional faceindex to pass to FT_New_Face" \
+    " and loadoptions to pass to cairo_ft_font_face_create_for_ft_face, creates" \
+    " a cairo.FontFace object that may be used to render text with that font."
+    global _ft_initialized
+    global _freetype_so
+    global _cairo_so
+    global _ft_lib
+    global _ft_destroy_key
+    global _surface
+    global _PycairoContext
+    CAIRO_STATUS_SUCCESS = 0
+    FT_Err_Ok = 0
+
+    if not _ft_initialized:
+        # find shared objects
+        if sys.platform == "win32":
+            ft_lib = "freetype6.dll"
+            lc_lib = "libcairo-2.dll"
+        elif sys.platform == "darwin":
+            ft_lib = "libfreetype.dylib"
+            lc_lib = "libcairo.2.dylib"
+        else:
+            ft_lib = "libfreetype.so.6"
+            lc_lib = "libcairo.so.2"
+
+        try:
+            _freetype_so = ct.CDLL (ft_lib)
+        except OSError as e:
+            print(e)
+            print("Freetype library missing")
+            print("Possibly install with: mamba install freetype")
+
+        _cairo_so = ct.CDLL (lc_lib)
+        _cairo_so.cairo_ft_font_face_create_for_ft_face.restype = ct.c_void_p
+        _cairo_so.cairo_ft_font_face_create_for_ft_face.argtypes = [ ct.c_void_p, ct.c_int ]
+        _cairo_so.cairo_font_face_get_user_data.restype = ct.c_void_p
+        _cairo_so.cairo_font_face_get_user_data.argtypes = (ct.c_void_p, ct.c_void_p)
+        _cairo_so.cairo_font_face_set_user_data.argtypes = (ct.c_void_p, ct.c_void_p, ct.c_void_p, ct.c_void_p)
+        _cairo_so.cairo_set_font_face.argtypes = [ ct.c_void_p, ct.c_void_p ]
+        _cairo_so.cairo_font_face_status.argtypes = [ ct.c_void_p ]
+        _cairo_so.cairo_font_face_destroy.argtypes = (ct.c_void_p,)
+        _cairo_so.cairo_status.argtypes = [ ct.c_void_p ]
+        # initialize freetype
+        _ft_lib = ct.c_void_p()
+        status = _freetype_so.FT_Init_FreeType(ct.byref(_ft_lib))
+        if  status != FT_Err_Ok :
+            raise RuntimeError("Error %d initializing FreeType library." % status)
+        #end if
+
+        class PycairoContext(ct.Structure):
+            _fields_ = \
+                [
+                    ("PyObject_HEAD", ct.c_byte * object.__basicsize__),
+                    ("ctx", ct.c_void_p),
+                    ("base", ct.c_void_p),
+                ]
+        #end PycairoContext
+        _PycairoContext = PycairoContext
+
+        _surface = cairo.ImageSurface(cairo.FORMAT_A8, 0, 0)
+        _ft_destroy_key = ct.c_int() # dummy address
+        _ft_initialized = True
+    #end if
+
+    ft_face = ct.c_void_p()
+    cr_face = None
+    try :
+        # load FreeType face
+        status = _freetype_so.FT_New_Face(_ft_lib, filename.encode("utf-8"), faceindex, ct.byref(ft_face))
+        if status != FT_Err_Ok :
+            raise RuntimeError("Error %d creating FreeType font face for %s" % (status, filename))
+        #end if
+
+        # create Cairo font face for freetype face
+        cr_face = _cairo_so.cairo_ft_font_face_create_for_ft_face(ft_face, loadoptions)
+        status = _cairo_so.cairo_font_face_status(cr_face)
+        if status != CAIRO_STATUS_SUCCESS :
+            raise RuntimeError("Error %d creating cairo font face for %s" % (status, filename))
+        #end if
+        # Problem: Cairo doesn't know to call FT_Done_Face when its font_face object is
+        # destroyed, so we have to do that for it, by attaching a cleanup callback to
+        # the font_face. This only needs to be done once for each font face, while
+        # cairo_ft_font_face_create_for_ft_face will return the same font_face if called
+        # twice with the same FT Face.
+        # The following check for whether the cleanup has been attached or not is
+        # actually unnecessary in our situation, because each call to FT_New_Face
+        # will return a new FT Face, but we include it here to show how to handle the
+        # general case.
+        if _cairo_so.cairo_font_face_get_user_data(cr_face, ct.byref(_ft_destroy_key)) == None :
+            status = _cairo_so.cairo_font_face_set_user_data \
+              (
+                cr_face,
+                ct.byref(_ft_destroy_key),
+                ft_face,
+                _freetype_so.FT_Done_Face
+              )
+            if status != CAIRO_STATUS_SUCCESS :
+                raise RuntimeError("Error %d doing user_data dance for %s" % (status, filename))
+            #end if
+            ft_face = None # Cairo has stolen my reference
+        #end if
+
+        # set Cairo font face into Cairo context
+        cairo_ctx = cairo.Context(_surface)
+        cairo_t = _PycairoContext.from_address(id(cairo_ctx)).ctx
+        _cairo_so.cairo_set_font_face(cairo_t, cr_face)
+        status = _cairo_so.cairo_font_face_status(cairo_t)
+        if status != CAIRO_STATUS_SUCCESS :
+            raise RuntimeError("Error %d creating cairo font face for %s" % (status, filename))
+        #end if
+
+    finally :
+        _cairo_so.cairo_font_face_destroy(cr_face)
+        _freetype_so.FT_Done_Face(ft_face)
+    #end try
+
+    # get back Cairo font face as a Python object
+    face = cairo_ctx.get_font_face()
+    return face

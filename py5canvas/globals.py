@@ -216,7 +216,7 @@ def load_image(path):
     return im
 
 def bezier_point(*args):
-    ''' Get the tangent to a bezier curve (cubic) given a parameter value
+    ''' Get a point along a bezier curve (cubic) given a parameter value
 
     Arguments:
     - Four points, specified either as a list of points, a sequence of four points, or a sequence of coordiantes
@@ -233,8 +233,8 @@ def bezier_point(*args):
         P, t = args
     P = np.array(P)
     if isinstance(t, numbers.Number):
-        return eval_bezier(P, np.ones(1)*t)[0]
-    return eval_bezier(P, np.ones(1)*t)
+        return canvas.eval_bezier(P, np.ones(1)*t)[0]
+    return canvas.eval_bezier(P, np.ones(1)*t)
 
 
 def bezier_tangent(*args):
@@ -255,23 +255,6 @@ def bezier_tangent(*args):
         P, t = args
     P = np.array(P)
     if isinstance(t, numbers.Number):
-        return eval_bezier(P, np.ones(1)*t, 1)[0]
-    return eval_bezier(P, np.ones(1)*t, 1)
+        return canvas.eval_bezier(P, np.ones(1)*t, 1)[0]
+    return canvas.eval_bezier(P, np.ones(1)*t, 1)
 
-
-def bernstein(n, i):
-    bi = comb(n, i)
-    return lambda t, bi=bi, n=n, i=i: bi * t**i * (1 - t)**(n - i)
-
-
-def eval_bezier(P, t, d=0):
-    '''Bezier curve of degree len(P)-1. d is the derivative order (0 gives positions)'''
-    n = len(P) - 1
-    if d > 0:
-        Q = np.diff(P, axis=0)*n
-        return eval_bezier(Q, t, d-1)
-    B = np.vstack([bernstein(n, i)(t) for i, p in enumerate(P)])
-    return (P.T @ B).T
-
-
-#remap = map
