@@ -2029,8 +2029,10 @@ def create_cairo_font_face_for_file (filename, faceindex=0, loadoptions=0):
     if not _ft_initialized:
         # find shared objects
         if sys.platform == "win32":
-            ft_lib = "freetype6.dll"
-            lc_lib = "libcairo-2.dll"
+            # ft_lib = "freetype6.dll"
+            # lc_lib = "libcairo-2.dll"
+            ft_lib = "freetype.dll"
+            lc_lib = "cairo.dll"
         elif sys.platform == "darwin":
             ft_lib = "libfreetype.dylib"
             lc_lib = "libcairo.2.dylib"
