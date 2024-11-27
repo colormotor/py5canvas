@@ -1606,10 +1606,14 @@ class Canvas:
             self.save_image(path)
 
 
-    def show(self, size=None):
+    def show(self, size=None, resample='bicubic'):
         ''' Display the canvas in a notebook'''
         if size is not None:
-            display(Image.fromarray(self.get_image()).resize(size))
+            filter = {'bicubic': Image.BICUBIC,
+                      'nearest': Image.NEAREST,
+                      'bilinear': Image.BILINEAR,
+                      'lanczos': Image.LANCZOS}
+            display(Image.fromarray(self.get_image()).resize(size, filter[resample] ))
             return
         display(Image.fromarray(self.get_image()))
 
@@ -1822,7 +1826,8 @@ class VideoInput:
         self.resize_mode = resize_mode
         self.name = name
 
-    def read(self, loop_flag=False):
+
+    def read(self, loop_flag=False, pil=True, grayscale=False):
         import cv2
         # Capture video frame by frame
         success, img = self.vid.read()
@@ -1860,6 +1865,12 @@ class VideoInput:
             img = cv2.resize(img, self.size)
 
         img = img[:,:,::-1]
+        if pil:
+            if grayscale:
+                return Image.gromarray(img).convert('L')
+            return Image.fromarray(img)
+        if grayscale:
+            return np.mean(img/255, axis=-1)
         return img
 
 def cardinal_spline(Q, c, closed=False):
