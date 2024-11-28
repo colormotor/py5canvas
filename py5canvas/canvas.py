@@ -711,7 +711,7 @@ class Canvas:
             else:
                 print('line: No color is set')
         if len(args)==2:
-            self.polyline(args[0], args[1])
+            self.polyline([args[0], args[1]])
         if len(args)==4:
             self.polyline([[args[0], args[1]], [args[2], args[3]]])
         if nostroke:
@@ -736,8 +736,8 @@ class Canvas:
         if len(args)==1:
             self.polyline(args[0], args[0])
         elif len(args)==2:
-            self.polyline([args[0], args[1]],
-                          [args[0], args[1]])
+            self.polyline([[args[0], args[1]],
+                           [args[0], args[1]]])
         else:
             raise ValueError("point: Illegal number of arguments")
         if nostroke:
