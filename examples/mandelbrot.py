@@ -16,11 +16,11 @@ def draw():
     # Here we will use `c` to reference to the sketch canvas
     # since we redefined `scale` as a global variable and the corresponding
     # global function would not work anymore
-    c.background(0)
+    background(0)
 
     iterations = 200
 
-    w, h = c.width//2, c.height//2
+    w, h = width//2, height//2
     a, b = np.meshgrid(np.linspace(-w/scale, w/scale, w)-1.402, np.linspace(-h/scale, h/scale, h)-0.00003)
     C = (a + 1j*b)
     z = 0
@@ -31,7 +31,7 @@ def draw():
         diverged = np.where(norm > 2)
         img[diverged] = i
     img = cmap(np.mod(img/10, 10)/10)  # fixme
-    c.image(img, [0, 0], [c.width, c.height])
+    image(img, [0, 0], [width, height])
     # zoom in
     scale *= 1.1
 

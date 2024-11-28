@@ -11,13 +11,16 @@ def setup():
     create_canvas(512, 512)
 
 def draw():
-    c = sketch.canvas # Get the base canvas
-    c.background(0)
-    frame = video.read()[:,:,0]
+    background(0)
+
+    # Video frame 
+    frame = video.read() 
+    # Convert to numpy 8 bit 
+    frame = np.array(frame)
 
     push()
     scale(width/video_size)
-    c.image(frame)
+    image(frame)
 
     landmark_features = face_recognition.face_landmarks(frame)
     if landmark_features:
@@ -26,18 +29,17 @@ def draw():
         left_eye_pos = np.mean(landmark_features['left_eye'], axis=0)
         right_eye_pos = np.mean(landmark_features['right_eye'], axis=0)
         mouth_pos = np.mean(landmark_features['top_lip'] + landmark_features['bottom_lip'], axis=0)
-        c.stroke(0)
-        c.stroke_weight(0.5)
-        c.fill(255, 90)
+        stroke(0)
+        stroke_weight(0.5)
+        fill(255, 90)
         eye_size = 12
-        c.circle(left_eye_pos+[0,2], eye_size)
-        c.circle(right_eye_pos+[0,2], eye_size)
-        c.fill(0)
-        c.circle(left_eye_pos, eye_size/2)
-        c.circle(right_eye_pos, eye_size/2)
+        circle(left_eye_pos+[0,2], eye_size)
+        circle(right_eye_pos+[0,2], eye_size)
+        fill(0)
+        circle(left_eye_pos, eye_size/2)
+        circle(right_eye_pos, eye_size/2)
 
-        c.fill(255, 0, 0, 90)
-        cig_size = 2
-        c.ellipse(mouth_pos, [20, 10])
+        fill(255, 0, 0, 90)
+        ellipse(mouth_pos, [20, 10])
 
 run()
