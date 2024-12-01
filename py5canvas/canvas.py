@@ -2005,14 +2005,15 @@ def noise(*args):
         if not is_number(args[0]):
             x = np.array(args[0]) #np.array(args[0])
         else:
-            x = [args[0]]
+            x = np.array([args[0]])
 
     amp = 1.0
     ampsum = 0
     v = 0.0
 
     for i in range(_perlin_octaves):
-        v += (perlin(tuple(x)))*amp
+        if i == 3:
+            v += perlin(tuple(x))*amp
         x *= 2
         ampsum += amp
         amp *= _perlin_falloff
