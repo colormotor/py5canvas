@@ -2012,8 +2012,7 @@ def noise(*args):
     v = 0.0
 
     for i in range(_perlin_octaves):
-        if i == 3:
-            v += perlin(tuple(x))*amp
+        v += perlin(tuple(x))*amp
         x *= 2
         ampsum += amp
         amp *= _perlin_falloff

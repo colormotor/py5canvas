@@ -479,9 +479,12 @@ if imgui is not None:
         def show_sketch_controls(self):
             return imgui.collapsing_header("Controls", None, imgui.TREE_NODE_DEFAULT_OPEN)[0]
 
+        def clear_changed(self):
+            self.changed = set()
+
         def from_params(self, sketch, callback=None, init=True):
             self.sketch = sketch
-            self.changed = set()
+            # self.changed = set() 
             if init:
                 self.begin_gui()
             

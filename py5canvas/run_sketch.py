@@ -955,12 +955,14 @@ class Sketch:
                 # Check focus
                 #self.gui_focus = imgui.core.is_window_hovered()
                 #print('gui focus', self.gui_focus)
+        did_draw = False
         with perf_timer('update'):
             if not self.runtime_error or self._frame_count==0:
                 try:
                     if 'draw' in self.var_context and draw_frame:
                         self.canvas.identity()
                         self.var_context['draw']()
+                        did_draw = True
                     else:
                         pass
                         #print('no draw in var context')
@@ -999,6 +1001,8 @@ class Sketch:
                 if (self.params or
                     self.gui_callback is not None or
                     self.prog_uses_imgui):
+                    if did_draw:
+                        self.gui.clear_changed()
                     self.gui.from_params(self, self.gui_callback, init=False)
             if ('gui_window' in self.var_context and
                 callable(self.var_context['gui_window'])):
