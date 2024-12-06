@@ -773,6 +773,7 @@ class Sketch:
                                 'create_canvas',
                                 'create_canvas_gui',
                                 'dump_canvas',
+                                'send_osc',
                                 'no_loop',
                                 'grab_movie',
                                 'grab_image_sequence',
@@ -1104,7 +1105,7 @@ class Sketch:
 
     def send_osc(self, addr, val):
         ''' Send an OSC message'''
-        self.oscclient.send_message(addr, val)
+        self.oscclient.send_message(addr, [val])
 
     def _handle_osc(self, addr, *args):
         print('received: ' + addr)
