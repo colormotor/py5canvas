@@ -271,6 +271,7 @@ class Sketch:
         self.mouse_delta = np.zeros(2)
         self.mouse_button = 0
         self._dragging = False
+        self._clicked = False
         self.mouse_moving = False
         self.modifiers = 0
         self.prog_uses_imgui = False
@@ -312,6 +313,11 @@ class Sketch:
     def frame_count(self):
         ''' The number of frames since the script has loaded'''
         return self._frame_count
+
+    @property
+    def clicked(self):
+        ''' Returns ~True~ if mouse was clicked'''
+        return self._clicked
 
     @property
     def dragging(self):
@@ -633,6 +639,13 @@ class Sketch:
             self.video_writer.release()
             self.video_writer = None
 
+    def save_copy(self, path):
+        import shutil
+        path = os.path.splitext(path)[0]
+        shutil.copy(self.path, path + '.py')
+        json_path = self.path.replace('.py', '.json')
+        if os.path.isfile(json_path):
+            shutil.copy(json_path, path + '.json')
 
     def grab(self):
         if not self.grabbing:
@@ -867,6 +880,7 @@ class Sketch:
         if 'mouse_pressed' not in self.var_context or not callable(self.var_context['mouse_pressed']):
             self.var_context['mouse_pressed'] = self.dragging
         self.var_context['dragging'] = self.dragging
+        self.var_context['clicked'] = self.clicked
         self.var_context['mouse_is_pressed'] = self.dragging # For compatibility with p5py
         self.var_context['mouse_delta'] = self.mouse_delta
         self.var_context['mouse_pos'] = self.mouse_pos
@@ -987,6 +1001,9 @@ class Sketch:
         #     #buf = (pyglet.gl.GLubyte * len(buf))(*buf)
 
         # self.image.set_data("BGRA", -pitch, buf) # Looks like negative sign takes care of C-contiguity
+
+        if self._clicked:
+            self._clicked = False
 
         if self.grabbing and not self.must_reload and draw_frame:
             self.grab()
@@ -1318,6 +1335,7 @@ def main(path='', fps=0, inject=True, show_toolbar=False):
                 return
             sketch.mouse_button = button
             sketch._dragging = True
+            sketch._clicked = True
             if check_callback('mouse_pressed'):
                 params = [button, mods]
                 sig = signature(sketch.var_context['mouse_pressed'])
@@ -1325,6 +1343,7 @@ def main(path='', fps=0, inject=True, show_toolbar=False):
         elif action == glfw.RELEASE:
             sketch.mouse_button = button
             sketch._dragging = False
+            sketch._clicked = False
             if check_callback('mouse_released'):
                 params = [button, mods]
                 sig = signature(sketch.var_context['mouse_released'])

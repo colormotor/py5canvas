@@ -808,12 +808,12 @@ class Canvas:
             radius = args[2]
         else:
             center, radius = args
-        x, y = center
+        x, y = center[:2]
         if mode.lower() != 'center':
             x += radius
             y += radius
         self.ctx.new_sub_path()
-        self.ctx.arc(*center, radius, 0, np.pi*2.)
+        self.ctx.arc(*center[:2], radius, 0, np.pi*2.)
         self._fillstroke()
 
     def ellipse(self, *args, mode=None):
@@ -1270,6 +1270,78 @@ class Canvas:
     # def text_bounds(self, text, *args):
     #     { x: 5.7, y: 12.1 , w: 9.9, h: 28.6 }.
 
+
+    def text_shapes(self, text, *args, dist=1, align='', valign=''):
+        if len(args) == 2:
+            if is_number(args[0]):
+                pos = args
+            else:
+                pos = args[0]
+                dist = args[1]
+        elif len(args) == 3:
+            pos = args[:2]
+            dist = args[2]
+        elif len(args) == 1:
+            pos = args[0]
+        else:
+            print(args, len(args))
+            raise ValueError("text: wrong number of args")
+
+        ctx = self.ctx
+        pos = np.array(pos, dtype=np.float32)
+        pos += self._text_offset(text, align, valign)
+        font = ctx.get_scaled_font()
+
+        all_shapes = []
+
+        for char in text:
+            extents = font.text_extents(char)
+
+            # Extract path data
+            ctx.text_path(char)
+            path = ctx.copy_path()
+            # Clear path so we don't draw
+            ctx.new_path()
+
+            shape = []
+
+            def prev():
+                return shape[-1][-1][-1]
+
+            def sample_line(points):
+                a = prev()
+                b = np.array(points)
+                s = np.linalg.norm(b - a)
+                n = max(int(s / dist)+1, 2)
+                t = np.linspace(0, 1, n)[1:]
+                res = a + (b - a)*t.reshape(-1, 1)
+                return res
+
+            def sample_cubic(points):
+                b, c, d = [np.array(p) for p in [points[:2], points[2:4], points[4:6]]]
+                a = prev()
+                s = approx_arc_length_cubic(a, b, c, d)
+                n = max(int(s / dist)+1, 2)
+                t = np.linspace(0, 1, n)[1:]
+                P = np.array([a, b, c, d])
+                return eval_bezier(P, t)
+
+            for kind, points in path:
+                if kind == cairo.PATH_MOVE_TO:
+                    shape.append([np.array([points])])
+                elif kind == cairo.PATH_LINE_TO:
+                    shape[-1].append(sample_line(points))
+                elif kind == cairo.PATH_CURVE_TO:
+                    shape[-1].append(sample_cubic(points))
+                elif kind == cairo.PATH_CLOSE_PATH:
+                    shape[-1].append(sample_line(shape[-1][0][0]))
+
+            res = [np.vstack(P)+pos for P in shape if len(P) > 1]
+            all_shapes.append(res)
+            pos += [extents.x_advance, 0]
+
+        return all_shapes  # List of lists: one list per glyph
+
     def text_shape(self, text, *args, dist=1, align='', valign=''):
         ''' Retrieves polylines for a given string of text in the current font
 
@@ -1281,6 +1353,7 @@ class Canvas:
         - ~align~, horizontal alignment, etiher ~'left'~ (default), ~'center'~ or ~'right'~
         - ~valign~, vertical alignment, etiher ~'bottom'~ (default), ~'center'~ or ~'top'~
         '''
+        return sum(self.text_shapes(text, *args, dist=dist, align=align, valign=valign), [])
 
         if len(args) == 2:
             if is_number(args[0]):
@@ -1826,6 +1899,9 @@ class VideoInput:
         self.resize_mode = resize_mode
         self.name = name
 
+
+    def close(self):
+        self.vid.release()
 
     def read(self, loop_flag=False, pil=True, grayscale=False):
         import cv2

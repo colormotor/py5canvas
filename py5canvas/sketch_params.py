@@ -85,7 +85,16 @@ def preprocess_guiparams(_gui_params):
             gui_params[name]['__key__'] = key
         else:
             if isinstance(val, (tuple, list)):
-                val, opts = val
+                if len(val) == 2:
+                    val, opts = val
+                else:
+                    # Allow a user to also specify paraemters as sequences
+                    seq = val[1:]
+                    val = val[0]
+                    if len(seq) == 2:
+                        opts = {'min': seq[0], 'max': seq[1]}
+                    else:
+                        raise ValueError('Currently unsupported option sequence')
             else:
                 opts = {}
             opts['__key__'] = key
@@ -298,12 +307,16 @@ if imgui is not None:
         if isinstance(val, bool):
             return 'checkbox'
         elif isinstance(val, int):
+            if 'type' in opts:
+                return opts['type']
             if 'min' in opts and 'max' in opts:
                 return 'int_slider'
             elif 'selection' in opts:
                 return 'selection'
             return 'int'
         elif isinstance(val, float):
+            if 'type' in opts:
+                return opts['type']
             if 'min' in opts and 'max' in opts:
                 return 'float_slider'
             return 'float'
@@ -368,6 +381,11 @@ if imgui is not None:
                         changed = False
                         if param_type == 'int':
                             changed, params[key] = imgui.input_int(name, params[key])
+                            if 'min' in opts:
+                                params[key] = max(params[key], opts['min'])
+                            if 'max' in opts:
+                                params[key] = min(params[key], opts['max'])
+
                         elif param_type == 'button':
                             if imgui.button(name):
                                 val()
