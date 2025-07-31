@@ -53,6 +53,7 @@ if imgui_loader is not None:
     #from imgui.integrations.glfw import create_renderer
 else:
     imgui = None
+
 # Optionally import easydict
 edict_loader = importlib.util.find_spec('easydict')
 if edict_loader is not None:
@@ -147,6 +148,27 @@ def wrap_canvas_method(sketch, func):
 
 
 class Sketch:
+    def create_glcontext(self):
+        glfw.make_context_current(self.window)
+
+        # OpenGL context, shader and vao for rendering canvas
+        self.glctx = mgl.create_context()
+        prog = self.glctx.program(vertex_shader=quad_vertex_shader, fragment_shader=quad_fragment_shader)
+        vertices = np.array([
+            # x, y, u, v
+            -1.0, -1.0, 0.0, 1.0,
+            1.0, -1.0, 1.0, 1.0,
+            1.0,  1.0, 1.0, 0.0,
+
+            -1.0, -1.0, 0.0, 1.0,
+            1.0,  1.0, 1.0, 0.0,
+            -1.0,  1.0, 0.0, 0.0,
+        ], dtype='f4')
+        vbo = self.glctx.buffer(vertices.tobytes())
+        self.quad_vao = self.glctx.simple_vertex_array(prog, vbo, 'in_vert', 'in_text')
+
+        #fb_w, fb_h = glfw.get_framebuffer_size(self.window)
+
     """In Py5Canvas a sketch is a Python script with a custom defined ~setup~ and ~draw~ functions,
     that allow to create interactive apps in a way similar to P5js or Processing. For the system to work
     you must defiine a sketch similar to what follows:
@@ -186,25 +208,28 @@ class Sketch:
         glfw.window_hint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)
         glfw.window_hint(glfw.OPENGL_FORWARD_COMPAT, True)
         glfw.window_hint(glfw.RESIZABLE, False)
+        glfw.window_hint(glfw.COCOA_RETINA_FRAMEBUFFER, glfw.FALSE)
 
         self.window = glfw.create_window(width, height, title, None, None)
         glfw.make_context_current(self.window)
 
-        # OpenGL context, shader and vao for rendering canvas
-        self.glctx = mgl.create_context()
-        prog = self.glctx.program(vertex_shader=quad_vertex_shader, fragment_shader=quad_fragment_shader)
-        vertices = np.array([
-            # x, y, u, v
-            -1.0, -1.0, 0.0, 1.0,
-            1.0, -1.0, 1.0, 1.0,
-            1.0,  1.0, 1.0, 0.0,
+        self.create_glcontext()
 
-            -1.0, -1.0, 0.0, 1.0,
-            1.0,  1.0, 1.0, 0.0,
-            -1.0,  1.0, 0.0, 0.0,
-        ], dtype='f4')
-        vbo = self.glctx.buffer(vertices.tobytes())
-        self.quad_vao = self.glctx.simple_vertex_array(prog, vbo, 'in_vert', 'in_text')
+        # # OpenGL context, shader and vao for rendering canvas
+        # self.glctx = mgl.create_context()
+        # prog = self.glctx.program(vertex_shader=quad_vertex_shader, fragment_shader=quad_fragment_shader)
+        # vertices = np.array([
+        #     # x, y, u, v
+        #     -1.0, -1.0, 0.0, 1.0,
+        #     1.0, -1.0, 1.0, 1.0,
+        #     1.0,  1.0, 1.0, 0.0,
+
+        #     -1.0, -1.0, 0.0, 1.0,
+        #     1.0,  1.0, 1.0, 0.0,
+        #     -1.0,  1.0, 0.0, 0.0,
+        # ], dtype='f4')
+        # vbo = self.glctx.buffer(vertices.tobytes())
+        # self.quad_vao = self.glctx.simple_vertex_array(prog, vbo, 'in_vert', 'in_text')
 
         #self.window.set_vsync(False)
         self.inject = inject
@@ -317,6 +342,9 @@ class Sketch:
     @property
     def clicked(self):
         ''' Returns ~True~ if mouse was clicked'''
+        # if self._clicked:
+        #     print('Function clicked is true', self)
+        #     traceback.print_stack()
         return self._clicked
 
     @property
@@ -392,7 +420,7 @@ class Sketch:
         x, y = glfw.get_window_pos(self.window)
         if fullscreen:
             monitors = glfw.get_monitors()
-
+            print('Monitors:', monitors)
             for monitor in monitors:
                 mode = glfw.get_video_mode(monitor)
                 px, py = glfw.get_monitor_pos(monitor)
@@ -400,15 +428,17 @@ class Sketch:
                 # This crashes on mac
                 # px, py, pw, ph = glfw.get_monitor_workarea(monitor)
                 if x >= px and y >= py and x <= px+pw and y < py+ph:
+                    print('Found monitor', monitor, 'at', px, py, 'with size', pw, ph)
                     break
             w, h = mode.size
             self.last_window_pos = [x, y]
             glfw.set_window_monitor(self.window, monitor, 0, 0, w, h, glfw.DONT_CARE)
-
+            #self.create_glcontext()
         else:
             if self.last_window_pos is not None:
                 x, y = self.last_window_pos
             glfw.set_window_monitor(self.window, None, x, y, w, h, glfw.DONT_CARE)
+            #self.create_glcontext()
 
         # Note, the canvas size may be different from the sketch size
         # for example when automatically creating a UI...
@@ -434,6 +464,7 @@ class Sketch:
             self.update_globals()
 
         if self.canvas_tex is not None:
+            print('Releasing old canvas texture')
             self.canvas_tex.release()
         self.canvas_tex = self.glctx.texture(canvas_size, 4, self.canvas.get_buffer())
         self.canvas_tex.swizzle = 'BGRA' # Internal Cairo format
@@ -444,6 +475,7 @@ class Sketch:
         # self.image = pyglet.image.ImageData(*canvas_size, "BGRA", buf)
 
     def create_canvas(self, w, h, gui_width=300, fullscreen=False, with_gui=True, screen=None, save_background=False):
+        print("Creating canvas with size", w, h, "fullscreen:", fullscreen, "gui_width:", gui_width, "with_gui:", with_gui)
         if imgui is None or not with_gui:
             print("Creating canvas no gui")
             self._create_canvas(w, h, fullscreen=fullscreen, screen=screen, save_background=save_background)
@@ -557,15 +589,17 @@ class Sketch:
         # old_window_height = self.canvas_display_height
         if toggle_gui:
             self.is_fullscreen = flag
-            self.show_gui(not flag) #, screen_index)
+            if imgui is not None:
+                self.show_gui(not flag) #, screen_index)
             return
 
+        #print('Setting gui width to', self.gui.width)
         #self.window.set_fullscreen(False)
         self.create_canvas(self.canvas.width,
                            self.canvas.height,
-                           self.gui.width,
+                           self.gui.width, # if imgui is not None else 0,
                            flag,
-                           flag)
+                           self._gui_visible,)
                            #screen=self.get_screen(screen_index))
 
 
@@ -847,7 +881,7 @@ class Sketch:
             print('Removing setup recording context')
             self.canvas.ctx.pop_context()
 
-    def _update_mouse(self):
+    def _update_mouse(self, draw_frame):
         # workaround for backwards compatibility (deprecating 'mouse_pressed')
         self.mouse_pressed = self.dragging
 
@@ -855,11 +889,15 @@ class Sketch:
             return
 
         if self.prev_mouse is None:
-            self.mouse_pos = self._mouse_pos
+            self.prev_mouse = self._mouse_pos
 
-        self.prev_mouse = self.mouse_pos
+
+        #self.prev_mouse = self.mouse_pos
         self.mouse_pos = self._mouse_pos
-        self.mouse_delta = self.mouse_pos - self.prev_mouse
+        if True: #draw_frame:
+            self.mouse_delta = self.mouse_pos - self.prev_mouse
+            self.prev_mouse = self.mouse_pos.copy()
+
 
         # if self.mouse_pressed:
         #     print('Mouse:')
@@ -913,8 +951,9 @@ class Sketch:
             self.first_load = False
             draw_frame = True
 
-        self._update_mouse()
+        self._update_mouse(draw_frame)
         self.update_globals()
+
 
         if imgui is not None:
             # For some reason this only works here and not in the constructor.
@@ -972,12 +1011,17 @@ class Sketch:
                 #print('gui focus', self.gui_focus)
         did_draw = False
         with perf_timer('update'):
+            if self._clicked:
+                print('Mouse button is pressed')
+
             if not self.runtime_error or self._frame_count==0:
                 try:
                     if 'draw' in self.var_context and draw_frame:
                         self.canvas.identity()
                         self.var_context['draw']()
                         did_draw = True
+                        if self._clicked:
+                            self._clicked = False
                     else:
                         pass
                         #print('no draw in var context')
@@ -1002,8 +1046,8 @@ class Sketch:
 
         # self.image.set_data("BGRA", -pitch, buf) # Looks like negative sign takes care of C-contiguity
 
-        if self._clicked:
-            self._clicked = False
+        # if self._clicked:
+        #     self._clicked = False
 
         if self.grabbing and not self.must_reload and draw_frame:
             self.grab()
@@ -1329,6 +1373,7 @@ def main(path='', fps=0, inject=True, show_toolbar=False):
         sketch.modifiers = mods
         pos = sketch._mouse_pos
         if action == glfw.PRESS:
+            print('Mouse button pressed')
             if imgui_focus():
                 return
             if not point_in_canvas(pos):
@@ -1341,6 +1386,7 @@ def main(path='', fps=0, inject=True, show_toolbar=False):
                 sig = signature(sketch.var_context['mouse_pressed'])
                 sketch.var_context['mouse_pressed'](*params[:len(sig.parameters)])
         elif action == glfw.RELEASE:
+            print('Mouse button released')
             sketch.mouse_button = button
             sketch._dragging = False
             sketch._clicked = False
