@@ -153,6 +153,9 @@ class Sketch:
 
         # OpenGL context, shader and vao for rendering canvas
         self.glctx = mgl.create_context()
+        #self.glctx.enable(mgl.FRAMEBUFFER_SRGB) #
+        # self.frame_grabber = FrameGrabber(self.glctx)
+
         prog = self.glctx.program(vertex_shader=quad_vertex_shader, fragment_shader=quad_fragment_shader)
         vertices = np.array([
             # x, y, u, v
@@ -209,6 +212,7 @@ class Sketch:
         glfw.window_hint(glfw.OPENGL_FORWARD_COMPAT, True)
         glfw.window_hint(glfw.RESIZABLE, False)
         glfw.window_hint(glfw.COCOA_RETINA_FRAMEBUFFER, glfw.FALSE)
+        # glfw.window_hint(glfw.SRGB_CAPABLE, glfw.TRUE)
 
         self.window = glfw.create_window(width, height, title, None, None)
         glfw.make_context_current(self.window)
@@ -267,6 +271,7 @@ class Sketch:
         self.cur_grab_frame = 0
         self.video_writer = None
         self.video_fps = 30
+        self.video_gamma = 1.0
 
         # SVG/PDF saving
         self.saving_to_file = ''
@@ -647,7 +652,7 @@ class Sketch:
         self.must_reload=reload
         self.num_grab_frames = num_frames
 
-    def grab_movie(self, path, num_frames, framerate=30, reload=True):
+    def grab_movie(self, path, num_frames, framerate=30, gamma=1.0, reload=True):
         ''' Saves a mp4 movie from a number of frames to a specified path.
         By default this will reload the current script.
 
@@ -659,6 +664,7 @@ class Sketch:
         self.grabbing = path
         self.must_reload = reload
         self.num_grab_frames = num_frames
+        self.video_gamma = gamma
         self.video_fps = framerate
         print('Saving video to ' + path)
 
@@ -670,6 +676,7 @@ class Sketch:
             return
         self.cur_grab_frame = 0
         if self.video_writer is not None:
+            print('Writing video')
             self.video_writer.release()
             self.video_writer = None
 
@@ -681,9 +688,19 @@ class Sketch:
         if os.path.isfile(json_path):
             shutil.copy(json_path, path + '.json')
 
+    def read_fb(self, fb, **kwargs):
+        data = fb.read(**kwargs)
+        err = self.glctx.error
+        if err != "GL_NO_ERROR":
+            print(err)
+        else:
+            print('OK!')
+        return data
+
     def grab(self):
         if not self.grabbing:
             return
+
         if 'mp4' in self.grabbing:
             # Grap mp4 frame
             if self.video_writer is None:
@@ -691,9 +708,28 @@ class Sketch:
                 import cv2
                 fmt = cv2.VideoWriter_fourcc(*'mp4v') #cv2.cv.CV_FOURCC(*'mp4v')
                 self.video_writer = cv2.VideoWriter(self.grabbing, fmt, self.video_fps, (self.canvas.width,
-                                                                                         self.canvas.height))
-            img = self.canvas.get_image()
-            img = img[:,:,::-1]
+                                                                        self.canvas.height))
+
+            ctx = self.glctx
+            with ctx.scope():
+                #img = self.frame_grabber.grab()[:,:,:3]
+
+                # pdb.set_trace()
+                fb = ctx.detect_framebuffer()
+                #pdb.set_trace()
+                dim = 3
+                data = fb.read(components=dim, dtype='f1', alignment=1)
+                err = ctx.error
+                drain_glerrors(ctx, 'Error with grab')
+                w, h = ctx.screen.size
+                img = np.frombuffer(data, dtype=np.uint8).reshape(h, w, dim)[:,:,:3]
+                #pdb.set_trace()
+            #img = self.canvas.get_image()
+            #pdb.set_trace()
+            img = adjust_gamma(img[::-1,:,::-1], self.video_gamma)
+            #img = srgb2lin(img[:,:,::-1])
+            #img = lin2srgb(img[:,:,::-1])
+            #img = img[:, :, ::-1]
             self.video_writer.write(img)
         else:
             # Grab png frame
@@ -1049,8 +1085,8 @@ class Sketch:
         # if self._clicked:
         #     self._clicked = False
 
-        if self.grabbing and not self.must_reload and draw_frame:
-            self.grab()
+        # if self.grabbing and not self.must_reload and draw_frame:
+        #     self.grab()
 
         # Update timers and copy to texture
         if draw_frame:
@@ -1113,6 +1149,9 @@ class Sketch:
             self.canvas.ctx.pop_context()
             self.saving_to_file = ''
             self.done_saving = False
+
+        return draw_frame
+
 
 
     def title(self, title):
@@ -1189,6 +1228,88 @@ class Sketch:
             self.params.save()
         print("End cleanup")
 
+def drain_glerrors(ctx, tag):
+    had = False
+    while True:
+        e = ctx.error
+        if e == "GL_NO_ERROR":
+            break
+        print(f"[GL ERROR] after {tag}: {e}")
+        had = True
+    return had
+
+# class FrameGrabber:
+#     def __init__(self, ctx):
+#         self.ctx = ctx
+#         self.tex = None
+#         self.fbo = None
+#         self.pbo = None
+#         self.size = (0, 0)
+
+#     def _ensure(self):
+#         w, h = self.ctx.screen.size
+#         if (w, h) != self.size:
+#             self.size = (w, h)
+#             # (Re)create on first use or resize
+#             if self.fbo: self.fbo.release()
+#             if self.tex: self.tex.release()
+#             if self.pbo: self.pbo.release()
+#             self.tex = self.ctx.texture(self.size, components=4, dtype='u1')
+#             self.fbo = self.ctx.framebuffer([self.tex])
+#             self.pbo = self.ctx.buffer(reserve=w*h*4)  # RGBA8
+
+#     def grab(self):
+#         self._ensure()
+#         w, h = self.size
+#         #pdb.set_trace()
+#         # Copy screen → staging FBO (keeps default FBO state stable, resolves MSAA)
+#         drain_glerrors(self.ctx, 'Before copy')
+#         with self.ctx.scope(framebuffer=self.fbo,
+#                             enable_only=mgl.NOTHING,
+#                             textures=[], samplers=[]):
+#             self.ctx.copy_framebuffer(self.fbo, self.ctx.detect_framebuffer())
+#         drain_glerrors(self.ctx, 'After copy')
+#         # Read texture into PBO, then CPU
+#         self.tex.read_into(self.pbo, alignment=1)
+#         drain_glerrors(self.ctx, 'After read into')
+#         data = self.pbo.read()
+#         drain_glerrors(self.ctx, 'After pbo read')
+#         return np.frombuffer(data, np.uint8).reshape(h, w, 4)
+
+#     def release(self):
+#         for o in (self.pbo, self.fbo, self.tex):
+#             if o: o.release()
+#         self.pbo = self.fbo = self.tex = None
+
+# Vectorized version of this:
+# http://www.cyril-richon.com/blog/2019/1/23/python-srgb-to-linear-linear-to-srgb
+def adjust_gamma(s, k):
+    s = s / 255
+    s = np.power(s, k)
+    return (s*255).astype(np.uint8)
+
+def srgb2lin(s):
+    s = s / 255
+    s = np.power(s, 2.2)
+    return (s*255).astype(np.uint8)
+    # I = s <= 0.0404482362771082
+    # s[I] /= 12.92
+    # s[~I] = np.power(((s[~I] + 0.055) / 1.055), 2.4)
+    # return (s*255).astype(np.uint8)
+
+
+def lin2srgb(lin):
+    lin = lin/255
+    I = lin > 0.0031308
+    lin[I] = 1.055 * (np.power(lin[I], (1.0 / 2.4))) - 0.055
+    lin[~I] *= 12.92
+    return (lin*255).astype(np.uint8)
+
+    # if lin > 0.0031308:
+    #     s = 1.055 * (pow(lin, (1.0 / 2.4))) - 0.055
+    # else:
+    #     s = 12.92 * lin
+    # return s
 
 def main(path='', fps=0, inject=True, show_toolbar=False):
     from importlib import reload
@@ -1482,7 +1603,7 @@ def main(path='', fps=0, inject=True, show_toolbar=False):
         # Check if we need to reload
         sketch.check_reload()
 
-        sketch.frame(do_frame)
+        frame_drawn = sketch.frame(do_frame)
 
 
         if sketch.impl is not None:
@@ -1527,6 +1648,8 @@ def main(path='', fps=0, inject=True, show_toolbar=False):
                 if sketch.impl is not None:
                     sketch.impl.process_inputs()
 
+        if sketch.grabbing and not sketch.must_reload and frame_drawn:
+            sketch.grab()
 
         if imgui is not None:
             try:
