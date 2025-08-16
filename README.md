@@ -1,25 +1,24 @@
 
 # Table of Contents
 
-1.  [Table of contents](#org1058444)
-2.  [Similar projects](#org4a19ff3)
-3.  [Installation](#orgdabe99c)
-    1.  [Installing dependencies with Conda](#orga24f1d7)
-        1.  [Auto-installing into an environment](#orgc1bb098)
-        2.  [Installing manually](#org36bb072)
-        3.  [Updating](#org12fd861)
-    2.  [Install through pip (needs testing on Mac)](#orgfc3d885)
-    3.  [Installing on Google colab](#orgc779aa8)
-    4.  [Optional (but suggested) extensions](#org9491ac1)
-4.  [Usage](#orgbd8ab0a)
-    1.  [Canvas API](#org90f8c79)
-    2.  [Interactive sketches](#org3982398)
-        1.  [A basic example](#orgb0963c7)
-        2.  [Main differences with JS/Java](#orged073ac)
-        3.  [Video input and output](#org4d6b99c)
-        4.  [Saving image or SVG output](#orgd13e7f1)
-        5.  [GUI support and parameters](#org7890dc3)
-        6.  [OSC support](#org583c497)
+1.  [Similar projects](#org93cb45b)
+2.  [Installation](#org7844890)
+    1.  [Installing dependencies with Conda](#orga1f0f22)
+        1.  [Auto-installing into an environment](#orge1a3cb0)
+        2.  [Installing manually](#orgf388ac2)
+        3.  [Updating](#org5e16e66)
+    2.  [Install through pip (needs testing on Mac)](#orged21b61)
+    3.  [Installing on Google colab](#org6b2ec35)
+    4.  [Optional (but suggested) extensions](#org93d4241)
+3.  [Usage](#orgac4e26d)
+    1.  [Canvas API](#org603dfa5)
+    2.  [Interactive sketches](#org1476f56)
+        1.  [A basic example](#orgb7067ec)
+        2.  [Main differences with JS/Java](#orga99bc84)
+        3.  [Video input and output](#org7c127d3)
+        4.  [Saving image or SVG output](#orgcdaf6aa)
+        5.  [GUI support and parameters](#org435e5b3)
+        6.  [OSC support](#org6c88408)
 
 Py5canvas is a simple library that allows to draw 2d graphics in Python with an interface that is designed for users that are familiar to Processing and P5js.
 The library is designed to work inside Jupyter notebooks and/or interactively as a &ldquo;sketch&rdquo; structured similarly to Processing.
@@ -29,39 +28,7 @@ The main idea behind this system is to facilitate the development of creative an
 Refer to [this notebook](https://github.com/colormotor/py5canvas-examples/blob/master/other/canvas_tutorial.ipynb) for an overview of using Py5canvas in a Jupyter notebook. Download or clone the code in [this example repository](https://github.com/colormotor/py5canvas-examples) for examples of interactive scripts. The latter is a fork and extension of [the examples for p5py project](https://github.com/p5py/p5-examples), another similar Python port of Processing. See below for how this project differs from p5py.
 
 
-<a id="org1058444"></a>
-
-# Table of contents
-
--   
--   
--   -   -   -
-    -   -   
-        -
--   -   
-    -   -   -
-        -   -   -
-            -   
-            -
-        -   -   
-            -
-        -   
-        -   -   
-            -   -   
-                -   
-                -   
-                -   -   
-                    -   
-                    -   
-                    -   
-                    -   
-                    -   
-                    -
-            -
-        -
-
-
-<a id="org4a19ff3"></a>
+<a id="org93cb45b"></a>
 
 # Similar projects
 
@@ -81,7 +48,7 @@ While the syntax of the sketches is similar to P5js or Processing, the aim of th
 The interactive sketch system allows for the easy creation of a UI and parameter saving, which is similar in spirit to DrawBot. The syntax of sketches is almost identical to [p5py](https://p5.readthedocs.io/en/latest/), making the relevant examples and documentation a useful reference for py5canvas as well. The examples Most of these latter examples are an adaptation of Processing examples developed for a project very similar to this one taken from the example code of provided with p5py.
 
 
-<a id="orgdabe99c"></a>
+<a id="org7844890"></a>
 
 # Installation
 
@@ -89,7 +56,7 @@ While you can install py5canvas directly with &ldquo;pip&rdquo;, it is recommend
 and pre-install the dependencies using conda.
 
 
-<a id="orga24f1d7"></a>
+<a id="orga1f0f22"></a>
 
 ## Installing dependencies with Conda
 
@@ -102,7 +69,7 @@ The dependency installation procedure depends on the [conda package mananger](ht
 Afterwards, you can pretty much replace any use of `conda` with `mamba` and things will go significantly faster.
 
 
-<a id="orgc1bb098"></a>
+<a id="orge1a3cb0"></a>
 
 ### Auto-installing into an environment
 
@@ -119,7 +86,7 @@ Then install py5canvas from pip with
     pip install py5canvas
 
 
-<a id="org36bb072"></a>
+<a id="orgf388ac2"></a>
 
 ### Installing manually
 
@@ -140,7 +107,7 @@ Or by cloning the repository and then from its directory
     pip install -e .
 
 
-<a id="org12fd861"></a>
+<a id="org5e16e66"></a>
 
 ### Updating
 
@@ -153,7 +120,7 @@ If you installed from source (pip+git) but not locally update to the latest vers
     pip install --upgrade  --force-reinstall --no-deps git+https://github.com/colormotor/py5canvas.git
 
 
-<a id="orgfc3d885"></a>
+<a id="orged21b61"></a>
 
 ## Install through pip (needs testing on Mac)
 
@@ -164,7 +131,7 @@ While the whole package can be installed with
 This can cause problems on mac with pyCairo, which at this time does not install the required C++ libraries when installed with pip.
 
 
-<a id="orgc779aa8"></a>
+<a id="org6b2ec35"></a>
 
 ## Installing on Google colab
 
@@ -174,7 +141,7 @@ To install on Google Colab, and Linux if you don&rsquo;t want to use conda
     !pip install py5canvas
 
 
-<a id="org9491ac1"></a>
+<a id="org93d4241"></a>
 
 ## Optional (but suggested) extensions
 
@@ -195,12 +162,12 @@ To install on Google Colab, and Linux if you don&rsquo;t want to use conda
     See the relevant section below for usage details.
 
 
-<a id="orgbd8ab0a"></a>
+<a id="orgac4e26d"></a>
 
 # Usage
 
 
-<a id="org90f8c79"></a>
+<a id="org603dfa5"></a>
 
 ## Canvas API
 
@@ -230,14 +197,14 @@ In general, the syntax is very similar to P5js but it uses `snake_case` as a syn
 Note also that the Canvas object is intended to be a simple interface on top of [pyCairo](https://pycairo.readthedocs.io/en/latest/), but it does not expose all the functionalities of the API. If necessary, these can be accessed with the `ctx` class variable.
 
 
-<a id="org3982398"></a>
+<a id="org1476f56"></a>
 
 ## Interactive sketches
 
 While the Canvas API alone does not supprt interactivity, the `py5sketch` program allows to create simple &ldquo;sketches&rdquo; that can be run interactively in a window.
 
 
-<a id="orgb0963c7"></a>
+<a id="orgb7067ec"></a>
 
 ### A basic example
 
@@ -272,7 +239,7 @@ the command line
 This will open a window with the sketch. If `run()` is not preceded by a `if __name__=='__main__':` statement, any change to the script file will reload it in the window. This will result in a behavior more similar to [p5py](https://p5.rtfd.io).
 
 
-<a id="orged073ac"></a>
+<a id="orga99bc84"></a>
 
 ### Main differences with JS/Java
 
@@ -382,7 +349,7 @@ However, there are a number of differences to take into account.
     Here we explicitly state in `run` that the code should not be injected, and we have access to the functionalities through the `sketch` and `sketch.canvas` interfaces.
 
 
-<a id="org4d6b99c"></a>
+<a id="org7c127d3"></a>
 
 ### Video input and output
 
@@ -398,7 +365,7 @@ With OpenCV installed, the py5sketch systems allows to read the webcam stream, p
     `sketch.grab_movie(filename, num_frames, framerate)` and `sketch.grab_image_sequence(directory_name, num_frames)` functions. As an example, calling `sketch.grab_move("frames.mp4", 200, 30)` will save a 30 FPS mp4 movie of 200 frames. Both functions have an optional argument `reload` that is set to `True`. If `reload` is `True`, the script is reloaded when saving so the video will start from the first frame. This is particularly useful when saving loops. If `reload=False`, the video will start recording from the next frame without reloading.
 
 
-<a id="orgd13e7f1"></a>
+<a id="orgcdaf6aa"></a>
 
 ### Saving image or SVG output
 
@@ -406,7 +373,7 @@ All vector drawing operations for a given frame, can be exported to SVG by using
 Note that once called, the **next** frame will be saved.
 
 
-<a id="org7890dc3"></a>
+<a id="org435e5b3"></a>
 
 ### GUI support and parameters
 
@@ -521,7 +488,7 @@ The `py5sketch` program can be used in combination with the [Python bindings](ht
     Creating parameters as described above will result in the parameters being automatically saved and loaded every time a sketch is reloaded. The parameters will be saved to a JSON file having the same name and directory as the sketch script.
 
 
-<a id="org583c497"></a>
+<a id="org6c88408"></a>
 
 ### OSC support
 
