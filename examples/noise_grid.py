@@ -1,10 +1,6 @@
 #!/usr/bin/env python3
 from py5canvas import *
 import numpy as np
-from py5canvas import rumore
-from importlib import reload
-
-reload(rumore)
 
 def parameters():
     return {'scale':(0.1, 0.001, 0.1),

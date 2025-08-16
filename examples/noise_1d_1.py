@@ -1,10 +1,7 @@
 #!/usr/bin/env python3
 from py5canvas import *
 import numpy as np
-from py5canvas import rumore
-from importlib import reload
-
-reload(rumore)
+from py5canvas import geom
 
 def parameters():
     return {'scale':(0.1, 0.001, 0.1),
@@ -30,8 +27,9 @@ def draw():
 
     noise_detail(params.octaves)
     x = np.linspace(0, width, 300)
-    v = noise(x*params.scale + params.pos + t*params.speed)
-    #v = noise(x*params.scale + params.pos, np.ones_like(x)*t*params.speed)
+    # v = noise(x*params.scale + params.pos + t*params.speed)
+    v = noise(x*params.scale + params.pos, np.ones_like(x)*t*params.speed)
+    #v = sin(x*params.scale)*0.5+0.5
     y = (v*2-1)*h
 
     stroke(255, 0, 0)

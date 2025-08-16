@@ -25,7 +25,8 @@ import importlib
 import importlib.util
 from contextlib import contextmanager
 from easydict import EasyDict as edict
-from . import rumore # Noise utils
+import rumore # Noise utils
+import pdb
 
 # perlin_loader = importlib.util.find_spec('perlin_noise')
 # if perlin_loader is not None:
@@ -2064,12 +2065,7 @@ def fix_clip_path(file_path, out_path):
 # Optional perlin noise init
 _noise_octaves = 4
 _noise_grad = True
-_noise_funcs = [[rumore.value_fbm1,
-                 rumore.value_fbm2,
-                 rumore.value_fbm3],
-                [rumore.grad_fbm1,
-                 rumore.grad_fbm2,
-                 rumore.grad_fbm3]]
+_noise_funcs = [rumore.value_noise, rumore.grad_noise]
 
 def noise_seed(seed):
     """ Sets the seed for the noise generator
@@ -2103,19 +2099,10 @@ def noise(*args):
     - The arguments to this function can vary from 1 to 3, determining the "space" that is sampled to generate noise.
     The function also accepts numpy arrays for each coordinate but these must be of the same size.
     """
-    if is_number(args[0]):
-        scalar = True
-        args = [np.ones(1)*a for a in args]
-    else:
-        scalar = False
-    if len(args) > 3:
-        raise ValueError('Noise with dimension > 3 not implemented')
-    res = _noise_funcs[_noise_grad][len(args)-1](*args, octaves=_noise_octaves)*0.5+0.5
-    if scalar:
-        return res[0]
-    return res
+    res = _noise_funcs[_noise_grad](*args, octaves=_noise_octaves)
+    return res*0.5 + 0.5
 
-def noise_grid(*args):
+def noise_grid(*args, **kwargs):
     """ Returns a 2d array of noise values (between 0 and 1).
     The array can be treated as a grayscale image and is defined by two input 1d array parameters, x and y.
     The number of elements in x and y define the number of columns and rows, respectively.
@@ -2134,17 +2121,7 @@ def noise_grid(*args):
                      np.linspace(0, height, 100), 3.4)
     #end_src
     """
-    if len(args)==3:
-        if _noise_grad:
-            res = rumore.grad_fbm_grid3(*args)
-        else:
-            res = rumore.grad_fbm_grid(*args)
-    else:
-        if _noise_grad:
-            res = rumore.value_fbm_grid3(*args)
-        else:
-            res = rumore.value_fbm_grid(*args)
-    return res*0.5 + 0.5
+    return rumore.noise_grid(*args, gradient=_noise_grad, octaves=_noise_octaves)*0.5+0.5
 
 # Code adapted from https://www.cairographics.org/cookbook/freetypepython/
 
