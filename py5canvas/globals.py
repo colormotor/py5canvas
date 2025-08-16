@@ -30,6 +30,7 @@ radians = canvas.radians
 degrees = canvas.degrees
 noise = canvas.noise
 noise_detail = canvas.noise_detail
+noise_grid = canvas.noise_grid
 noise_seed = canvas.noise_seed
 constrain = np.clip
 

@@ -61,11 +61,17 @@ def is_empty(S):
     return False
 
 
-def radians( x ):
+def vec(*args):
+    return np.array(args)
+
+def colvec(*args):
+    return np.array(args).reshape(-1,1)
+
+def radians(x):
     return np.pi/180*x
 
 
-def degrees( x ):
+def degrees(x):
     return x * (180.0/np.pi)
 
 

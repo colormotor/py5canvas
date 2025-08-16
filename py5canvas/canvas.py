@@ -25,14 +25,16 @@ import importlib
 import importlib.util
 from contextlib import contextmanager
 from easydict import EasyDict as edict
+import rumore # Noise utils
+import pdb
 
-perlin_loader = importlib.util.find_spec('perlin_noise')
-if perlin_loader is not None:
-    from perlin_noise import PerlinNoise
-    perlin = PerlinNoise()
-else:
-    print("Perlin noise not installed. Use `pip install perlin-noise` to install")
-    perlin = None
+# perlin_loader = importlib.util.find_spec('perlin_noise')
+# if perlin_loader is not None:
+#     from perlin_noise import PerlinNoise
+#     perlin = PerlinNoise()
+# else:
+#     print("Perlin noise not installed. Use `pip install perlin-noise` to install")
+#     perlin = None
 
 def is_number(x):
     return isinstance(x, numbers.Number)
@@ -162,8 +164,13 @@ class Canvas:
         else:
             print("Not creating recording context")
 
-        self.ctx.select_font_face("sans-serif")
-        self.ctx.set_font_size(16)
+        # self.ctx.select_font_face("sans-serif")
+        # self.ctx.set_font_size(16)
+        self.font = "sans-serif"
+        self.ctx.select_font_face(self.font)
+        self.font_size = 16
+        self.ctx.set_font_size(self.font_size)
+
         self.line_cap('round')
         self.text_halign = 'left'
         self.text_valign = 'bottom'
@@ -420,7 +427,8 @@ class Canvas:
 
         - ~size~ (int): the text size
         """
-        self.ctx.set_font_size(size)
+        self.font_size = size
+        self.ctx.set_font_size(self.font_size)
 
     def text_font(self, font):
         """Specify the font to use for text rendering
@@ -429,9 +437,30 @@ class Canvas:
         - ~font~ (string): the name of a system font
         """
         if '.ttf' in font:
-            self.ctx.set_font_face(create_cairo_font_face_for_file(font))
+            self.font = create_cairo_font_face_for_file(font)
+            self.ctx.set_font_face(self.font)
         else:
-            self.ctx.select_font_face(font)
+            self.font = font
+            self.ctx.select_font_face(self.font)
+
+    def text_style(self, style):
+        """Specify the style (normal, italic, bold, bolditalic) to use for text
+        rendering
+        Arguments:
+        - ~style~ (string): the name of a style ("normal", "italic", "bold",
+        "bolditalic")
+        """
+        if style == "normal":
+            self.ctx.select_font_face(self.font, cairo.FontSlant.NORMAL)
+        elif style == "italic":
+            self.ctx.select_font_face(self.font, cairo.FontSlant.ITALIC)
+        elif style == "bold":
+            self.ctx.select_font_face(self.font, cairo.FontSlant.NORMAL, cairo.FontWeight.BOLD)
+        elif style == "bolditalic":
+            self.ctx.select_font_face(self.font, cairo.FontSlant.ITALIC, cairo.FontWeight.BOLD)
+        else:
+            print(f"font style `{style}` not recognised (choose from: normal, italic, bold, bolditalic)")
+
 
     def push_matrix(self):
         """
@@ -2034,19 +2063,16 @@ def fix_clip_path(file_path, out_path):
         f.write(txt)
 
 # Optional perlin noise init
-_perlin_octaves = 4
-_perlin_falloff = 0.5
+_noise_octaves = 4
+_noise_grad = True
+_noise_funcs = [rumore.value_noise, rumore.grad_noise]
 
 def noise_seed(seed):
     """ Sets the seed for the noise generator
     """
-    global perlin
+    rumore.cfg.seed = seed
 
-    if perlin is None:
-        raise ValueError('Noise is not installed. use `pip install perlin-noise`')
-    perlin = PerlinNoise(seed=seed)
-
-def noise_detail(octaves, falloff=0.5):
+def noise_detail(octaves, falloff=0.5, lacunarity=2.0, gradient=True):
     """ Adjusts the character and level of detail produced by the Perlin noise function.
 
     Arguments:
@@ -2054,47 +2080,48 @@ def noise_detail(octaves, falloff=0.5):
     - ~octaves~ (int): the number of noise 'octaves'. Each octave has double the frequency of the previous.
     - ~falloff~ (float, default 0.5): a number between 0 and 1 that multiplies the amplitude of each consectutive octave
     """
-    global _perlin_falloff, _perlin_octaves
-
-    if perlin is None:
-        raise ValueError('Noise is not installed. use `pip install perlin-noise`')
-
-    _perlin_falloff = falloff
-    _perlin_octaves = octaves
+    global _noise_octaves, _noise_grad
+    rumore.cfg.falloff = falloff
+    rumore.cfg.lacunarity = lacunarity
+    _noise_octaves = octaves
+    _noise_grad = int(gradient)
 
 def noise(*args):
-    """ Returns a Perlin noise value (between 0 and 1) at a given coordinate.
+    """ Returns noise (between 0 and 1) at a given coordinate or at multiple coordinates.
     Noise is created by summing consecutive "octaves" with increasing level of detail.
-    Each octave has double the frequency of the previous and an amplitude falls off for each octave. By default the falloff is 0.5.
-    The default number of octaves is ~4~. Use `noise_detail~ to set the number of octaves and falloff.
+    By default this function returns "gradient noise", a variant of noise similar to Ken Perlin's original version.
+    Alternatively the function can return "value noise", which is a faster but more blocky version.
+    By default each octave has double the frequency (lacunarity) of the previous and an amplitude falls off for each octave. By default the falloff is 0.5.
+    The default number of octaves is ~4~. Use `noise_detail~ to set the number of octaves and optionally falloff, lacunarity and whether to use gradient or value noise.
 
     Arguments:
 
     - The arguments to this function can vary from 1 to 3, determining the "space" that is sampled to generate noise.
-    The function also accepts a single array parameter with 1 to 3 elements.
+    The function also accepts numpy arrays for each coordinate but these must be of the same size.
     """
-    if perlin is None:
-        raise ValueError('Noise is not installed. use `pip install perlin-noise`')
-    if len(args) > 1:
-        x = np.array(args)
-    else:
-        if not is_number(args[0]):
-            x = np.array(args[0]) #np.array(args[0])
-        else:
-            x = np.array([args[0]])
+    res = _noise_funcs[_noise_grad](*args, octaves=_noise_octaves)
+    return res*0.5 + 0.5
 
-    amp = 1.0
-    ampsum = 0
-    v = 0.0
+def noise_grid(*args, **kwargs):
+    """ Returns a 2d array of noise values (between 0 and 1).
+    The array can be treated as a grayscale image and is defined by two input 1d array parameters, x and y.
+    The number of elements in x and y define the number of columns and rows, respectively.
+    Optionally a third ~z~ parameter can be specified and it defines the depth of a "slice" in a 3d noise volume.
 
-    for i in range(_perlin_octaves):
-        v += perlin(tuple(x))*amp
-        x *= 2
-        ampsum += amp
-        amp *= _perlin_falloff
-    v /= ampsum
-    return v+0.5
+    Arguments:
 
+    - The arguments to this function can be either two arrays, say
+    #begin_src python
+    img = noise_grid(np.linspace(0, width, 100),
+                     np.linspace(0, height, 100))
+    #end_src
+    or three, where the third parameter can be a scalar
+    #begin_src python
+    img = noise_grid(np.linspace(0, width, 100),
+                     np.linspace(0, height, 100), 3.4)
+    #end_src
+    """
+    return rumore.noise_grid(*args, gradient=_noise_grad, octaves=_noise_octaves, **kwargs)*0.5+0.5
 
 # Code adapted from https://www.cairographics.org/cookbook/freetypepython/
 

@@ -139,6 +139,14 @@ Arguments:
 - ~font~ (string): the name of a system font """
     pass  # Dummy method for linter
 
+def text_style(*args):
+    """Specify the style (normal, italic, bold, bolditalic) to use for text
+rendering
+Arguments:
+- ~style~ (string): the name of a style ("normal", "italic", "bold",
+"bolditalic") """
+    pass  # Dummy method for linter
+
 def push_matrix():
     """Save the current transformation """
     pass  # Dummy method for linter
@@ -457,6 +465,9 @@ Arguments:
     (Deprecated) if center=True the text will be horizontally centered """
     pass  # Dummy method for linter
 
+def text_shapes(*args):
+    pass  # Dummy method for linter
+
 def text_shape(*args):
     """Retrieves polylines for a given string of text in the current font
 
@@ -599,11 +610,16 @@ Arguments:
 - ~axis~ (bool, optional): If ~True~ shows the coordinate axes """
     pass  # Dummy method for linter
 
+def create_glcontext():
+    pass  # Dummy method for linter
+
 mouse_x = 'The horizontal coordinate of the mouse position'
 
 mouse_y = 'The vertical coordinate of the mouse position'
 
 frame_count = 'The number of frames since the script has loaded'
+
+clicked = 'Returns ~True~ if mouse was clicked'
 
 dragging = 'Returns ~True~ if mouse is pressed'
 
@@ -708,10 +724,13 @@ def stop_grabbing():
 def finalize_grab():
     pass  # Dummy method for linter
 
-def grab():
+def save_copy(*args):
     pass  # Dummy method for linter
 
-def reload(*args):
+def read_fb(*args):
+    pass  # Dummy method for linter
+
+def grab():
     pass  # Dummy method for linter
 
 def update_globals():

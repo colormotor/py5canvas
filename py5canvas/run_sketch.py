@@ -26,8 +26,9 @@ import os, sys, time
 from py5canvas import canvas, sketch_params
 from py5canvas import globals as glob
 import traceback
-import importlib, inspect
+import importlib, inspect, types
 import importlib.util
+
 import threading
 import cairo
 from inspect import signature
@@ -261,7 +262,8 @@ class Sketch:
         # self.frame_rate(60)
         self.startup_error = False
         self.runtime_error = False
-        self.fps = 60
+        self._fps = 60
+        self.fps = 0
         self.first_load = True
         self._no_loop = False
 
@@ -747,7 +749,7 @@ class Sketch:
             #     self.video_writer = None
 
 
-    def reload(self, var_context):
+    def _reload(self, var_context):
         print("Reloading sketch code")
         self.finalize_grab()
 
@@ -798,9 +800,22 @@ class Sketch:
                 self.prog_uses_imgui = True
             else:
                 self.prog_uses_imgui = False
-                
+
+
             prog = compile(prog_text, self.path, 'exec')
-            print(type(prog))
+
+            # This is necessary to use `importlib.reload` inside a script
+            # as with `exec` alone it will have no effect
+            name = os.path.splitext(os.path.basename(path))[1]
+            loader = importlib.machinery.SourceFileLoader(name, path)
+            spec = importlib.util.spec_from_loader(name, loader)
+
+            mod = types.ModuleType(name)
+            mod.__spec__ = spec
+            mod.__loader__ = loader
+            mod.__package__ = name.rpartition('.')[0] or None
+            mod.__file__ = path
+            sys.modules[name] = mod
 
             # Exposes classes before load because these might be used outside of functions
             var_context['VideoInput'] = canvas.VideoInput
@@ -950,7 +965,6 @@ class Sketch:
         self.var_context['center'] = self.canvas.center
 
         # HACK keep mouse_pressed as a flag for backwards compatibility, but must be deprecated
-
         if 'mouse_pressed' not in self.var_context or not callable(self.var_context['mouse_pressed']):
             self.var_context['mouse_pressed'] = self.dragging
         self.var_context['dragging'] = self.dragging
@@ -969,14 +983,12 @@ class Sketch:
         # see https://stackoverflow.com/questions/39089578/pyglet-synchronise-event-with-frame-drawing
         self._delta_time = dt
 
-        print('update')
-
     def check_reload(self):
         if self.path:
             if self.must_reload or self.watcher.modified(): # Every frame check for file modification
                 print("reloading")
                 # Reload in global namespace
-                self.reload(self.var_context)
+                self._reload(self.var_context)
                 self.must_reload = False
                 self.first_load = True
 
@@ -1048,7 +1060,7 @@ class Sketch:
         did_draw = False
         with perf_timer('update'):
             if self._clicked:
-                print('Mouse button is pressed')
+                pass
 
             if not self.runtime_error or self._frame_count==0:
                 try:
@@ -1160,7 +1172,7 @@ class Sketch:
 
     def frame_rate(self, fps):
         ''' Set the framerate of the sketch in frames-per-second'''
-        self.fps = fps
+        self._fps = fps
 
 
     def start_osc(self):
@@ -1358,7 +1370,7 @@ def main(path='', fps=0, inject=True, show_toolbar=False):
         return
 
     sketch = Sketch(path, 512, 512, inject=inject, show_toolbar=show_toolbar)
-    sketch.fps = fps
+    sketch.f_ps = fps
 
     def canvas_pos(x, y):
         return np.array([x, sketch.window_height-y-sketch.toolbar_height])
@@ -1494,7 +1506,7 @@ def main(path='', fps=0, inject=True, show_toolbar=False):
         sketch.modifiers = mods
         pos = sketch._mouse_pos
         if action == glfw.PRESS:
-            print('Mouse button pressed')
+            # print('Mouse button pressed')
             if imgui_focus():
                 return
             if not point_in_canvas(pos):
@@ -1507,7 +1519,7 @@ def main(path='', fps=0, inject=True, show_toolbar=False):
                 sig = signature(sketch.var_context['mouse_pressed'])
                 sketch.var_context['mouse_pressed'](*params[:len(sig.parameters)])
         elif action == glfw.RELEASE:
-            print('Mouse button released')
+            # print('Mouse button released')
             sketch.mouse_button = button
             sketch._dragging = False
             sketch._clicked = False
@@ -1557,7 +1569,7 @@ def main(path='', fps=0, inject=True, show_toolbar=False):
     if sketch.path:
         if 'exit' in sketch.var_context:
             sketch.var_context['exit']()
-        sketch.reload({}) #globals()) #{}) #locals())
+        sketch._reload({}) #globals()) #{}) #locals())
     else:
         sketch.var_context = {} #globals() #{} #locals()
 
@@ -1587,10 +1599,13 @@ def main(path='', fps=0, inject=True, show_toolbar=False):
         sketch._mouse_pos = np.array(glfw.get_cursor_pos(sketch.window))
 
         do_frame = False
-        if sketch.fps <= 0:
+        delta_t = time.perf_counter() - prev_t
+        sketch.fps = np.round(1.0 / delta_t, 2)
+
+        if sketch._fps <= 0:
             do_frame = True
         else:
-            if time.perf_counter() - prev_t >= 1.0 / sketch.fps:
+            if time.perf_counter() - prev_t >= 1.0 / sketch._fps:
                 do_frame = True
                 prev_t = time.perf_counter()
 
