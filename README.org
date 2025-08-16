@@ -10,53 +10,6 @@ The main idea behind this system is to facilitate the development of creative an
 
 Refer to [[https://github.com/colormotor/py5canvas-examples/blob/master/other/canvas_tutorial.ipynb][this notebook]] for an overview of using Py5canvas in a Jupyter notebook. Download or clone the code in [[https://github.com/colormotor/py5canvas-examples][this example repository]] for examples of interactive scripts. The latter is a fork and extension of [[https://github.com/p5py/p5-examples][the examples for p5py project]], another similar Python port of Processing. See below for how this project differs from p5py.
 
-
-* Table of contents
-:PROPERTIES:
-:TOC:      :include all :force (nothing) :ignore (nothing) :local (nothing)
-:END:
-:CONTENTS:
-- [[#table-of-contents][Table of contents]]
-- [[#similar-projects][Similar projects]]
-- [[#installation][Installation]]
-  - [[#dependencies][Dependencies]]
-    - [[#optional-but-suggested-extensions][Optional (but suggested) extensions]]
-      - [[#open-sound-control-osc][Open Sound Control (OSC)]]
-  - [[#install-py5canvas][Install Py5Canvas]]
-    - [[#pip-installation][Pip installation]]
-    - [[#local-installation][Local installation]]
-- [[#usage][Usage]]
-  - [[#canvas-api][Canvas API]]
-  - [[#interactive-sketches-py5sketch][Interactive sketches: py5sketch]]
-    - [[#a-basic-example][A basic example]]
-      - [[#running-a-script-standalone][Running a script standalone]]
-    - [[#main-differences-with-jsjava][Main differences with JS/Java]]
-      - [[#globals][Globals]]
-        - [[#avoiding-globals-with-a-container][Avoiding globals with a container]]
-      - [[#converting-a-p5js-sketch][Converting a p5js sketch]]
-      - [[#the-sketch-and-canvas-objects][The sketch and canvas objects]]
-    - [[#video-input-and-output][Video input and output]]
-      - [[#playing-video][Playing video]]
-      - [[#saving-video-or-image-sequences][Saving video or image sequences]]
-    - [[#saving-svg-output][Saving SVG output]]
-    - [[#gui-support-and-parameters][GUI support and parameters]]
-      - [[#default-ui][Default UI]]
-      - [[#parameters-and-automatic-gui][Parameters and automatic GUI]]
-        - [[#saving-and-loading][Saving and loading]]
-        - [[#presets][Presets]]
-        - [[#showing-the-gui][Showing the GUI]]
-        - [[#parameter-widget-types][Parameter widget types]]
-          - [[#boolean][Boolean]]
-          - [[#integer][Integer]]
-          - [[#float][Float]]
-          - [[#string][String]]
-          - [[#callable-the-name-of-a-function][Callable (the name of a function)]]
-          - [[#float-array][Float Array]]
-          - [[#integer-array][Integer Array]]
-      - [[#auto-saving][Auto saving]]
-    - [[#osc-support][OSC support]]
-:END:
-
 * Similar projects
 This is one of a number of other ways to develop "Processing-like" code in Python. These are existing projects with a similar goal:
 - [[https://p5.readthedocs.io/en/latest/][p5py]] is perhaps the most similar and more mature than this project. It allows to write sketches with a syntax similar to processing in pure Python, and uses on [[https://numpy.org][NumPy]] and [[https://vispy.org][VisPy]] as backends. It supports different graphics backends and 3d graphics functionalities similart to Processing. However, it does not provide a Jupyter notebook interface and live reloading of scripts.
