@@ -63,8 +63,13 @@ This is one of a number of other ways to develop "Processing-like" code in Pytho
 - Processing has a [[https://py.processing.org][Python mode]], but this deviates from the standard way of installing Python dependencies (e.g. Pip or Conda) and makes it more challenging to take full advantage of the big echosystem of Python packages/libraries.
 - [[https://www.drawbot.com][DrawBot]] uses a different syntax but has a similar goal of easily "sketching" 2d designs in Python. It currently only runs on MacOS.
 
-The main drive to develop this new system has been to provide a drawing interface in Python notebooks that is similar to Processing and to allow "live coding" (or more precicesely live-reloading) of interactive sketches for quicker prototyping of ideas. While the syntax of the sketches is similar to P5js or Processing, the aim of this system is to provide a platform similar to DrawBot for interactive editing of scripts and with a focus on 2d vector graphics. The interactive sketch system allows for the easy creation of a UI and parameter saving, which is similar in spirit to DrawBot. The syntax of sketches is almost identical to [[https://p5.readthedocs.io/en/latest/][p5py]], making the relevant examples and documentation a useful reference for py5canvas as well. The examples Most of these latter examples are an adaptation of Processing examples developed for a project very similar to this one taken from the example code of
-provided with p5py
+The main drive to develop this new system has been to provide a drawing interface for Python that is similar to Processing/P5js and:
+- Can be used inside Jupyter notebooks
+- Supports "live coding" (or more precicesely live-reloading) of interactive sketches for quicker prototyping of ideas.
+
+While the syntax of the sketches is similar to P5js or Processing, the aim of this system is to provide a platform similar to DrawBot for interactive editing of scripts and with a focus on 2d vector graphics.
+
+The interactive sketch system allows for the easy creation of a UI and parameter saving, which is similar in spirit to DrawBot. The syntax of sketches is almost identical to [[https://p5.readthedocs.io/en/latest/][p5py]], making the relevant examples and documentation a useful reference for py5canvas as well. The examples Most of these latter examples are an adaptation of Processing examples developed for a project very similar to this one taken from the example code of provided with p5py.
 
 * Installation
 While you can install py5canvas directly with "pip", it is recommended to create a conda environment
@@ -122,15 +127,13 @@ If you installed from source (pip+git) but not locally update to the latest vers
 pip install --upgrade  --force-reinstall --no-deps git+https://github.com/colormotor/py5canvas.git
 #+end_example
 
-
-
-
-** Install through pip (currently not recommended)
+** Install through pip (needs testing on Mac)
 While the whole package can be installed with
 #+begin_example
 pip install py5canvas
 #+end_example
 This can cause problems on mac with pyCairo, which at this time does not install the required C++ libraries when installed with pip.
+
 ** Installing on Google colab
 To install on Google Colab, and Linux if you don't want to use conda
 #+BEGIN_SRC jupyter-python :session py
@@ -138,21 +141,24 @@ To install on Google Colab, and Linux if you don't want to use conda
 !pip install py5canvas
 #+END_SRC
 
-
-
 ** Optional (but suggested) extensions
+**** IMGUI
+The interactive sketch interface supports automatic GUI creation for parameters. To support this feature do:
+#+begin_example
+pip install "imgui[glfw]"
+#+end_example
+The quotes are necessary for this to work on Mac.
+
 **** Open Sound Control (OSC)
 The sketch interface also provides optional OSC functionality through the  [[https://pypi.org/project/python-osc/][python-osc]] module. This enables communication with other software that supports the protocol. It can be installed with:
 #+begin_example
 pip install python-osc
 #+end_example
 See the relevant section below for usage details.
-
-
 * Usage
 ** Canvas API
 Once installed you can use the py5canvas API in a notebook (or Python program) by simply importing it. This is a simple example that will save an image and show it with Matplotlib:
-#+BEGIN_SRC jupyter-python :session py :results none
+#+BEGIN_SRC jupyter-python :session py :exports code :file images/canvas.png
 from py5canvas import *
 # Create our canvas object
 create_canvas(512, 512)
@@ -162,17 +168,22 @@ background(0)
 stroke(128)
 no_fill()
 stroke_weight(5)
-circle(c.width/2, c.height/2, 100)
+circle(width/2, height/2, 100)
 # Draw red text
 fill(255, 0, 0)
+no_stroke()
 text_size(30)
-text("Hello world", [c.width/2, 40], center=True)
-# Save image
-# save_image('./images/canvas.png')
+text("Hello world", [width/2, 40], center=True)
 show()
 #+end_src
 
-[[./images/canvas.png]]
+#+RESULTS:
+[[file:images/canvas.png]]
+
+#+begin_export md
+![img](https://raw.githubusercontent.com/colormotor/rumore/main/images/canvas.png)
+
+#+end_export
 
 In general, the syntax is very similar to P5js but it uses ~snake_case~ as a syntax convention. The canvas functions become available to the notebook cell once ~create_canvas~ is created. Note that this is a hack to expose a functionality as similar as possible to Processing. However, under the hood py5canvas creates a ~Canvas~ object that can be also accessed explicitly if desired. For more detailed instructions refer to [[https://github.com/colormotor/py5canvas/blob/main/examples/canvas_tutorial.ipynb][this notebook]].
 
@@ -184,7 +195,7 @@ While the Canvas API alone does not supprt interactivity, the ~py5sketch~ progra
 *** A basic example
 Let's look at a simple example (~basic_animation.py~) that generates a rotating circle that leaves a trail behind
 
-#+begin_src python
+#+begin_src python :eval never-export
 from py5canvas import *
 
 def setup():
@@ -222,7 +233,7 @@ However, there are a number of differences to take into account.
 
 **** Globals
 Differently from Javascript or Java, Python does not allow modifications to globals from within a function by default. For example this code snippet
-#+BEGIN_SRC python
+#+BEGIN_SRC python :eval never-export
 foo = 10
 def draw():
     print(foo)
@@ -230,7 +241,7 @@ def draw():
 #+END_SRC
 will print the value of ~foo~ but incrementing the variable will not work. To make this work we need to explicitly declare
 ~foo~ as a global. In the following example we declare two variables as globals allowing the function to modify both.
-#+begin_src python
+#+begin_src python :eval never-export
 foo = 10
 bar = 20
 def draw():
@@ -241,7 +252,7 @@ def draw():
 
 ***** Avoiding globals with a container
 One way to avoid haing to declare globals every time is to put the parameters that can be modified within a function inside a container. As an example, we could use an anonymous function or an [[https://pypi.org/project/easydict/][EasyDict]] dictionary. The anonymous function trick would be as follows:
-#+begin_src python
+#+begin_src python :eval never-export
 params = lambda: None
 params.foo = 10
 params.bar = 20
@@ -251,7 +262,7 @@ def draw():
     params.bar -= 1
 #+end_src
 An alternative, that is also useful to automatically create a GUI and save/load parameters is using [[https://pypi.org/project/easydict/][EasyDict]], which allows accessing elements of a dictionary without using quotes:
-#+begin_src python
+#+begin_src python :eval never-export
 from easydict import EasyDict as edict
 params = edict({
     'foo': 10,
@@ -280,7 +291,7 @@ globals, so it is not necessary to reference these objects explicitly. This is
 useful for rapidly prototyping simple scripts, but it can become problematic as program complexity grows. As an example, while easy to remember,
 function names like ~scale~, ~rotate~ etc, these are quite common words and it is easy
 to overwrite them by mistake while writing a script. Take this sketch as an example:
-#+begin_src python
+#+begin_src python :eval never-export
 from py5canvas import *
 scale = 1.0
 
@@ -300,7 +311,7 @@ it won't work because the variable ~scale~ has been dynamically replaced with th
 
 To overcome this issue, we can access the canvas functionalities instead by referring to the ~sketch.canvas~ object (assigning it to a variable ~c~ for
 brevity). So the following will work:
-#+begin_src python
+#+begin_src python :eval never-export
 from py5canvas import *
 scale = 1.0
 
@@ -345,15 +356,24 @@ If pyImGui is installed, the ~py5sketch~ program will feature a basic toolbar. T
 
 While one can use the immediate mode paradigm to create a dynamic UI in the ~draw~ function, it is also possible to automatically create an UI for a given number of parameters.
 The parameters are defined by passing returning a dictionary from the a custom defined ~parameters()~ function, e.g.:
-#+begin_src python
+#+begin_src python :eval never-export
 def parameters():
     return {'Width': (100, {'min': 10, 'max': 200}),
           'Height': (100, {'min': 10, 'max': 200}),
           'rectangle color': ([255, 0, 0], {'type':'color'})}
 #+end_src
+Or with the more concise syntax:
+#+begin_src python :eval never-export
+def parameters():
+    return {'Width': (100.0, 10.0, 200.0),
+          'Height': (100.0, 10.0, 200.0),
+          'rectangle color': ([255, 0, 0], {'type':'color'})}
+#+end_src
 The parameters will be then accessible in the script through the ~params~ variable.
 
-[[./images/params.jpg]]
+#+begin_export md
+![img](https://raw.githubusercontent.com/colormotor/py5canvas/main/images/params.jpg)
+#+end_export
 
 This syntax defines the parameters as a dictionary. Internally this will be converted to a more convenient [[https://pypi.org/project/easydict/][EasyDict]] structure, that allows the parameters to be accessed with dot notation through the ~params~ object, e.g. ~params.width~ or ~params.rectangle_color~ for the example above. Note that the parameter names we defined contain spaces and capitals. *These will be automatically converted to names that are all lower-case and with spaces replaced by underscores.* The names originally specified will instead appear by deault as labels when the GUI is created.
 
