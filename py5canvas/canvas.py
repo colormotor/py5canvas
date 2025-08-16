@@ -2121,7 +2121,7 @@ def noise_grid(*args, **kwargs):
                      np.linspace(0, height, 100), 3.4)
     #end_src
     """
-    return rumore.noise_grid(*args, gradient=_noise_grad, octaves=_noise_octaves)*0.5+0.5
+    return rumore.noise_grid(*args, gradient=_noise_grad, octaves=_noise_octaves, **kwargs)*0.5+0.5
 
 # Code adapted from https://www.cairographics.org/cookbook/freetypepython/
 

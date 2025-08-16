@@ -14,7 +14,6 @@ def setup():
 
 
 def draw():
-
     background(0)
     translate(center)
 
