@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "py5canvas"
+version = "0.9"
+description = "Drawings and animations with a p5.js / Processing-like API."
+readme = { file = "README.md", content-type = "text/markdown" }
+license = { text = "MIT" }
+authors = [{ name = "Daniel Berio", email = "drand48@gmail.com" }]
+requires-python = ">=3.9"
+dependencies = [
+  "numpy",
+  "pillow",
+  "PyOpenGL",
+  "moderngl",
+  "glfw",
+  "pycairo",
+  "rumore",
+  "easydict",
+  "xdialog",
+]
+
+[project.scripts]
+py5sketch = "py5canvas.run_sketch:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["py5canvas*"]
