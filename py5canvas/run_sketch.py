@@ -213,6 +213,8 @@ class Sketch:
         glfw.window_hint(glfw.OPENGL_FORWARD_COMPAT, True)
         glfw.window_hint(glfw.RESIZABLE, False)
         glfw.window_hint(glfw.COCOA_RETINA_FRAMEBUFFER, glfw.FALSE)
+        glfw.window_hint(glfw.FLOATING, glfw.TRUE)
+
         # glfw.window_hint(glfw.SRGB_CAPABLE, glfw.TRUE)
 
         self.window = glfw.create_window(width, height, title, None, None)
