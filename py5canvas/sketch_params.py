@@ -22,9 +22,9 @@ import importlib.util
 
 
 # Optionally import imgui
-imgui_loader = importlib.util.find_spec('imgui')
+imgui_loader = importlib.util.find_spec('slimgui')
 if imgui_loader is not None:
-    import imgui
+    from slimgui import imgui
     # from imgui.integrations.pyglet import create_renderer
 else:
     imgui = None
@@ -212,10 +212,15 @@ if imgui is not None:
         col_back_sat = (sat_mul*59) / 255
         col_back_val = 40 / 255
 
-        col_text = imgui.color_convert_hsv_to_rgb(hue, 20 / 255, 235 / 255)
-        col_main = imgui.color_convert_hsv_to_rgb(hue, col_main_sat, col_main_val)
-        col_back = imgui.color_convert_hsv_to_rgb(hue, col_back_sat, col_back_val)
-        col_area = imgui.color_convert_hsv_to_rgb(hue, col_area_sat, col_area_val)
+        # col_text = imgui.color_convert_hsv_to_rgb(hue, 20 / 255, 235 / 255)
+        # col_main = imgui.color_convert_hsv_to_rgb(hue, col_main_sat, col_main_val)
+        # col_back = imgui.color_convert_hsv_to_rgb(hue, col_back_sat, col_back_val)
+        # col_area = imgui.color_convert_hsv_to_rgb(hue, col_area_sat, col_area_val)
+
+        col_text = imgui.color_convert_hsv_to_rgb([hue, 20 / 255, 235 / 255, 1.0])[:3]
+        col_main = imgui.color_convert_hsv_to_rgb([hue, col_main_sat, col_main_val, 1.0])[:3]
+        col_back = imgui.color_convert_hsv_to_rgb([hue, col_back_sat, col_back_val, 1.0])[:3]
+        col_area = imgui.color_convert_hsv_to_rgb([hue, col_area_sat, col_area_val, 1.0])[:3]
 
         style = imgui.get_style() # override active style
         imgui.style_colors_dark(style) # optional: set base colors from "Dark" (or any other) style
@@ -223,83 +228,81 @@ if imgui is not None:
         style.window_rounding = 0.0
         style.indent_spacing = 5
 
-        style.colors[imgui.COLOR_TEXT] = \
+        style.colors[imgui.Col.TEXT] = \
         [col_text[0], col_text[1], col_text[2], 1.00]
-        style.colors[imgui.COLOR_TEXT_DISABLED] = \
+        style.colors[imgui.Col.TEXT_DISABLED] = \
         [col_text[0], col_text[1], col_text[2], 0.58]
-        style.colors[imgui.COLOR_WINDOW_BACKGROUND] = \
-        [col_back[0], col_back[1], col_back[2], 1.00]
-        style.colors[imgui.COLOR_CHILD_BACKGROUND] = \
+        style.colors[imgui.Col.CHILD_BG] = \
         [col_back[0] * 0.7, col_back[1] * 0.7, col_back[2] * 0.7, 1.0]
-        style.colors[imgui.COLOR_BORDER] = \
+        style.colors[imgui.Col.BORDER] = \
         [col_text[0], col_text[1], col_text[2], 0.30]
-        style.colors[imgui.COLOR_BORDER_SHADOW] = \
+        style.colors[imgui.Col.BORDER_SHADOW] = \
         [0.0, 0.0, 0.0, 0.0]
-        style.colors[imgui.COLOR_FRAME_BACKGROUND] = \
+        style.colors[imgui.Col.FRAME_BG] = \
         [col_area[0], col_area[1], col_area[2], 1.00]
-        style.colors[imgui.COLOR_FRAME_BACKGROUND_HOVERED] = \
+        style.colors[imgui.Col.FRAME_BG_HOVERED] = \
         [col_main[0], col_main[1], col_main[2], 0.68]
-        style.colors[imgui.COLOR_FRAME_BACKGROUND_ACTIVE] = \
+        style.colors[imgui.Col.FRAME_BG_ACTIVE] = \
         [col_main[0], col_main[1], col_main[2], 1.00]
-        style.colors[imgui.COLOR_TITLE_BACKGROUND] = \
+        style.colors[imgui.Col.TITLE_BG] = \
         [col_main[0], col_main[1], col_main[2], 0.45]
-        style.colors[imgui.COLOR_TITLE_BACKGROUND_COLLAPSED] = \
+        style.colors[imgui.Col.TITLE_BG_COLLAPSED] = \
         [col_main[0], col_main[1], col_main[2], 0.35]
-        style.colors[imgui.COLOR_TITLE_BACKGROUND_ACTIVE] = \
+        style.colors[imgui.Col.TITLE_BG_ACTIVE] = \
         [col_main[0], col_main[1], col_main[2], 0.78]
-        style.colors[imgui.COLOR_MENUBAR_BACKGROUND] = \
+        style.colors[imgui.Col.MENU_BAR_BG] = \
         [col_area[0], col_area[1], col_area[2], 0.57]
-        style.colors[imgui.COLOR_SCROLLBAR_BACKGROUND] = \
+        style.colors[imgui.Col.SCROLLBAR_BG] = \
         [col_area[0], col_area[1], col_area[2], 1.00]
-        style.colors[imgui.COLOR_SCROLLBAR_GRAB] = \
+        style.colors[imgui.Col.SCROLLBAR_GRAB] = \
         [col_main[0], col_main[1], col_main[2], 0.31]
-        style.colors[imgui.COLOR_SCROLLBAR_GRAB_HOVERED] = \
+        style.colors[imgui.Col.SCROLLBAR_GRAB_HOVERED] = \
         [col_main[0], col_main[1], col_main[2], 0.78]
-        style.colors[imgui.COLOR_SCROLLBAR_GRAB_ACTIVE] = \
+        style.colors[imgui.Col.SCROLLBAR_GRAB_ACTIVE] = \
         [col_main[0], col_main[1], col_main[2], 1.00]
-        style.colors[imgui.COLOR_POPUP_BACKGROUND] = \
+        style.colors[imgui.Col.POPUP_BG] = \
         [col_area[0], col_area[1], col_area[2], 1.00]
-        style.colors[imgui.COLOR_CHECK_MARK] = \
+        style.colors[imgui.Col.CHECK_MARK] = \
         [col_main[0], col_main[1], col_main[2], 0.80]
-        style.colors[imgui.COLOR_SLIDER_GRAB] = \
+        style.colors[imgui.Col.SLIDER_GRAB] = \
         [col_main[0]*0.7, col_main[1]*0.7, col_main[2]*0.7, 1.0]
-        style.colors[imgui.COLOR_SLIDER_GRAB_ACTIVE] = \
+        style.colors[imgui.Col.SLIDER_GRAB_ACTIVE] = \
         [col_main[0], col_main[1], col_main[2], 1.00]
-        style.colors[imgui.COLOR_BUTTON] = \
+        style.colors[imgui.Col.BUTTON] = \
         [col_main[0], col_main[1], col_main[2], 0.44]
-        style.colors[imgui.COLOR_BUTTON_HOVERED] = \
+        style.colors[imgui.Col.BUTTON_HOVERED] = \
         [col_main[0], col_main[1], col_main[2], 0.86]
-        style.colors[imgui.COLOR_BUTTON_ACTIVE] = \
+        style.colors[imgui.Col.BUTTON_ACTIVE] = \
         [col_main[0], col_main[1], col_main[2], 1.00]
-        style.colors[imgui.COLOR_HEADER] = \
+        style.colors[imgui.Col.HEADER] = \
         [col_main[0], col_main[1], col_main[2], 0.76]
-        style.colors[imgui.COLOR_HEADER_HOVERED] = \
+        style.colors[imgui.Col.HEADER_HOVERED] = \
         [col_main[0], col_main[1], col_main[2], 0.86]
-        style.colors[imgui.COLOR_HEADER_ACTIVE] = \
+        style.colors[imgui.Col.HEADER_ACTIVE] = \
         [col_main[0], col_main[1], col_main[2], 1.00]
-        style.colors[imgui.COLOR_SEPARATOR] = \
+        style.colors[imgui.Col.SEPARATOR] = \
         [col_text[0], col_text[1], col_text[2], 0.32]
-        style.colors[imgui.COLOR_SEPARATOR_HOVERED] = \
+        style.colors[imgui.Col.SEPARATOR_HOVERED] = \
         [col_text[0], col_text[1], col_text[2], 0.78]
-        style.colors[imgui.COLOR_SEPARATOR_ACTIVE] = \
+        style.colors[imgui.Col.SEPARATOR_ACTIVE] = \
         [col_text[0], col_text[1], col_text[2], 1.00]
-        style.colors[imgui.COLOR_RESIZE_GRIP] = \
+        style.colors[imgui.Col.RESIZE_GRIP] = \
         [col_main[0], col_main[1], col_main[2], 0.20]
-        style.colors[imgui.COLOR_RESIZE_GRIP_HOVERED] = \
+        style.colors[imgui.Col.RESIZE_GRIP_HOVERED] = \
         [col_main[0], col_main[1], col_main[2], 0.78]
-        style.colors[imgui.COLOR_RESIZE_GRIP_ACTIVE] = \
+        style.colors[imgui.Col.RESIZE_GRIP_ACTIVE] = \
         [col_main[0], col_main[1], col_main[2], 1.00]
-        style.colors[imgui.COLOR_PLOT_LINES] = \
+        style.colors[imgui.Col.PLOT_LINES] = \
         [col_text[0], col_text[1], col_text[2], 0.63]
-        style.colors[imgui.COLOR_PLOT_LINES_HOVERED] = \
+        style.colors[imgui.Col.PLOT_LINES_HOVERED] = \
         [col_main[0], col_main[1], col_main[2], 1.00]
-        style.colors[imgui.COLOR_PLOT_HISTOGRAM] = \
+        style.colors[imgui.Col.PLOT_HISTOGRAM] = \
         [col_text[0], col_text[1], col_text[2], 0.63]
-        style.colors[imgui.COLOR_PLOT_HISTOGRAM_HOVERED] = \
+        style.colors[imgui.Col.PLOT_HISTOGRAM_HOVERED] = \
         [col_main[0], col_main[1], col_main[2], 1.00]
-        style.colors[imgui.COLOR_TEXT_SELECTED_BACKGROUND] = \
+        style.colors[imgui.Col.TEXT_SELECTED_BG] = \
         [col_main[0], col_main[1], col_main[2], 0.43]
-        style.colors[imgui.COLOR_MODAL_WINDOW_DIM_BACKGROUND] = \
+        style.colors[imgui.Col.MODAL_WINDOW_DIM_BG] = \
         [0.20, 0.20, 0.20, 0.35]
 
 
@@ -362,7 +365,7 @@ if imgui is not None:
                     continue
                 if type(val) == dict: # A dict marks a group
                     key = val['__key__'] # Assume this has been filled automatically
-                    if imgui.tree_node(name, imgui.TREE_NODE_DEFAULT_OPEN):
+                    if imgui.tree_node(name, imgui.TreeNodeFlags.DEFAULT_OPEN):
                         imgui.push_id(name)
                         self.show_params(params[key], val, parent + key + '.', depth+1)
                         imgui.pop_id()
@@ -394,9 +397,9 @@ if imgui is not None:
                             if 'buf_length' in opts:
                                 buf_length = opts['buf_length']
                             if 'multiline' in opts and opts['multiline']:
-                                changed, params[key] = imgui.input_text_multiline(name, params[key], buf_length, 0, 0, imgui.INPUT_TEXT_ENTER_RETURNS_TRUE)
+                                changed, params[key] = imgui.input_text_multiline(name, params[key], buf_length, 0, 0, imgui.InputTextFlags.ENTER_RETURNS_TRUE)
                             else:
-                                changed, params[key] = imgui.input_text(name, params[key], buf_length, imgui.INPUT_TEXT_ENTER_RETURNS_TRUE)
+                                changed, params[key] = imgui.input_text(name, params[key],  imgui.InputTextFlags.ENTER_RETURNS_TRUE)
                         elif param_type == 'selection':
                             changed, params[key] = imgui.combo(name, params[key], opts['selection'])
                         elif param_type == 'float':
@@ -411,9 +414,9 @@ if imgui is not None:
                             clr = np.array(params[key], dtype=np.float32)
                             clr /= self.sketch.canvas.color_scale[:len(clr)]
                             if len(clr) == 3:
-                                changed, clr = imgui.color_edit3(name, *clr) #, imgui.COLOR_EDIT_DISPLAY_HSV)
+                                changed, clr = imgui.color_edit3(name, clr) #, imgui.COLOR_EDIT_DISPLAY_HSV)
                             else:
-                                changed, clr = imgui.color_edit4(name, *clr) #, imgui.COLOR_EDIT_DISPLAY_HSV)
+                                changed, clr = imgui.color_edit4(name, clr) #, imgui.COLOR_EDIT_DISPLAY_HSV)
                             params[key] = np.array(clr)*self.sketch.canvas.color_scale[:len(clr)]
                         if changed:
                             self.changed.add(parent + key)
@@ -431,12 +434,12 @@ if imgui is not None:
             self.sketch = sketch
             # Top bar
             ratio = sketch.get_pixel_ratio()
-            imgui.set_next_window_size(sketch.window_width, sketch.toolbar_height)
-            imgui.set_next_window_position(0, 0)
-            imgui.begin("Toolbar", True, (imgui.WINDOW_NO_RESIZE |
-                                            imgui.WINDOW_NO_TITLE_BAR |
-                                            imgui.WINDOW_NO_SAVED_SETTINGS |
-                                            imgui.WINDOW_NO_SCROLLBAR))
+            imgui.set_next_window_size([sketch.window_width, sketch.toolbar_height])
+            imgui.set_next_window_pos([0, 0])
+            imgui.begin("Toolbar", True, (imgui.WindowFlags.NO_RESIZE |
+                                            imgui.WindowFlags.NO_TITLE_BAR |
+                                            imgui.WindowFlags.NO_SAVED_SETTINGS |
+                                            imgui.WindowFlags.NO_SCROLLBAR))
 
             if imgui.button('Load sketch...'):
                 path = sketch.open_file_dialog('py')
@@ -452,15 +455,15 @@ if imgui is not None:
                     if os.path.isfile(json_path):
                         shutil.copy(json_path, path.replace('.py', '.json'))
             if imgui.is_item_hovered():
-                with imgui.begin_tooltip():
+                if imgui.begin_tooltip():
                     imgui.text('Save a copy of the current sketch')
                     imgui.text('and its parameters')
+                    imgui.end_tooltip()
             imgui.same_line()
             if imgui.button('Reload'):
                 sketch.must_reload = True
             if imgui.is_item_hovered():
-                with imgui.begin_tooltip():
-                    imgui.text('Force reload sketch')
+                imgui.set_tooltip('Force reload sketch')
             imgui.same_line()
             if imgui.button('Save SVG...'):
                 name = os.path.splitext(os.path.basename(sketch.path))[0]
@@ -474,11 +477,10 @@ if imgui is not None:
                 if path:
                     sketch.dump_canvas(path)
             if imgui.is_item_hovered():
-                with imgui.begin_tooltip():
-                    imgui.text('Save sketch output as SVG')
+                imgui.set_tooltip('Save sketch output as SVG')
 
             imgui.same_line()
-            imgui.push_style_color(imgui.COLOR_TEXT, 0.5, 0.5, 0.5)
+            imgui.push_style_color(imgui.Col.TEXT, [0.5, 0.5, 0.5])
             script_name = os.path.basename(sketch.path)
             imgui.text('Sketch: ' + script_name)
             imgui.pop_style_color(1)
@@ -487,15 +489,15 @@ if imgui is not None:
         def begin_gui(self, sketch):
             self.sketch = sketch
             ratio = 1 #sketch.window.get_pixel_ratio()
-            imgui.set_next_window_size(self.width, (sketch.window_height - sketch.toolbar_height)*ratio)
-            imgui.set_next_window_position((sketch.window_width - self.width)*ratio, sketch.toolbar_height)
-            imgui.begin("Py5sketch", True, (imgui.WINDOW_NO_RESIZE |
-                                            imgui.WINDOW_NO_TITLE_BAR |
-                                            imgui.WINDOW_NO_SAVED_SETTINGS))
+            imgui.set_next_window_size([self.width, (sketch.window_height - sketch.toolbar_height)*ratio])
+            imgui.set_next_window_pos([(sketch.window_width - self.width)*ratio, sketch.toolbar_height])
+            imgui.begin("Py5sketch", True, (imgui.WindowFlags.NO_RESIZE |
+                                            imgui.WindowFlags.NO_TITLE_BAR |
+                                            imgui.WindowFlags.NO_SAVED_SETTINGS))
             imgui.begin_child("Sketch")
 
         def show_sketch_controls(self):
-            return imgui.collapsing_header("Controls", None, imgui.TREE_NODE_DEFAULT_OPEN)[0]
+            return imgui.collapsing_header("Controls", None, imgui.TreeNodeFlags.DEFAULT_OPEN)[0]
 
         def clear_changed(self):
             self.changed = set()
@@ -507,7 +509,7 @@ if imgui is not None:
                 self.begin_gui()
             
 
-            if imgui.collapsing_header("Parameters", None, imgui.TREE_NODE_DEFAULT_OPEN)[0]:
+            if imgui.collapsing_header("Parameters", None, imgui.TreeNodeFlags.DEFAULT_OPEN)[0]:
                 if sketch.params is not None:
                     self.show_params(sketch.params.params, sketch.params.gui_params)
 
@@ -516,7 +518,7 @@ if imgui is not None:
             imgui.spacing()
 
             if sketch.params is not None:
-                if imgui.collapsing_header("Presets", None, imgui.TREE_NODE_DEFAULT_OPEN):
+                if imgui.collapsing_header("Presets", None, imgui.TreeNodeFlags.DEFAULT_OPEN):
                     preset_names = [k for k in sketch.params.presets.keys()]
                     preset_name = ''
                     if 0 <= sketch.params.current_preset < len(preset_names):
@@ -531,11 +533,12 @@ if imgui is not None:
                             sketch.current_preset = sketch.params.preset_index(self.cur_preset_name)
                             preset_name = self.cur_preset_name
                         if imgui.is_item_hovered():
-                            with imgui.begin_tooltip():
+                            if imgui.begin_tooltip():
                                 if self.cur_preset_name == preset_name:
                                     imgui.text('Update preset')
                                 else:
                                     imgui.text('Add new preset')
+                                imgui.end_tooltip()
 
                     if preset_name:
                         if buttons:
@@ -545,19 +548,17 @@ if imgui is not None:
                             sketch.params.delete_preset(preset_name)
                             sketch.params.current_preset = -1
                         if imgui.is_item_hovered():
-                            with imgui.begin_tooltip():
-                                imgui.text('Delete selected preset')
+                            imgui.set_tooltip('Delete selected preset')
 
                     if buttons:
                         imgui.same_line()
-                    changed, self.cur_preset_name = imgui.input_text('Name', self.cur_preset_name, 512, imgui.INPUT_TEXT_ENTER_RETURNS_TRUE)
+                    changed, self.cur_preset_name = imgui.input_text('Name', self.cur_preset_name, imgui.InputTextFlags.ENTER_RETURNS_TRUE)
                     if preset_name:
                         if imgui.is_item_hovered():
-                            with imgui.begin_tooltip():
-                                imgui.text('Press enter to update preset name')
+                            imgui.set_tooltip('Press enter to update preset name')
 
 
-                    clicked, sketch.params.current_preset = imgui.listbox("Presets", sketch.params.current_preset, preset_names)
+                    clicked, sketch.params.current_preset = imgui.list_box("Presets", sketch.params.current_preset, preset_names)
 
                     if clicked:
                         sketch.params.apply_preset(preset_names[sketch.params.current_preset])

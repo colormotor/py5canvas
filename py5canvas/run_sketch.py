@@ -47,10 +47,10 @@ if IPython_loader is not None:
 #from tkinter import filedialog
 
 # Optionally import imgui
-imgui_loader = importlib.util.find_spec('imgui')
+imgui_loader = importlib.util.find_spec('slimgui')
 if imgui_loader is not None:
-    import imgui
-    from imgui.integrations.glfw import GlfwRenderer
+    from slimgui import imgui
+    from slimgui.integrations.glfw import GlfwRenderer
     #from imgui.integrations.glfw import create_renderer
 else:
     imgui = None
@@ -220,6 +220,15 @@ class Sketch:
 
         self.create_glcontext()
 
+        # For IMGUI use, initialized on first frame
+        self.impl = None
+        # For some reason this only works here and not in the constructor.
+        if True: #self.impl is None:
+            imgui.create_context()
+            # Forwarding callbacks manually since Imgui eats these otherwise
+            self.impl = GlfwRenderer(self.window, attach_callbacks=True)
+            sketch_params.set_theme()
+
         # # OpenGL context, shader and vao for rendering canvas
         # self.glctx = mgl.create_context()
         # prog = self.glctx.program(vertex_shader=quad_vertex_shader, fragment_shader=quad_fragment_shader)
@@ -253,8 +262,7 @@ class Sketch:
         self._gui_visible = True
         self.keep_aspect_ratio = True
 
-        # For IMGUI use, initialized on first frame
-        self.impl = None
+
         # Saving window position for fullscreen toggle
         self.last_window_pos = None
 
@@ -1004,13 +1012,8 @@ class Sketch:
 
 
         if imgui is not None:
-            # For some reason this only works here and not in the constructor.
-            if self.impl is None:
-                imgui.create_context()
-                # Forwarding callbacks manually since Imgui eats these otherwise
-                self.impl = GlfwRenderer(self.window, attach_callbacks=False)
-                sketch_params.set_theme()
             try:
+                self.impl.new_frame()
                 imgui.new_frame()
             except imgui.core.ImGuiError as e:
                 print('Error in imgui new_frame')
@@ -1370,7 +1373,7 @@ def main(path='', fps=0, inject=True, show_toolbar=False):
         return
 
     sketch = Sketch(path, 512, 512, inject=inject, show_toolbar=show_toolbar)
-    sketch.f_ps = fps
+    sketch._fps = fps
 
     def canvas_pos(x, y):
         return np.array([x, sketch.window_height-y-sketch.toolbar_height])
@@ -1384,7 +1387,7 @@ def main(path='', fps=0, inject=True, show_toolbar=False):
         if imgui is None:
             return False
         #return False
-        return imgui.core.is_any_item_active()
+        return imgui.is_any_item_active()
 
     def point_in_canvas(p):
         return (p[0] >= 0 and p[0] < sketch.canvas.width and
@@ -1544,12 +1547,16 @@ def main(path='', fps=0, inject=True, show_toolbar=False):
     def window_pos_callback(window, x, y):
         pass #print("Window pos", x, y)
 
-    # pdb.set_trace()
     glfw.set_window_content_scale_callback(sketch.window, window_content_scale_callback)
-    glfw.set_key_callback(sketch.window, key_callback)
-    glfw.set_char_callback(sketch.window, char_callback)
-    glfw.set_cursor_pos_callback(sketch.window, cursor_position_callback)
-    glfw.set_mouse_button_callback(sketch.window, mouse_button_callback)
+    #glfw.set_key_callback(sketch.window, key_callback)
+    sketch.impl.prev_key_callback = key_callback
+    #glfw.set_char_callback(sketch.window, char_callback)
+    sketch.impl.prev_char_callback = char_callback
+    #glfw.set_cursor_pos_callback(sketch.window, cursor_position_callback)
+    sketch.impl.prev_cursor_pos_callback = cursor_position_callback
+    #glfw.set_mouse_button_callback(sketch.window, mouse_button_callback)
+    sketch.impl.prev_mouse_button_callback = mouse_button_callback
+
     glfw.set_framebuffer_size_callback(sketch.window, framebuffer_size_callback)
     glfw.set_window_pos_callback(sketch.window, window_pos_callback)
     # sketch.window.push_handlers(on_key_press,
@@ -1621,8 +1628,8 @@ def main(path='', fps=0, inject=True, show_toolbar=False):
         frame_drawn = sketch.frame(do_frame)
 
 
-        if sketch.impl is not None:
-            sketch.impl.process_inputs()
+        # if sketch.impl is not None:
+        #     sketch.impl.process_inputs()
 
         sketch.canvas_tex.use(0)
         content_scale = glfw.get_window_content_scale(sketch.window)
@@ -1660,8 +1667,8 @@ def main(path='', fps=0, inject=True, show_toolbar=False):
                 sketch.runtime_error = True
                 print_traceback()
 
-                if sketch.impl is not None:
-                    sketch.impl.process_inputs()
+                # if sketch.impl is not None:
+                #     sketch.impl.process_inputs()
 
         if sketch.grabbing and not sketch.must_reload and frame_drawn:
             sketch.grab()

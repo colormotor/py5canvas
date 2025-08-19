@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "py5canvas"
-version = "0.9"
+version = "0.95"
 description = "Drawings and animations with a p5.js / Processing-like API."
 readme = { file = "README.md", content-type = "text/markdown" }
 license = { text = "MIT" }
@@ -20,6 +20,8 @@ dependencies = [
   "rumore",
   "easydict",
   "xdialog",
+  "nanobind>=2.8.0"
+  "slimgui",
 ]
 
 [project.scripts]
