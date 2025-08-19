@@ -3,7 +3,7 @@ a UI with pyImgui'''
 
 from py5canvas import *
 import numpy as np
-import imgui
+from slimgui import imgui
 
 def new_points():
     points = np.random.uniform(-200, 200, (10, 2))*2

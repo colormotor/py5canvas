@@ -7,7 +7,7 @@ from py5canvas import *
 from skimage import io
 import numpy as np
 import pydiffvg, torch
-import imgui
+from slimgui import imgui
 from array import array
 
 img = None
