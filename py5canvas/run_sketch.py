@@ -49,7 +49,7 @@ if IPython_loader is not None:
 # Optionally import imgui
 imgui_loader = importlib.util.find_spec('slimgui')
 if imgui_loader is not None:
-    from slimgui import imgui
+    from slimgui import imgui, implot
     from slimgui.integrations.glfw import GlfwRenderer
     #from imgui.integrations.glfw import create_renderer
 else:
@@ -226,7 +226,9 @@ class Sketch:
         self.impl = None
         # For some reason this only works here and not in the constructor.
         if True: #self.impl is None:
+            glfw.make_context_current(self.window)
             imgui.create_context()
+            implot.create_context()
             # Forwarding callbacks manually since Imgui eats these otherwise
             self.impl = GlfwRenderer(self.window, attach_callbacks=True)
             sketch_params.set_theme()
@@ -1012,7 +1014,7 @@ class Sketch:
         self._update_mouse(draw_frame)
         self.update_globals()
 
-
+        glfw.make_context_current(self.window)
         if imgui is not None:
             try:
                 self.impl.new_frame()
