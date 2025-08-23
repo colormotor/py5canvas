@@ -14,6 +14,7 @@ Simplistic utilty to mimic [P5js](https://p5js.org) in Python/Jupyter notebooks.
 """
 
 #%%
+import os
 import numpy as np
 import cairo
 import numbers
@@ -437,13 +438,18 @@ class Canvas:
 
         - ~font~ (string): the name of a system font
         """
-        if '.ttf' in font:
-            info = read_font_names(font)
-            self.font = f"{info['family']} {info['subfamily']}"
-            self.ctx.set_font_face(create_cairo_font_face_for_file(font))
-        else:
-            self.font = font
-            self.ctx.select_font_face(self.font)
+        if os.path.isfile(font):
+            try:
+                info = read_font_names(font)
+                self.font = f"{info['family']} {info['subfamily']}"
+                self.ctx.set_font_face(create_cairo_font_face_for_file(font))
+            except Exception as e:
+                print(f"Error: failed to load font {font}:")
+                print(e)
+            return
+
+        self.font = font
+        self.ctx.select_font_face(self.font)
 
     def text_style(self, style):
         """Specify the style (normal, italic, bold, bolditalic) to use for text
