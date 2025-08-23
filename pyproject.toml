@@ -17,6 +17,7 @@ dependencies = [
   "moderngl",
   "glfw",
   "pycairo",
+  "matplotlib",
   "rumore",
   "easydict",
   "xdialog",
