@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 from py5canvas import *
 import numpy as np
+import imgui
 
 def parameters():
-    return {'scale':(0.1, 0.001, 0.1),
+    return {'palette':(0, {'min':0, 'max':len(palettes)-1, 'type':'int'}), #{'type':'selection', 'selection':palettes}),
+            'scale':(0.1, 0.001, 0.1),
             'xpos':(0, -10, 10),
             'ypos':(0, -10, 10),
             'speed':(0.0, -10.0, 10.0),
@@ -11,6 +13,9 @@ def parameters():
 
 def setup():
     create_canvas(256, 256)
+
+def gui():
+    imgui.text(f'palette: {palettes[params.palette]}')
 
 def draw():
     t = frame_count / 30
