@@ -438,7 +438,8 @@ class Canvas:
         - ~font~ (string): the name of a system font
         """
         if '.ttf' in font:
-            self.font = read_font_names(font)
+            info = read_font_names(font)
+            self.font = f"{info['family']} {info['subfamily']}"
             self.ctx.set_font_face(create_cairo_font_face_for_file(font))
         else:
             self.font = font
