@@ -17,6 +17,8 @@ HSB = 'hsv'
 HSV = 'hsv'
 CENTER = 'center'
 CORNER = 'corner'
+TOP = 'top'
+BOTTOM = 'bottom'
 RADIUS = 'radius'
 CLOSE = 'close'
 OPEN = 'OPEN'
@@ -33,6 +35,8 @@ noise_detail = canvas.noise_detail
 noise_grid = canvas.noise_grid
 noise_seed = canvas.noise_seed
 constrain = np.clip
+
+create_font = canvas.create_font
 
 def random_gaussian(mean=0.0, std_dev=1.0, size=None):
     return np.random.normal(mean, std_dev, size)

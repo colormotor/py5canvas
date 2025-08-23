@@ -26,7 +26,10 @@ import importlib.util
 from contextlib import contextmanager
 from easydict import EasyDict as edict
 import rumore # Noise utils
-import pdb
+from dataclasses import dataclass
+from typing import Union, Optional
+
+
 
 # perlin_loader = importlib.util.find_spec('perlin_noise')
 # if perlin_loader is not None:
@@ -72,6 +75,11 @@ class CanvasState:
         self.cur_fill = c._convert_rgba([255.0])
         self.cur_stroke = c._convert_rgba([0.0])
 
+@dataclass
+class Font:
+    obj: Union[str, object]
+    size: int = None
+    style: str = None
 
 class Canvas:
     """
@@ -434,14 +442,22 @@ class Canvas:
         """Specify the font to use for text rendering
         Arguments:
 
-        - ~font~ (string): the name of a system font
+        - ~font~ (string or object): Either a string describing the font file path or system font name, or a font object (created with ~create_font~)
         """
-        if '.ttf' in font:
-            self.font = create_cairo_font_face_for_file(font)
+        if type(font) == str:
+            if '.ttf' in font:
+                self.font = create_cairo_font_face_for_file(font)
+
+            else:
+                self.font = font
             self.ctx.set_font_face(self.font)
         else:
-            self.font = font
-            self.ctx.select_font_face(self.font)
+            self.font = font.obj
+            self.ctx.set_font_face(self.font)
+            if font.style is not None:
+                self.text_style(font.style)
+            if font.size is not None:
+                self.text_size(font.size)
 
     def text_style(self, style):
         """Specify the style (normal, italic, bold, bolditalic) to use for text
@@ -461,6 +477,16 @@ class Canvas:
         else:
             print(f"font style `{style}` not recognised (choose from: normal, italic, bold, bolditalic)")
 
+    def text_width(self, txt):
+        if txt == ' ':
+            # HACK to get space width
+            return self.text_width('x x')-self.text_width('x')*2
+        info = self.ctx.get_scaled_font().text_extents(txt)
+        return info.width
+
+    def text_height(self, txt):
+        info = self.ctx.get_scaled_font().text_extents(txt)
+        return info.height
 
     def push_matrix(self):
         """
@@ -695,7 +721,6 @@ class Canvas:
         else:
             raise ValueError('square: wrong number of arguments')
 
-
     def rect(self, *args, mode=None):
         """Draws a rectangle.
 
@@ -722,7 +747,6 @@ class Canvas:
             self.polygon(args)
         else:
             self.polygon([[args[i*2], args[i*2+1]] for i in range(4)])
-
 
     def line(self, *args):
         """ Draws a line between two points
@@ -1085,21 +1109,6 @@ class Canvas:
         '''
         self.tension = val
 
-    # def vertex(self, x, y=None):
-    #     ''' Add a vertex to current contour
-    #     Arguments:
-    #     Input arguments can be in the following formats:
-    #      ~[x, y]'
-    #      ~x, y~
-    #     '''
-    #     if y is None:
-    #         x, y = x
-    #     if not self._cur_point:
-    #         self.ctx.move_to(x, y)
-    #     else:
-    #         self.ctx.line_to(x, y)
-    #     self._cur_point = [x, y]
-
     def cubic(self, *args):
         ''' Draw a cubic bezier curve
 
@@ -1140,21 +1149,6 @@ class Canvas:
             (2 * y1 + y2) / 3,
             x2, y2)
         self._fillstroke()
-
-
-    # def quadratic_to_cubic(self, x1, y1, x2, y2):
-    #     ''' Convert a quadratic bezier curve to a cubic bezier curve
-    #     Arguments:
-    #     Input arguments can be in the following formats:
-    #         ~x1, y1, x2, y2~
-    #     '''
-    #     x0, y0 = self._cur_point
-    #     self.ctx.curve_to(
-    #                         2.0 / 3.0 * x1 + 1.0 / 3.0 * x0,
-    #                         2.0 / 3.0 * y1 + 1.0 / 3.0 * y0,
-    #                         2.0 / 3.0 * x1 + 1.0 / 3.0 * x2,
-    #                         2.0 / 3.0 * y1 + 1.0 / 3.0 * y2,
-    #                         y1, y2)
 
     def bezier(self, *args):
         ''' Draws a bezier curve segment from current point
@@ -1245,9 +1239,10 @@ class Canvas:
 
     def shape(self, poly_list, close=False):
         '''Draw a shape represented as a list of polylines, see the ~polyline~
-        method for the format of each polyline
+        method for the format of each polyline. Also accepts a single polyline as an input
         '''
-
+        if not is_compound(poly_list):
+            poly_list = [poly_list]
         self.begin_shape()
         for P in poly_list:
             self.polyline(P, close=close)
@@ -1579,11 +1574,10 @@ class Canvas:
         '''
 
         if len(args) % 2 == 1:
-            pdb.set_trace()
             img = np.array(args[0])
             args = args[1:]
         else:
-            img = self.get_image()
+            img = self.get_image_array()
 
         if len(args)==8:
             sx, sy, sw, sh, dx, dy, dw, dh = args
@@ -1621,17 +1615,29 @@ class Canvas:
     def get_buffer(self):
         return self.surf.get_data()
 
-    def get_image(self):
-        ''' Get canvas image as a numpy array '''
+    def get_image_array(self):
+        ''' Get canvas image as a numpy array'''
         img = np.ndarray (shape=(self.height, self.width, 4), dtype=np.uint8, buffer=self.surf.get_data())[:,:,:3].copy()
         img = img[:,:,::-1]
         return img
 
+    def get_grayscale_array(self):
+        ''' Get grayscale image of canvas contents as float numpy array (0 to 1 range)'''
+        return np.mean(self.get_image_array()/255, axis=-1)
+
+    def get_image(self):
+        ''' Get canvas as a PIL image'''
+        return Image.fromarray(self.get_image_array())
+        # img = np.ndarray (shape=(self.height, self.width, 4), dtype=np.uint8, buffer=self.surf.get_data())[:,:,:3].copy()
+        # img = img[:,:,::-1]
+        # return img
+
     def get_image_grayscale(self):
         ''' Returns the canvas image as a grayscale numpy array (in 0-1 range)'''
-        img = self.get_image()
-        img = np.sum(img, axis=-1)/3
-        return img/255
+        return self.get_image().convert('L')
+        # img = self.get_image()
+        # img = np.sum(img, axis=-1)/3
+        # return img/255
 
     def save_image(self, path):
         ''' Save the canvas to an image
@@ -1677,7 +1683,8 @@ class Canvas:
         surf.finish()
         
     def Image(self):
-        return Image.fromarray(self.get_image())
+        print('Image is deprected use `get_image()` instead')
+        return self.get_image()
 
     # def save(self):
     #     ''' Save the canvas to an image'''
@@ -1715,9 +1722,9 @@ class Canvas:
                       'nearest': Image.NEAREST,
                       'bilinear': Image.BILINEAR,
                       'lanczos': Image.LANCZOS}
-            display(Image.fromarray(self.get_image()).resize(size, filter[resample] ))
+            display(self.get_image().resize(size, filter[resample] ))
             return
-        display(Image.fromarray(self.get_image()))
+        display(self.get_image())
 
 
     def show_plt(self, size=None, title='', axis=False):
@@ -1843,6 +1850,20 @@ def numpy_to_surface(arr):
 
     return surf
 
+
+def create_font(name, size=None, style=None):
+        """Create a font from a file or from system fonts
+        Arguments:
+
+        - ~font~ (string or object): Either a string describing the font file path or system font name
+        """
+        if '.ttf' in name:
+            font = create_cairo_font_face_for_file(name)
+        else:
+            font = name
+        return Font(font, size, style)
+
+
 def show_image(im, size=None, title='', cmap='gray'):
     ''' Display a (numpy) image'''
     import matplotlib.pyplot as plt
@@ -1910,6 +1931,7 @@ def hsv_to_rgb(hsva):
 
 class VideoInput:
     '''
+    TODO move to sketch
     Video Input utility (requires OpenCV to be installed).
     Allows for reading frames from a video file or camera.
 
@@ -1978,6 +2000,7 @@ class VideoInput:
             return np.mean(img/255, axis=-1)
         return img
 
+
 def cardinal_spline(Q, c, closed=False):
     ''' Returns a Bezier chain for a Cardinal spline interpolation for a sequence of values
     c is the tension parameter with 0.5 a Catmull-Rom spline
@@ -2023,6 +2046,7 @@ def eval_bezier(P, t, d=0):
 
 
 def approx_arc_length_cubic(c0, c1, c2, c3):
+    ''' Approximate length of a cubic Bezier curve'''
     v0 = np.linalg.norm(c1-c0)*0.15
     v1 = np.linalg.norm(-0.558983582205757*c0 + 0.325650248872424*c1 + 0.208983582205757*c2 + 0.024349751127576*c3)
     v2 = np.linalg.norm(c3-c0+c2-c1)*0.26666666666666666
@@ -2061,6 +2085,26 @@ def fix_clip_path(file_path, out_path):
         txt = fix_namespace(f.read())
     with open(out_path, 'w', encoding='utf-8') as f:
         f.write(txt)
+
+def is_compound(S):
+    '''Returns True if S is a compound polyline,
+    a polyline is represented as a list of points, or a numpy array with as many rows as points'''
+    if type(S) != list:
+        return False
+    if type(S) == list: #[0])==list:
+        if not S:
+            return True
+        for P in S:
+            try:
+                if is_number(P[0]):
+                    return False
+            except IndexError:
+                pass
+        return True
+    if type(S[0])==np.ndarray and len(S[0].shape) > 1:
+        return True
+    return False
+
 
 # Optional perlin noise init
 _noise_octaves = 4

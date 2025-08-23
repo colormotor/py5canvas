@@ -403,7 +403,7 @@ class Sketch:
         filetypes = [(ext + ' files', "*." + ext) for ext in exts]
         return xdialog.open_file(title, filetypes=filetypes, multiple=False)
 
-    def save_file_dialog(self, exts, title='Open file...', filename='untitled'):
+    def save_file_dialog(self, exts, title='Open file...', filename='unt fitled'):
         ''' Opens a dialog to select a file to be saved,
         the first argument is the extension or the file to be saved,
         e.g. ~'png'~ or a list of extensions, e.g. ~['png', 'jpg']
