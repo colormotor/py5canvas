@@ -14,6 +14,7 @@ Simplistic utilty to mimic [P5js](https://p5js.org) in Python/Jupyter notebooks.
 """
 
 #%%
+import os
 import numpy as np
 import cairo
 import numbers
@@ -28,8 +29,8 @@ from easydict import EasyDict as edict
 import rumore # Noise utils
 from dataclasses import dataclass
 from typing import Union, Optional
-
-
+from fontTools.ttLib import TTFont
+import pdb
 
 # perlin_loader = importlib.util.find_spec('perlin_noise')
 # if perlin_loader is not None:
@@ -445,12 +446,18 @@ class Canvas:
         - ~font~ (string or object): Either a string describing the font file path or system font name, or a font object (created with ~create_font~)
         """
         if type(font) == str:
-            if '.ttf' in font:
-                self.font = create_cairo_font_face_for_file(font)
-
+            if os.path.isfile(font):
+                try:
+                    info = read_font_names(font)
+                    self.font = f"{info['family']} {info['subfamily']}"
+                    self.ctx.set_font_face(create_cairo_font_face_for_file(font))
+                except Exception as e:
+                    print(f"Error: failed to load font {font}:")
+                    print(e)
+                return
             else:
                 self.font = font
-            self.ctx.set_font_face(self.font)
+                self.ctx.set_font_face(self.font)
         else:
             self.font = font.obj
             self.ctx.set_font_face(self.font)
@@ -2292,3 +2299,53 @@ def create_cairo_font_face_for_file (filename, faceindex=0, loadoptions=0):
     # get back Cairo font face as a Python object
     face = cairo_ctx.get_font_face()
     return face
+
+# Get font family name for file
+# https://chatgpt.com/share/68a9d497-6b9c-8005-bff1-61a45501b1d9
+
+# Preferred order for name records:
+# 1) Windows/Unicode (platform 3) English (lang 0x0409) if available
+# 2) Any Windows/Unicode
+# 3) macOS Roman (platform 1) English (lang 0)
+# 4) Any other non-empty record
+PREFS = [
+    (3, None, None, 0x0409),  # Win, any enc, English
+    (3, None, None, None),    # Win, any lang
+    (1, 0, None, 0),          # Mac Roman, English
+    (None, None, None, None),
+]
+
+def _pick_name(name_table, name_id):
+    # Try preferred platform/encoding/lang combos first
+    for plat, enc, lang, lid in PREFS:
+        rec = name_table.getName(name_id, plat, enc, lid)
+        if rec:
+            s = rec.toUnicode().strip()
+            if s:
+                return s
+    # Last resort: first non-empty record of this nameID
+    for rec in name_table.names:
+        if rec.nameID == name_id:
+            s = rec.toUnicode().strip()
+            if s:
+                return s
+    return None
+
+def read_font_names(path):
+    """Return a dict with family, subfamily, full_name, postscript_name."""
+    with TTFont(path, lazy=True) as f:
+        name = f["name"]
+        # Family: prefer Typographic Family (16) then legacy Family (1)
+        family = _pick_name(name, 16) or _pick_name(name, 1)
+        # Subfamily/Style: prefer Typographic Subfamily (17) then legacy Subfamily (2)
+        subfamily = _pick_name(name, 17) or _pick_name(name, 2)
+        # Full name and PostScript name if present
+        full_name = _pick_name(name, 4)
+        postscript_name = _pick_name(name, 6)
+
+    return {
+        "family": family,
+        "subfamily": subfamily,
+        "full_name": full_name or (f"{family} {subfamily}".strip() if family and subfamily else None),
+        "postscript_name": postscript_name,
+    }
