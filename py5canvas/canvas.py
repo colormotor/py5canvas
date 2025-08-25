@@ -446,6 +446,7 @@ class Canvas:
         - ~font~ (string or object): Either a string describing the font file path or system font name, or a font object (created with ~create_font~)
         """
         if type(font) == str:
+            # TODO fix API and redundancy here and in text_font
             if os.path.isfile(font):
                 try:
                     info = read_font_names(font)
@@ -457,10 +458,15 @@ class Canvas:
                 return
             else:
                 self.font = font
-                self.ctx.set_font_face(self.font)
+                self.ctx.select_font_face(self.font)
         else:
             self.font = font.obj
-            self.ctx.set_font_face(self.font)
+            if type(self.font) == str:
+                # "Toy" case of a System font selected by name
+                self.ctx.select_font_face(self.font)
+            else:
+                # Loaded font case
+                self.ctx.set_font_face(self.font)
             if font.style is not None:
                 self.text_style(font.style)
             if font.size is not None:
@@ -1859,16 +1865,24 @@ def numpy_to_surface(arr):
 
 
 def create_font(name, size=None, style=None):
-        """Create a font from a file or from system fonts
-        Arguments:
+    """Create a font from a file or from system fonts
+    Arguments:
 
-        - ~font~ (string or object): Either a string describing the font file path or system font name
-        """
-        if '.ttf' in name:
-            font = create_cairo_font_face_for_file(name)
-        else:
-            font = name
-        return Font(font, size, style)
+    - ~font~ (string or object): Either a string describing the font file path or system font name
+    """
+    # TODO fix API and redundancy here and in text_font
+    if os.path.isfile(name):
+        try:
+            info = read_font_names(name)
+            font = f"{info['family']} {info['subfamily']}"
+            font = create_cairo_font_face_for_file(font)
+        except Exception as e:
+            print(f"Error: failed to load font {font}:")
+            print(e)
+        return
+    else:
+        font = name
+    return Font(font, size, style)
 
 
 def show_image(im, size=None, title='', cmap='gray'):
