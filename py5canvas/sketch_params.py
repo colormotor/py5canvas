@@ -438,6 +438,7 @@ if imgui is not None:
             imgui.set_next_window_pos([0, 0])
             imgui.begin("Toolbar", True, (imgui.WindowFlags.NO_RESIZE |
                                             imgui.WindowFlags.NO_TITLE_BAR |
+                                            #imgui.WindowFlags.MENU_BAR |
                                             imgui.WindowFlags.NO_SAVED_SETTINGS |
                                             imgui.WindowFlags.NO_SCROLLBAR))
 
@@ -465,19 +466,36 @@ if imgui is not None:
             if imgui.is_item_hovered():
                 imgui.set_tooltip('Force reload sketch')
             imgui.same_line()
-            if imgui.button('Save SVG...'):
+            if imgui.button('Save...'):
+                imgui.open_popup('Save popup')
+            if imgui.begin_popup('Save popup'):
                 name = os.path.splitext(os.path.basename(sketch.path))[0]
-                path = sketch.save_file_dialog('svg', filename=name)
+                path = ''
+                if imgui.menu_item('Pdf...')[0]:
+                    path = sketch.save_file_dialog('pdf', filename=name) #['pdf', 'svg', 'png'], filename=name)
+                if imgui.menu_item('Svg...')[0]:
+                    path = sketch.save_file_dialog('svg', filename=name) #['pdf', 'svg', 'png'], filename=name)
+                if imgui.menu_item('Png...')[0]:
+                    path = sketch.save_file_dialog('png', filename=name) #['pdf', 'svg', 'png'], filename=name)
                 if path:
                     sketch.dump_canvas(path)
-            imgui.same_line()
-            if imgui.button('Save PDF...'):
-                name = os.path.splitext(os.path.basename(sketch.path))[0]
-                path = sketch.save_file_dialog('pdf', filename=name)
-                if path:
-                    sketch.dump_canvas(path)
-            if imgui.is_item_hovered():
-                imgui.set_tooltip('Save sketch output as SVG')
+                imgui.end_popup()
+
+            # if imgui.button('Save Canvas...'):
+
+            #     path = sketch.save_file_dialog(['pdf', 'svg'], filename=name) #['pdf', 'svg', 'png'], filename=name)
+
+            #     if path:
+            #         sketch.dump_canvas(path)
+            # if imgui.is_item_hovered():
+            #     imgui.set_tooltip('Save sketch output as an image or vector file')
+
+            # imgui.same_line()
+            # if imgui.button('Save PDF...'):
+            #     name = os.path.splitext(os.path.basename(sketch.path))[0]
+            #     path = sketch.save_file_dialog('pdf', filename=name)
+            #     if path:
+            #         sketch.dump_canvas(path)
 
             imgui.same_line()
             imgui.push_style_color(imgui.Col.TEXT, [0.5, 0.5, 0.5])

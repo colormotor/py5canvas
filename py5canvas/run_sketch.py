@@ -281,7 +281,7 @@ class Sketch:
 
         # Frame grabbing utils (OpenCV dependent)
         self.grabbing = ''
-        self.num_grab_frames = 0
+        self.num_grab_frames = 300
         self.cur_grab_frame = 0
         self.video_writer = None
         self.video_fps = 30
@@ -403,7 +403,7 @@ class Sketch:
         filetypes = [(ext + ' files', "*." + ext) for ext in exts]
         return xdialog.open_file(title, filetypes=filetypes, multiple=False)
 
-    def save_file_dialog(self, exts, title='Open file...', filename='unt fitled'):
+    def save_file_dialog(self, exts, title='Open file...', filename='untitled'):
         ''' Opens a dialog to select a file to be saved,
         the first argument is the extension or the file to be saved,
         e.g. ~'png'~ or a list of extensions, e.g. ~['png', 'jpg']
@@ -640,6 +640,16 @@ class Sketch:
         print("set_gui_callback is deprectated. Use the `gui` function in your sketch instead")
         self.gui_callback = func
 
+    def param_changed(self, *args):
+        if self.gui is None:
+            print("No gui set, you may need to install slimgui")
+            return False
+
+        for arg in args:
+            if arg in self.gui.changed:
+                return True
+        return False
+
     def load(self, path):
         self.watcher = None
         self.gui = None
@@ -666,7 +676,7 @@ class Sketch:
         self.must_reload=reload
         self.num_grab_frames = num_frames
 
-    def grab_movie(self, path, num_frames, framerate=30, gamma=1.0, reload=True):
+    def grab_movie(self, path, num_frames=0, framerate=30, gamma=1.0, reload=True):
         ''' Saves a mp4 movie from a number of frames to a specified path.
         By default this will reload the current script.
 
@@ -677,7 +687,8 @@ class Sketch:
         path = os.path.abspath(path)
         self.grabbing = path
         self.must_reload = reload
-        self.num_grab_frames = num_frames
+        if num_frames > 0:
+            self.num_grab_frames = num_frames
         self.video_gamma = gamma
         self.video_fps = framerate
         print('Saving video to ' + path)
@@ -1181,6 +1192,9 @@ class Sketch:
         ''' Set the framerate of the sketch in frames-per-second'''
         self._fps = fps
 
+    def animation_frames(self, num):
+        ''' Set the number of frames to export when saving a video'''
+        self.num_grab_frames = num
 
     def start_osc(self):
         # Load server/client data from json
