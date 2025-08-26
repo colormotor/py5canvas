@@ -1873,13 +1873,12 @@ def create_font(name, size=None, style=None):
     # TODO fix API and redundancy here and in text_font
     if os.path.isfile(name):
         try:
-            info = read_font_names(name)
-            font = f"{info['family']} {info['subfamily']}"
-            font = create_cairo_font_face_for_file(font)
+            #info = read_font_names(name)
+            #font = f"{info['family']} {info['subfamily']}"
+            font = create_cairo_font_face_for_file(name)
         except Exception as e:
-            print(f"Error: failed to load font {font}:")
+            print(f"Error: failed to load font {name}:")
             print(e)
-        return
     else:
         font = name
     return Font(font, size, style)
