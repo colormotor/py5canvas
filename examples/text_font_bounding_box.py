@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from py5canvas import *
 
-font = create_font('Fascinate-Regular.ttf', 55)
+font = create_font('fonts/Fascinate-Regular.ttf', 55)
 
 def setup():
     create_canvas(512, 512)

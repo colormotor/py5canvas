@@ -1,6 +1,6 @@
 from py5canvas import *
 
-font = create_font('Fascinate-Regular.ttf', 70)
+font = create_font('fonts/Fascinate-Regular.ttf', 70)
 txt = 'The quick brown fox '
 
 def setup():
