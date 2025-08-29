@@ -40,6 +40,10 @@ constrain = np.clip
 
 create_font = canvas.create_font
 
+dragging = None
+mouse_is_pressed = None
+mouse_button = None
+
 def random_gaussian(mean=0.0, std_dev=1.0, size=None):
     return np.random.normal(mean, std_dev, size)
 
