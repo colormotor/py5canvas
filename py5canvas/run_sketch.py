@@ -1471,8 +1471,6 @@ def main(path='', fps=0, inject=True, show_toolbar=False):
 
     # See https://www.glfw.org/docs/latest/input_guide.html
     def key_callback(window, key, scancode, action, mods):
-        if sketch.impl is not None:
-            sketch.impl.keyboard_callback(window, key, scancode, action, mods)
         sketch.modifiers = mods
         if action == glfw.PRESS:
             if imgui_focus():
@@ -1487,8 +1485,6 @@ def main(path='', fps=0, inject=True, show_toolbar=False):
 
 
     def char_callback(window, char):
-        if sketch.impl is not None:
-            sketch.impl.char_callback(window, char)
         if imgui_focus():
             return
         if check_callback('key_pressed'):
