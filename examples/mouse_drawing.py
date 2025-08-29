@@ -13,7 +13,8 @@ def setup():
     create_canvas(800, 600)
 
 def draw():
-    if dragging:
+    if mouse_is_pressed: #dragging:
+        print("mouse")
         brush(mouse_pos, mouse_delta)
 
 def key_pressed():

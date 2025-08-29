@@ -958,9 +958,6 @@ class Sketch:
             self.canvas.ctx.pop_context()
 
     def _update_mouse(self, draw_frame):
-        # workaround for backwards compatibility (deprecating 'mouse_pressed')
-        self.mouse_pressed = self.dragging
-
         if self._mouse_pos is None:
             return
 
@@ -973,7 +970,6 @@ class Sketch:
         if True: #draw_frame:
             self.mouse_delta = self.mouse_pos - self.prev_mouse
             self.prev_mouse = self.mouse_pos.copy()
-
 
         # if self.mouse_pressed:
         #     print('Mouse:')
@@ -990,11 +986,12 @@ class Sketch:
         self.var_context['center'] = self.canvas.center
 
         # HACK keep mouse_pressed as a flag for backwards compatibility, but must be deprecated
-        if 'mouse_pressed' not in self.var_context or not callable(self.var_context['mouse_pressed']):
-            self.var_context['mouse_pressed'] = self.dragging
+        #if 'mouse_pressed' not in self.var_context or not callable(self.var_context['mouse_pressed']):
+        #    self.var_context['mouse_pressed'] = self.dragging
         self.var_context['dragging'] = self.dragging
         self.var_context['clicked'] = self.clicked
         self.var_context['mouse_is_pressed'] = self.dragging # For compatibility with p5py
+        self.var_context['mouse_button'] = self.mouse_button
         self.var_context['mouse_delta'] = self.mouse_delta
         self.var_context['mouse_pos'] = self.mouse_pos
         self.var_context['mouse_x'] = self.mouse_x
@@ -1007,6 +1004,7 @@ class Sketch:
         # So we can sync update and drawing by calling frame() in the @draw callback
         # see https://stackoverflow.com/questions/39089578/pyglet-synchronise-event-with-frame-drawing
         self._delta_time = dt
+
 
     def check_reload(self):
         if self.path:
@@ -1529,6 +1527,7 @@ def main(path='', fps=0, inject=True, show_toolbar=False):
         sketch.modifiers = mods
         pos = sketch._mouse_pos
         if action == glfw.PRESS:
+
             # print('Mouse button pressed')
             if imgui_focus():
                 return
@@ -1541,6 +1540,10 @@ def main(path='', fps=0, inject=True, show_toolbar=False):
                 params = [button, mods]
                 sig = signature(sketch.var_context['mouse_pressed'])
                 sketch.var_context['mouse_pressed'](*params[:len(sig.parameters)])
+            if check_callback('mouse_clicked'):
+                params = [button, mods]
+                sig = signature(sketch.var_context['mouse_clicked'])
+                sketch.var_context['mouse_clicked'](*params[:len(sig.parameters)])
         elif action == glfw.RELEASE:
             # print('Mouse button released')
             sketch.mouse_button = button
@@ -1568,14 +1571,20 @@ def main(path='', fps=0, inject=True, show_toolbar=False):
         pass #print("Window pos", x, y)
 
     glfw.set_window_content_scale_callback(sketch.window, window_content_scale_callback)
-    #glfw.set_key_callback(sketch.window, key_callback)
-    sketch.impl.prev_key_callback = key_callback
-    #glfw.set_char_callback(sketch.window, char_callback)
-    sketch.impl.prev_char_callback = char_callback
-    #glfw.set_cursor_pos_callback(sketch.window, cursor_position_callback)
-    sketch.impl.prev_cursor_pos_callback = cursor_position_callback
-    #glfw.set_mouse_button_callback(sketch.window, mouse_button_callback)
-    sketch.impl.prev_mouse_button_callback = mouse_button_callback
+
+
+    if imgui is not None:
+        # If we have imgui it will handle these for us
+        sketch.impl._prev_key_callback = key_callback
+        sketch.impl._prev_char_callback = char_callback
+        sketch.impl._prev_cursor_pos_callback = cursor_position_callback
+        sketch.impl._prev_mouse_button_callback = mouse_button_callback
+    else:
+        # otherwise explicitly set glfw cb's
+        glfw.set_key_callback(sketch.window, key_callback)
+        glfw.set_char_callback(sketch.window, char_callback)
+        glfw.set_cursor_pos_callback(sketch.window, cursor_position_callback)
+        glfw.set_mouse_button_callback(sketch.window, mouse_button_callback)
 
     glfw.set_framebuffer_size_callback(sketch.window, framebuffer_size_callback)
     glfw.set_window_pos_callback(sketch.window, window_pos_callback)
