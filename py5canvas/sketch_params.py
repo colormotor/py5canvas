@@ -479,6 +479,32 @@ if imgui is not None:
                     path = sketch.save_file_dialog('png', filename=name) #['pdf', 'svg', 'png'], filename=name)
                 if path:
                     sketch.dump_canvas(path)
+                if imgui.menu_item('Mp4...')[0]:
+                    path = sketch.save_file_dialog('mp4', filename=name) #['pdf', 'svg', 'png'], filename=name)
+                if path:
+                    sketch.grab_movie(path)
+                imgui.end_popup()
+            imgui.same_line()
+            if imgui.button('Settings...'):
+                imgui.open_popup('Settings popup')
+            if imgui.begin_popup('Settings popup'):
+                imgui.separator_text('Window')
+                changed, flag = imgui.checkbox('Always on top', sketch.settings['floating_window'])
+                if changed:
+                    sketch.set_floating(flag)
+                imgui.separator_text('Animation')
+                nf = sketch.settings['num_movie_frames']
+                changed, nf = imgui.input_int('num frames', nf)
+                nf = max(1, nf)
+                if changed:
+                    sketch.settings['num_movie_frames'] = nf
+                fps = sketch._fps
+                if fps > 0:
+                    dur = (1.0/fps)*nf
+                    imgui.text(f'{np.round(dur, 1)} seconds for {fps} fps')
+                else:
+                    imgui.text('No framerate set')
+
                 imgui.end_popup()
 
             # if imgui.button('Save Canvas...'):

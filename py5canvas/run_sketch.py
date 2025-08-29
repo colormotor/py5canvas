@@ -38,8 +38,19 @@ from inspect import signature
 import glfw
 import moderngl as mgl
 import pdb
+from pathlib import Path
 
-settings_path = os.path.join(os.getcwd(), 'py5canvas.json')
+if importlib.util.find_spec('platformdirs'):
+    from platformdirs import PlatformDirs
+    APP_NAME = "py5canvas"
+    dirs = PlatformDirs(appname=APP_NAME, appauthor=False)
+    settings_path = Path(dirs.user_config_path)
+    settings_path.mkdir(parents=True, exist_ok=True)
+    settings_path = settings_path / "settings.json"
+    print("saving settings to", settings_path)
+else:
+    print("No platformdirs installed using local settings path")
+    settings_path = os.path.join(os.getcwd(), 'py5canvas.json')
 
 # Try getting colored traceback
 IPython_loader = importlib.util.find_spec('IPython')
@@ -199,13 +210,25 @@ class Sketch:
         # display = pyglet.canvas.get_display()
         # screens = display.get_screens()
 
+        self.settings = {
+            'num_movie_frames': 100,
+            'floating_window': False
+        }
+
+        if os.path.isfile(settings_path):
+            settings = load_json(settings_path)
+            if settings:
+                self.settings.update(settings)
+
+
         glfw.window_hint(glfw.CONTEXT_VERSION_MAJOR, 3)
         glfw.window_hint(glfw.CONTEXT_VERSION_MINOR, 3)
         glfw.window_hint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)
         glfw.window_hint(glfw.OPENGL_FORWARD_COMPAT, True)
         glfw.window_hint(glfw.RESIZABLE, False)
         glfw.window_hint(glfw.COCOA_RETINA_FRAMEBUFFER, glfw.FALSE)
-        glfw.window_hint(glfw.FLOATING, glfw.TRUE)
+        if self.settings['floating_window']:
+            glfw.window_hint(glfw.FLOATING, glfw.TRUE)
 
         # glfw.window_hint(glfw.SRGB_CAPABLE, glfw.TRUE)
 
@@ -270,10 +293,6 @@ class Sketch:
         self.fps = 0
         self.first_load = True
         self._no_loop = False
-
-        self.settings = {
-            'num_movie_frames': 100
-        }
 
         # Frame grabbing utils (OpenCV dependent)
         self.grabbing = ''
@@ -340,10 +359,6 @@ class Sketch:
             self.server_thread = None
             self.osc_enabled = False
 
-        if os.path.isfile(settings_path):
-            settings = load_json(settings_path)
-            if settings:
-                self.settings.update(settings)
 
     @property
     def mouse_x(self):
@@ -602,6 +617,11 @@ class Sketch:
     #         return screens[index]
     #     print("Invalid screen index for display")
     #     return None
+
+    def set_floating(self, flag):
+        ''' Sets the sketch windo to floating or not'''
+        glfw.set_window_attrib(self.window, glfw.FLOATING, flag)
+        self.settings['floating_window'] = flag
 
     def fullscreen(self, flag, toggle_gui=False, screen_index=-1):
         ''' Sets fullscreen or windowed mode depending on the first argument (~True~ or ~False~)
@@ -893,6 +913,7 @@ class Sketch:
             if self.inject:
                 export_methods = ['title',
                                 'frame_rate',
+                                'num_movie_frames',
                                 'create_canvas',
                                 'create_canvas_gui',
                                 'dump_canvas',
@@ -1666,24 +1687,25 @@ def main(path='', fps=0, inject=True, show_toolbar=False):
         #prev_viewport = sketch.glctx.viewport
         #sketch.glctx.viewport = (0, 0, sketch.canvas.width*content_scale[0], sketch.canvas.height*content_scale[1])
 
-        aspect_canvas = sketch.canvas.width / sketch.canvas.height
-        aspect_display = sketch.canvas_display_width / sketch.canvas_display_height
+        if sketch.is_fullscreen:
+            aspect_canvas = sketch.canvas.width / sketch.canvas.height
+            aspect_display = sketch.canvas_display_width / sketch.canvas_display_height
 
-        if aspect_canvas > aspect_display:
-            # canvas is wider -> fit width
-            vp_width = sketch.canvas_display_width * content_scale[0]
-            vp_height = vp_width / aspect_canvas
+            if aspect_canvas > aspect_display:
+                # canvas is wider -> fit width
+                vp_width = sketch.canvas_display_width * content_scale[0]
+                vp_height = vp_width / aspect_canvas
+            else:
+                # canvas is taller -> fit height
+                vp_height = sketch.canvas_display_height * content_scale[1]
+                vp_width = vp_height * aspect_canvas
+
+            vp_x = (sketch.canvas_display_width * content_scale[0] - vp_width) / 2
+            vp_y = (sketch.canvas_display_height * content_scale[1] - vp_height) / 2
+
+            sketch.glctx.viewport = (int(vp_x), int(vp_y), int(vp_width), int(vp_height))
         else:
-            # canvas is taller -> fit height
-            vp_height = sketch.canvas_display_height * content_scale[1]
-            vp_width = vp_height * aspect_canvas
-
-        vp_x = (sketch.canvas_display_width * content_scale[0] - vp_width) / 2
-        vp_y = (sketch.canvas_display_height * content_scale[1] - vp_height) / 2
-
-        sketch.glctx.viewport = (int(vp_x), int(vp_y), int(vp_width), int(vp_height))
-
-        #sketch.glctx.viewport = (0, 0, sketch.canvas_display_width*content_scale[0], sketch.canvas_display_height*content_scale[1])
+            sketch.glctx.viewport = (0, 0, sketch.canvas.width*content_scale[0], sketch.canvas.height*content_scale[1])
         sketch.quad_vao.render(mgl.TRIANGLES)  # Render the VAO
         sketch.glctx.viewport = (0, 0, sketch.window_width*content_scale[0], sketch.window_height*content_scale[1])
         #sketch.glctx.viewport = prev_viewport
