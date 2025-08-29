@@ -1960,8 +1960,10 @@ class VideoInput:
     - ~name~: Either an integer indicating the device number, or a string indicating the path of a video file
     - ~size~: A tuple indicating the desired size of the video frames (width, height)
     - ~resize_mode~: A string indicating the desired resize mode. Can be 'crop' or 'stretch'
+    - ~flipped~: Boolean indicating if the frame should be flipped horizontally. Defaults to None
+    - ~vertical_flipped~: Boolean indicating if the frame should be flipped vertically. Defaults to None
     '''
-    def __init__(self, name=0, size=None, resize_mode='crop'):
+    def __init__(self, name=0, size=None, resize_mode='crop', flipped=None, vertical_flipped=None):
         ''' Constructor'''
         import cv2
         # define a video capture object
@@ -1975,6 +1977,8 @@ class VideoInput:
             )
         self.resize_mode = resize_mode
         self.name = name
+        self.flipped = flipped
+        self.vertical_flipped = vertical_flipped
 
 
     def close(self):
@@ -2016,6 +2020,12 @@ class VideoInput:
 
             # Resize the image frames
             img = cv2.resize(img, self.size)
+
+        if self.flipped:
+            img = img[:,::-1]
+
+        if self.vertical_flipped:
+            img = img[::-1]
 
         img = img[:,:,::-1]
         if pil:
