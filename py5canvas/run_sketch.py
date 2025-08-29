@@ -24,6 +24,8 @@ It will probably be significantly slow when using a large canvas size
 import numpy as np
 import os, sys, time
 from py5canvas import canvas, sketch_params
+from py5canvas.sketch_params import load_json, save_json
+
 from py5canvas import globals as glob
 import traceback
 import importlib, inspect, types
@@ -37,6 +39,7 @@ import glfw
 import moderngl as mgl
 import pdb
 
+settings_path = os.path.join(os.getcwd(), 'py5canvas.json')
 
 # Try getting colored traceback
 IPython_loader = importlib.util.find_spec('IPython')
@@ -88,17 +91,6 @@ class perf_timer:
         self.elapsed = (time.perf_counter() - self.t)*1000
         if self.name and self.verbose:
             print('%s: elapsed time %.3f milliseconds'%(self.name, self.elapsed))
-
-def load_json(path):
-    import json, codecs
-    try:
-        with codecs.open(path, encoding='utf8') as fp:
-            data = json.load(fp)
-        return data
-    except IOError as err:
-        print(err)
-        print ("Unable to load json file:" + path)
-        return {}
 
 
 class FileWatcher:
@@ -279,9 +271,12 @@ class Sketch:
         self.first_load = True
         self._no_loop = False
 
+        self.settings = {
+            'num_movie_frames': 100
+        }
+
         # Frame grabbing utils (OpenCV dependent)
         self.grabbing = ''
-        self.num_grab_frames = 300
         self.cur_grab_frame = 0
         self.video_writer = None
         self.video_fps = 30
@@ -292,6 +287,7 @@ class Sketch:
         self.recording_context = None
         self.recording_surface = None
         self.done_saving = False
+
 
         # self.error_label = pyglet.text.Label('Error',
         #                    font_name='Arial',
@@ -323,6 +319,7 @@ class Sketch:
         self.blit_scale_factor = (1.0, 1.0)
 
         # Check if OSC is available
+        # TODO sort these and move to settings
         osc_loader = importlib.util.find_spec('pythonosc')
         if osc_loader is not None:
             self.server_address = '0.0.0.0' # Will listen from all IPs
@@ -342,6 +339,11 @@ class Sketch:
             self.oscclient = None
             self.server_thread = None
             self.osc_enabled = False
+
+        if os.path.isfile(settings_path):
+            settings = load_json(settings_path)
+            if settings:
+                self.settings.update(settings)
 
     @property
     def mouse_x(self):
@@ -674,7 +676,7 @@ class Sketch:
                 raise OSError
         self.grabbing = path
         self.must_reload=reload
-        self.num_grab_frames = num_frames
+        self.settings['num_movie_frames'] = num_frames
 
     def grab_movie(self, path, num_frames=0, framerate=30, gamma=1.0, reload=True):
         ''' Saves a mp4 movie from a number of frames to a specified path.
@@ -688,13 +690,13 @@ class Sketch:
         self.grabbing = path
         self.must_reload = reload
         if num_frames > 0:
-            self.num_grab_frames = num_frames
+            self.settings['num_movie_frames'] = num_frames
         self.video_gamma = gamma
         self.video_fps = framerate
         print('Saving video to ' + path)
 
     def stop_grabbing(self):
-        self.num_grab_frames = self.current_grab_frame
+        self.settings['num_movie_frames'] = self.current_grab_frame
 
     def finalize_grab(self):
         if not self.grabbing:
@@ -760,9 +762,9 @@ class Sketch:
             # Grab png frame
             path = self.grabbing
             self.canvas.save_image(os.path.join(path, '%d.png'%(self.cur_grab_frame+1)))
-        print('Saving frame %d of %d' % (self.cur_grab_frame+1, self.num_grab_frames))
+        print('Saving frame %d of %d' % (self.cur_grab_frame+1, self.settings['num_movie_frames']))
         self.cur_grab_frame += 1
-        if self.cur_grab_frame >= self.num_grab_frames:
+        if self.cur_grab_frame >= self.settings['num_movie_frames']:
             self.finalize_grab()
             print("Stopping grab")
             self.grabbing = ''
@@ -1192,9 +1194,9 @@ class Sketch:
         ''' Set the framerate of the sketch in frames-per-second'''
         self._fps = fps
 
-    def animation_frames(self, num):
+    def num_movie_frames(self, num):
         ''' Set the number of frames to export when saving a video'''
-        self.num_grab_frames = num
+        self.settings['num_movie_frames'] = num
 
     def start_osc(self):
         # Load server/client data from json
@@ -1612,6 +1614,9 @@ def main(path='', fps=0, inject=True, show_toolbar=False):
 
         #print("Saving settings")
         #sketch_params.save_json(app_settings, os.path.join(app_path, 'settings.json'))
+        # Save settings
+        save_json(sketch.settings, settings_path)
+
         sketch.cleanup()
         print("End close")
 
