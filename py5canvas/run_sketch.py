@@ -1662,9 +1662,28 @@ def main(path='', fps=0, inject=True, show_toolbar=False):
         sketch.canvas_tex.use(0)
         content_scale = glfw.get_window_content_scale(sketch.window)
         content_scale = [int(s) for s in content_scale] # Hack for floating point scale?
-        sketch.glctx.clear(1.0, 1.0, 1.0)  # Clear the screen to white
+        sketch.glctx.clear(0.5, 0.5, 0.5) # Clear to grey maybe better? #1.0, 1.0, 1.0)  # Clear the screen to white
         #prev_viewport = sketch.glctx.viewport
-        sketch.glctx.viewport = (0, 0, sketch.canvas.width*content_scale[0], sketch.canvas.height*content_scale[1])
+        #sketch.glctx.viewport = (0, 0, sketch.canvas.width*content_scale[0], sketch.canvas.height*content_scale[1])
+
+        aspect_canvas = sketch.canvas.width / sketch.canvas.height
+        aspect_display = sketch.canvas_display_width / sketch.canvas_display_height
+
+        if aspect_canvas > aspect_display:
+            # canvas is wider -> fit width
+            vp_width = sketch.canvas_display_width * content_scale[0]
+            vp_height = vp_width / aspect_canvas
+        else:
+            # canvas is taller -> fit height
+            vp_height = sketch.canvas_display_height * content_scale[1]
+            vp_width = vp_height * aspect_canvas
+
+        vp_x = (sketch.canvas_display_width * content_scale[0] - vp_width) / 2
+        vp_y = (sketch.canvas_display_height * content_scale[1] - vp_height) / 2
+
+        sketch.glctx.viewport = (int(vp_x), int(vp_y), int(vp_width), int(vp_height))
+
+        #sketch.glctx.viewport = (0, 0, sketch.canvas_display_width*content_scale[0], sketch.canvas_display_height*content_scale[1])
         sketch.quad_vao.render(mgl.TRIANGLES)  # Render the VAO
         sketch.glctx.viewport = (0, 0, sketch.window_width*content_scale[0], sketch.window_height*content_scale[1])
         #sketch.glctx.viewport = prev_viewport
