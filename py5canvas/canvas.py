@@ -1966,7 +1966,13 @@ class VideoInput:
         import cv2
         # define a video capture object
         self.vid = cv2.VideoCapture(name)
-        self.size = size
+        if size is not None:
+            self.size = size
+        else:
+            self.size = (
+                int(self.vid.get(cv2.CAP_PROP_FRAME_WIDTH)),
+                int(self.vid.get(cv2.CAP_PROP_FRAME_HEIGHT))
+            )
         self.resize_mode = resize_mode
         self.name = name
 
