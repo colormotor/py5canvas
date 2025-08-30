@@ -261,7 +261,7 @@ if imgui is not None:
         style.colors[imgui.Col.SCROLLBAR_GRAB_ACTIVE] = \
         [col_main[0], col_main[1], col_main[2], 1.00]
         style.colors[imgui.Col.POPUP_BG] = \
-        [col_area[0], col_area[1], col_area[2], 1.00]
+        [col_area[0]*0.6, col_area[1]*0.6, col_area[2]*0.6, 1.00]
         style.colors[imgui.Col.CHECK_MARK] = \
         [col_main[0], col_main[1], col_main[2], 0.80]
         style.colors[imgui.Col.SLIDER_GRAB] = \
@@ -345,6 +345,9 @@ if imgui is not None:
             self.changed = set()
             self.cur_preset_name = ''
 
+        def set_theme(self, hue):
+            set_theme(hue)
+
         def force_changed(self, params, gui_params, parent=''):
             for name, val in gui_params.items():
                 if name == '__key__':
@@ -407,7 +410,7 @@ if imgui is not None:
                         elif param_type == 'float_slider':
                             changed, params[key] = imgui.slider_float(name, params[key], opts['min'], opts['max'])
                         elif param_type == 'int_slider':
-                            changed, params[key] = imgui.slider_int(name, params[key], opts['min'], opts['max'])
+                            changed, params[key] = imgui.slider_int(name, int(params[key]), int(opts['min']), int(opts['max']))
                         elif param_type == 'checkbox':
                             changed, params[key] = imgui.checkbox(name, params[key])
                         elif param_type == 'color':
@@ -492,6 +495,10 @@ if imgui is not None:
                 changed, flag = imgui.checkbox('Always on top', sketch.settings['floating_window'])
                 if changed:
                     sketch.set_floating(flag)
+                changed, flag = imgui.checkbox('Startup with toolbar', sketch.settings['show_toolbar'])
+                if changed:
+                    sketch.settings['show_toolbar'] = flag
+
                 imgui.separator_text('Animation')
                 nf = sketch.settings['num_movie_frames']
                 changed, nf = imgui.input_int('num frames', nf)
@@ -523,11 +530,6 @@ if imgui is not None:
             #     if path:
             #         sketch.dump_canvas(path)
 
-            imgui.same_line()
-            imgui.push_style_color(imgui.Col.TEXT, [0.5, 0.5, 0.5])
-            script_name = os.path.basename(sketch.path)
-            imgui.text('Sketch: ' + script_name)
-            imgui.pop_style_color(1)
             imgui.end()
 
         def begin_gui(self, sketch):
@@ -539,6 +541,12 @@ if imgui is not None:
                                             imgui.WindowFlags.NO_TITLE_BAR |
                                             imgui.WindowFlags.NO_SAVED_SETTINGS))
             imgui.begin_child("Sketch")
+            imgui.push_style_color(imgui.Col.TEXT, [0.5, 0.5, 0.5])
+            script_name = os.path.basename(sketch.path)
+            imgui.text_wrapped('Sketch: ' + script_name)
+            imgui.pop_style_color(1)
+            if sketch.desc:
+                imgui.text_wrapped(sketch.desc)
 
         def show_sketch_controls(self):
             return imgui.collapsing_header("Controls", None, imgui.TreeNodeFlags.DEFAULT_OPEN)[0]
@@ -571,7 +579,10 @@ if imgui is not None:
                     buttons = False
                     if self.cur_preset_name:
                         buttons = True
-                        if imgui.button('+'):
+                        label = '+'
+                        if self.cur_preset_name in preset_names:
+                            label = 'v'
+                        if imgui.button(label):
                             sketch.params.add_preset(self.cur_preset_name)
                             preset_names = [k for k in sketch.params.presets.keys()]
                             sketch.current_preset = sketch.params.preset_index(self.cur_preset_name)

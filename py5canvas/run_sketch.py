@@ -212,7 +212,8 @@ class Sketch:
 
         self.settings = {
             'num_movie_frames': 100,
-            'floating_window': False
+            'floating_window': False,
+            'show_toolbar': False,
         }
 
         if os.path.isfile(settings_path):
@@ -220,6 +221,9 @@ class Sketch:
             if settings:
                 self.settings.update(settings)
 
+
+        if show_toolbar is None:
+            show_toolbar = self.settings['show_toolbar']
 
         glfw.window_hint(glfw.CONTEXT_VERSION_MAJOR, 3)
         glfw.window_hint(glfw.CONTEXT_VERSION_MINOR, 3)
@@ -281,6 +285,7 @@ class Sketch:
         self._gui_visible = True
         self.keep_aspect_ratio = True
 
+        self.desc = ''
 
         # Saving window position for fullscreen toggle
         self.last_window_pos = None
@@ -826,6 +831,7 @@ class Sketch:
         self.params = None
         self.gui_callback = None
         self._no_loop = False
+        self.desc = ''
 
         # Set current directory to script dir
         if self.path:
@@ -913,6 +919,7 @@ class Sketch:
             if self.inject:
                 export_methods = ['title',
                                 'frame_rate',
+                                'description',
                                 'num_movie_frames',
                                 'create_canvas',
                                 'create_canvas_gui',
@@ -1208,6 +1215,10 @@ class Sketch:
     def title(self, title):
         ''' Sets the title of the sketch window'''
         glfw.set_window_title(self.window, title)
+
+    def description(self, text):
+        ''' Set the description of the current sketch'''
+        self.desc = text
 
     def frame_rate(self, fps):
         ''' Set the framerate of the sketch in frames-per-second'''
@@ -1683,7 +1694,7 @@ def main(path='', fps=0, inject=True, show_toolbar=False):
         sketch.canvas_tex.use(0)
         content_scale = glfw.get_window_content_scale(sketch.window)
         content_scale = [int(s) for s in content_scale] # Hack for floating point scale?
-        sketch.glctx.clear(0.5, 0.5, 0.5) # Clear to grey maybe better? #1.0, 1.0, 1.0)  # Clear the screen to white
+        sketch.glctx.clear(0, 0, 0) # perhaps better to set this with the sketch background
         #prev_viewport = sketch.glctx.viewport
         #sketch.glctx.viewport = (0, 0, sketch.canvas.width*content_scale[0], sketch.canvas.height*content_scale[1])
 
