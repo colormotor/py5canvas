@@ -32,7 +32,6 @@ def create_canvas(w, h, save_background=False):
     # Inject functions in caller globals
     for func in dir(_canvas):
         if '__' not in func and callable(getattr(_canvas, func)):
-            #pdb.set_trace()
             var_context[func] = wrap_method(_canvas, func)
 
     # Inject properties
@@ -44,7 +43,7 @@ def create_canvas(w, h, save_background=False):
 
 size = create_canvas
 
-def run(frame_rate=60, inject=True, show_toolbar=False, renderer=''):
+def run(frame_rate=60, inject=True, show_toolbar=None, renderer=''):
     if renderer:
         print("Only Cairo renderer is currently supported")
     # Rather big hack to allow 'self running' of a script
