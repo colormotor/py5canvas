@@ -5,7 +5,7 @@ import numpy as np
 
 import time
 import pathlib
-import urllib3
+import urllib.request
 
 import mediapipe as mp
 from mediapipe.tasks.python import vision
@@ -19,12 +19,8 @@ if not model_path.exists():
     url = "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task"
     print()
     print(f"Downloading model from {url}...")
-    http = urllib3.PoolManager()
-    with (
-        http.request("GET", url, preload_content=False) as r,
-        model_path.open("wb") as o,
-    ):
-        for chunk in r.stream(1024):
+    with urllib.request.urlopen(url) as r, model_path.open("wb") as o:
+        while chunk := r.read(1024):
             o.write(chunk)
     print(f"Model downloaded and saved as {model_path}")
 
@@ -118,6 +114,7 @@ def draw():
 
 
 # helpers ------------------------------------------------------------------------
+
 
 # convert one face's landmarks to pixel coordinates
 def landmarks_to_px(lms):
