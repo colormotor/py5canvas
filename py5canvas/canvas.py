@@ -491,11 +491,9 @@ class Canvas:
             print(f"font style `{style}` not recognised (choose from: normal, italic, bold, bolditalic)")
 
     def text_width(self, txt):
-        if txt == ' ':
-            # HACK to get space width
-            return self.text_width('x x')-self.text_width('x')*2
+        # x_advance safer than width (works with spaces)
         info = self.ctx.get_scaled_font().text_extents(txt)
-        return info.width
+        return info.x_advance
 
     def text_height(self, txt):
         info = self.ctx.get_scaled_font().text_extents(txt)
