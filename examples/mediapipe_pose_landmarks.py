@@ -31,9 +31,6 @@ options = vision.PoseLandmarkerOptions(
 )
 model = vision.PoseLandmarker.create_from_options(options)
 
-# Segmentation mask display modes
-segmentation_mode = 0  # 0: No mask, 1: Transparent overlay, 2: Only mask
-
 video_size = 512
 video = VideoInput(size=(video_size, video_size))
 
