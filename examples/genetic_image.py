@@ -11,11 +11,16 @@ tournament_size = 5
 num_rects = 200
 num_parameters = 6
 fitness = []
-img = np.array(load_image('./images/frida128.png'))
+target_size = (128, 128) #512, 512)
 
 def setup():
     print('setup')
     global population, fitness, img
+
+    # Load a target image, convert to grayscale and resize
+    img = load_image('./images/frida128.png').convert('L').resize(target_size)
+    # then convert to 0-1 range numpy array
+    img = np.array(img)/255
 
     create_canvas(512, 512)
     # create initial population
@@ -24,6 +29,8 @@ def setup():
         population.append(dna)
         fitness.append(0)
     fitness = np.array(fitness)
+
+    frame_rate(0)
 
 
 def draw():
@@ -39,12 +46,8 @@ def draw():
 
     # draw the fittest result, but scale to the whole canvas sie
     background(255)
-    push()
-    scale_amt = width/img.shape[1]
-    scale(scale_amt)
     # image(img, 0, 0)
     draw_phenotype(population[fittest])
-    pop()
 
     # if the method is working this should be increasing
     fill(0)
@@ -54,6 +57,8 @@ def draw():
     text("Generation %d, fitness: %.3f"%(frame_count+1, fitness[fittest]), 
          [20,20])
 
+    image(img, 0, 30)
+    canvas_img = get_image_grayscale().resize(target_size) # 0-255 range
 
 # tournament selection
 # selects one chromosome with the best fitness among a set of random chromosomes
@@ -70,10 +75,10 @@ def calc_phenotype(dna):
     j = 0
     for i in range(num_rects):
         rects.append( {
-            'x': dna[j+0] * img.shape[1],
-            'y': dna[j+1] * img.shape[0],
-            'width': dna[j+2] * img.shape[1]*0.4,
-            'height': dna[j+3] * img.shape[0]*0.4,
+            'x': dna[j+0] * width,
+            'y': dna[j+1] * height,
+            'width': dna[j+2] * height*0.4,
+            'height': dna[j+3] * width*0.4,
             'rotation': dna[j+4] * np.pi * 2,
             'opacity': dna[j+5]*255
             })
@@ -96,18 +101,23 @@ def draw_phenotype(dna):
 
 
 # computes fitness given a chromosome
-def compute_fitness(dna):
+def compute_fitness(dna, get_image=False):
     background(255)
     draw_phenotype(dna)
     # grab the resulting image
-    canvas_img = get_image()[:img.shape[0],:img.shape[1]]
-    cost = (canvas_img/255 - img/255)**2
-    return -np.sum(cost)
+    canvas_img = get_image_grayscale().resize(target_size) # 0-255 range
+    cost = (np.array(canvas_img)/255 - img)**2
+    fitness = -np.sum(cost)
+    if get_image:
+        return fitness, canvas_img
+    else:
+        return fitness
 
 
 # evolve a new generation
 def evolve(population, fitness):
     n = len(population)
+
     # update fitness
     for i in range(n):
         fitness[i] = compute_fitness(population[i])
@@ -126,7 +136,6 @@ def evolve(population, fitness):
         generation.append(dna)
 
     return generation
-
 
 # crossover operator
 def crossover(a, b):
