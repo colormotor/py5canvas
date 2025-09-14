@@ -1,5 +1,4 @@
 from py5canvas import *
-
 import numpy as np
 
 def parameters():
@@ -17,10 +16,11 @@ def parameters():
                 }
           }
 
+
 def setup():
     # Setting this to False will stretch the canvas when going fullscreen
-    sketch.keep_aspect_ratio = False
-    create_canvas(512, 512, 300)
+    create_canvas(400, 712, 300)
+    description("Fullscreen example")
 
 def draw():
     background(100)
@@ -32,9 +32,12 @@ def draw():
         fill(params.color)
         rectangle(-params.width/2 + np.sin(frame_count/20)*200, -params.height/2, params.width, params.height)
 
+    if sketch.param_changed('hue'):
+        sketch.gui.set_theme(params.hue)
+
 def key_pressed(key, modifier):
     if key==' ': # SPACE toggles fullscreen, chr(..) gives the character corresponding to symb
         # `toggle_gui=True` means that we hide the gui when fullscreen
         toggle_fullscreen() #toggle_gui=True)
 
-run()
+run() #show_toolbar=True)
