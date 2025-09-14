@@ -57,7 +57,7 @@ def doc_methods(methods):
 
 from contextlib import redirect_stdout
 
-with open('canvas_api.md', 'w') as f:
+with open('README.md', 'w') as f:
     with redirect_stdout(f):
         info = parse_class_with_docs_and_args(canvas.__file__, 'Canvas')
         print('\n# Canvas API')
