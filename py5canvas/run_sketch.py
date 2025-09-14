@@ -176,11 +176,11 @@ class Sketch:
 
         #fb_w, fb_h = glfw.get_framebuffer_size(self.window)
 
-    """In Py5Canvas a sketch is a Python script with a custom defined ~setup~ and ~draw~ functions,
+    """In Py5Canvas a sketch is a Python script with a custom defined `setup` and `draw` functions,
     that allow to create interactive apps in a way similar to P5js or Processing. For the system to work
     you must defiine a sketch similar to what follows:
 
-    #+begin_src python
+    ```python
     from py5canvas import *
 
     def setup():
@@ -190,11 +190,11 @@ class Sketch:
         background(0)
 
     run()
-    #+end_src
+    ```
 
-    Canvas drawing code can go in either ~draw~ or ~setup~. To run a sketch, simply run the script from
+    Canvas drawing code can go in either `draw` or `setup`. To run a sketch, simply run the script from
     a terminal or from your editor of choice. For the system to work, you must import Py5Canvas at the beginning
-    and call ~run~ at the end.
+    and call `run` at the end.
     """
     def __init__(self, path,
                        width,
@@ -382,7 +382,7 @@ class Sketch:
 
     @property
     def clicked(self):
-        ''' Returns ~True~ if mouse was clicked'''
+        ''' Returns `True` if mouse was clicked'''
         # if self._clicked:
         #     print('Function clicked is true', self)
         #     traceback.print_stack()
@@ -390,12 +390,12 @@ class Sketch:
 
     @property
     def dragging(self):
-        ''' Returns ~True~ if mouse is pressed'''
+        ''' Returns `True` if mouse is pressed'''
         return self._dragging
 
     @property
     def mouse_is_pressed(self):
-        ''' Returns ~True~ if mouse is pressed'''
+        ''' Returns `True` if mouse is pressed'''
         return self._dragging
 
     @property
@@ -414,7 +414,7 @@ class Sketch:
     def open_file_dialog(self, exts, title='Open file...'):
         ''' Opens a dialog to select a file to be opened,
         the first argument is the extension or the file to be opened,
-        e.g. ~'png'~ or a list of extensions, e.g. ~['png', 'jpg']
+        e.g. `'png'` or a list of extensions, e.g. `['png', 'jpg']`
 
         The function returns the path of the file if it is selected or an empty string othewise.
         '''
@@ -428,7 +428,7 @@ class Sketch:
     def save_file_dialog(self, exts, title='Open file...', filename='untitled'):
         ''' Opens a dialog to select a file to be saved,
         the first argument is the extension or the file to be saved,
-        e.g. ~'png'~ or a list of extensions, e.g. ~['png', 'jpg']
+        e.g. `'png'` or a list of extensions, e.g. `['png', 'jpg']`
 
         The function returns the path of the file if it is selected or an empty string othewise.
         '''
@@ -629,7 +629,7 @@ class Sketch:
         self.settings['floating_window'] = flag
 
     def fullscreen(self, flag, toggle_gui=False, screen_index=-1):
-        ''' Sets fullscreen or windowed mode depending on the first argument (~True~ or ~False~)
+        ''' Sets fullscreen or windowed mode depending on the first argument (`True` or `False`)
         '''
         # old_window_width = self.canvas_display_width
         # old_window_height = self.canvas_display_height
@@ -688,8 +688,8 @@ class Sketch:
         By default this will reload the current script.
 
         Arguments:
-        - ~path~ (string), the directory where to save the images
-        - ~num_frames~ (int), the number of frames to save
+        - `path` (string), the directory where to save the images
+        - `num_frames` (int), the number of frames to save
         '''
         if '~' in path:
             path = os.path.expanduser(path)
@@ -708,8 +708,8 @@ class Sketch:
         By default this will reload the current script.
 
         Arguments:
-        - ~path~ (string), the directory where to save the video
-        - ~num_frames~ (int), the number of frames to save
+        - `path` (string), the directory where to save the video
+        - `num_frames` (int), the number of frames to save
         '''
         path = os.path.abspath(path)
         self.grabbing = path

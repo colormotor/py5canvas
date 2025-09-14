@@ -5,8 +5,8 @@ def set_color_scale(*args):
 
 Arguments:
 
-- ~scale~ (float): the color scale. if we want to specify colors in the ~0...255~ range,
- ~scale~ will be ~255~. If we want to specify colors in the ~0...1~ range, ~scale~ will be ~1~ """
+- `scale` (float): the color scale. if we want to specify colors in the `0...255` range,
+ `scale` will be `255`. If we want to specify colors in the `0...1` range, `scale` will be `1` """
     pass  # Dummy method for linter
 
 cur_fill = ''
@@ -54,12 +54,12 @@ def color_mode(*args):
 
 Arguments:
 
-- ~mode~ (string): can be one of 'rgb', 'hsv' depending on the desired color mode
-- ~scale~ (float): the scale for the color values (e.g. 255 for 0...255 range, 1 for 0...1 range)
+- `mode` (string): can be one of 'rgb', 'hsv' depending on the desired color mode
+- `scale` (float): the scale for the color values (e.g. 255 for 0...255 range, 1 for 0...1 range)
 
 Examples:
 
-- ~color_mode('rgb', 1.0)~ will set the color mode to RGB in the 0-1 range. """
+- `color_mode('rgb', 1.0)` will set the color mode to RGB in the 0-1 range. """
     pass  # Dummy method for linter
 
 def fill(*args):
@@ -67,8 +67,8 @@ def fill(*args):
 
 Arguments:
 
-- A single argument specifies a grayscale value, e.g ~fill(128)~ will fill with 50% gray.
-- Two arguments specify grayscale with opacity, e.g. ~fill(255, 128)~ will fill with transparent white.
+- A single argument specifies a grayscale value, e.g `fill(128)` will fill with 50% gray.
+- Two arguments specify grayscale with opacity, e.g. `fill(255, 128)` will fill with transparent white.
 - Three arguments specify a color depending on the color mode (rgb or hsv)
 - Four arguments specify a color with opacity """
     pass  # Dummy method for linter
@@ -77,9 +77,9 @@ def stroke(*args):
     """Set the color of the current stroke
 
 Arguments:
-- A single argument specifies a grayscale value, e.g. ~stroke(255)~ will set the stroke to white.
-- Two arguments specify grayscale with opacity, e.g. ~stroke(0, 128)~ will set the stroke to black with 50% opacity.
-- Three arguments specify a color depending on the color mode (rgb or hsv), e.g. ~stroke(255, 0, 0)~ will set the stroke to red, when the color mode is RGB
+- A single argument specifies a grayscale value, e.g. `stroke(255)` will set the stroke to white.
+- Two arguments specify grayscale with opacity, e.g. `stroke(0, 128)` will set the stroke to black with 50% opacity.
+- Three arguments specify a color depending on the color mode (rgb or hsv), e.g. `stroke(255, 0, 0)` will set the stroke to red, when the color mode is RGB
 - Four arguments specify a color with opacity """
     pass  # Dummy method for linter
 
@@ -95,7 +95,7 @@ def line_join(*args):
 
 Arguments:
 
-- ~join~ (string): can be one of "miter", "bevel" or "round" """
+- `join` (string): can be one of "miter", "bevel" or "round" """
     pass  # Dummy method for linter
 
 def blend_mode(*args):
@@ -103,9 +103,9 @@ def blend_mode(*args):
 
 Arguments:
 
-- ~mode~ (string) can be one of: "clear", "source", "over", "in", "out", "atop",
+- `mode` (string) can be one of: "clear", "source", "over", "in", "out", "atop",
   "dest", "dest_over", "dest_in", "dest_out", "dest_atop", "xor", "add", "saturate", "multiply", "screen", "overlay", "darken", "lighten", "color_dodge", "color_burn", "hard_light", "soft_light", "difference", "exclusion", "hsl_hue", "hsl_saturation", "hsl_color", "hsl_luminosity"
-  See [[https://www.cairographics.org/operators/]] for a discussion on the different operators. """
+  See [Cairo Graphics Operators](https://www.cairographics.org/operators/) for a discussion on the different operators. """
     pass  # Dummy method for linter
 
 def line_cap(*args):
@@ -113,15 +113,15 @@ def line_cap(*args):
 
 Arguments:
 
-- ~cap~ (string): can be one of "butt", "round" or "square" """
+- `cap` (string): can be one of "butt", "round" or "square" """
     pass  # Dummy method for linter
 
 def text_align(*args):
     """Specify the text alignment
 
 Arguments:
-- ~halign~ (string): Horizontal alignment. One of "left", "center" or "right"
-- ~valign~ (string): Horizontal alignment. One of "bottom" (default), "top" or "center" """
+- `halign` (string): Horizontal alignment. One of "left", "center" or "right"
+- `valign` (string): Horizontal alignment. One of "bottom" (default), "top" or "center" """
     pass  # Dummy method for linter
 
 def text_size(*args):
@@ -129,22 +129,28 @@ def text_size(*args):
 
 Arguments:
 
-- ~size~ (int): the text size """
+- `size` (int): the text size """
     pass  # Dummy method for linter
 
 def text_font(*args):
     """Specify the font to use for text rendering
 Arguments:
 
-- ~font~ (string): the name of a system font """
+- `font` (string or object): Either a string describing the font file path or system font name, or a font object (created with `create_font`) """
     pass  # Dummy method for linter
 
 def text_style(*args):
     """Specify the style (normal, italic, bold, bolditalic) to use for text
 rendering
 Arguments:
-- ~style~ (string): the name of a style ("normal", "italic", "bold",
+- `style` (string): the name of a style ("normal", "italic", "bold",
 "bolditalic") """
+    pass  # Dummy method for linter
+
+def text_width(*args):
+    pass  # Dummy method for linter
+
+def text_height(*args):
     pass  # Dummy method for linter
 
 def push_matrix():
@@ -172,12 +178,12 @@ def pop():
     pass  # Dummy method for linter
 
 def translate(*args):
-    """Translate by specifying ~x~ and ~y~ offset.
+    """Translate by specifying `x` and `y` offset.
 
 Arguments:
 
-- The offset can be specified as an array/list (e.g ~translate([x,y])~
-  or as single arguments (e.g. ~translate(x, y)~) """
+- The offset can be specified as an array/list (e.g `translate([x,y])`
+  or as single arguments (e.g. `translate(x, y)`) """
     pass  # Dummy method for linter
 
 def scale(*args):
@@ -187,12 +193,12 @@ Arguments:
 
 - Providing a single number will apply a uniform transformation.
 - Providing a pair of number will scale in the x and y directions.
-- The scale can be specified as an array/list (e.g ~scale([x,y])~
-or as single arguments (e.g. ~scale(x, y)~)''' """
+- The scale can be specified as an array/list (e.g `scale([x,y])`
+or as single arguments (e.g. `scale(x, y)`)''' """
     pass  # Dummy method for linter
 
 def rotate(*args):
-    """Rotate by ~theta~ radians """
+    """Rotate by `theta` radians """
     pass  # Dummy method for linter
 
 def apply_matrix(*args):
@@ -210,32 +216,32 @@ def rect_mode(*args):
     """Set the "mode" for drawing rectangles.
 
 Arguments:
-- ~mode~ (string): can be one of 'corner', 'corners', 'center', 'radius' """
+- `mode` (string): can be one of 'corner', 'corners', 'center', 'radius' """
     pass  # Dummy method for linter
 
 def ellipse_mode(*args):
     """Set the "mode" for drawing rectangles.
 
 Arguments:
-- ~mode~ (string): can be one of 'corner', 'center' """
+- `mode` (string): can be one of 'corner', 'center' """
     pass  # Dummy method for linter
 
 def rectangle(*args):
     """Draw a rectangle.
-Can use ~rect~ equivalently.
+Can use `rect` equivalently.
 
 Arguments:
 The first sequence of arguments is one of
 
- - ~[x, y], [width, height]~,
- - ~[x, y], width, height~,
- - ~x, y, width, height~
- - ~[[topleft_x, topleft_y], [bottomright_x, bottomright_y]]~
+ - `[x, y], [width, height]`,
+ - `[x, y], width, height`,
+ - `x, y, width, height`
+ - `[[topleft_x, topleft_y], [bottomright_x, bottomright_y]]`
 
 The last option will ignore the rect mode since it explictly defines the corners of the rect
 
-The interpretation of ~x~ and ~y~ depends on the current rect mode. These indicate the
-center of the rectangle if the rect mode is ~"center"~ and the top left corner otherwise. """
+The interpretation of `x` and `y` depends on the current rect mode. These indicate the
+center of the rectangle if the rect mode is `"center"` and the top left corner otherwise. """
     pass  # Dummy method for linter
 
 def square(*args):
@@ -244,11 +250,11 @@ def square(*args):
 Arguments:
 
 The first sequence of arguments is one of
- - ~[x, y], size~,
- - ~x, y, size~
+ - `[x, y], size`,
+ - `x, y, size`
 
-The interpretation of ~x~ and ~y~ depends on the current rect mode. These indicate the
-center of the rectangle if the rect mode is ~"center"~ and the top left corner otherwise. """
+The interpretation of `x` and `y` depends on the current rect mode. These indicate the
+center of the rectangle if the rect mode is `"center"` and the top left corner otherwise. """
     pass  # Dummy method for linter
 
 def rect(*args):
@@ -277,8 +283,8 @@ def line(*args):
 
 Input arguments can be in the following formats:
 
- - ~a, b~ (Two points specified as lists/tuples/numpy arrays
- - ~x1, y1, x2, y2~, a sequence of numbers, one for each coordinate """
+ - `a, b` (Two points specified as lists/tuples/numpy arrays
+ - `x1, y1, x2, y2`, a sequence of numbers, one for each coordinate """
     pass  # Dummy method for linter
 
 def point(*args):
@@ -286,8 +292,8 @@ def point(*args):
 
 Input arguments can be in the following formats:
 
- - ~[x, y]~: a single point specified as a tuple/list/numpy array
- - ~x1, y1~: two coordinates """
+ - `[x, y]`: a single point specified as a tuple/list/numpy array
+ - `x1, y1`: two coordinates """
     pass  # Dummy method for linter
 
 def arrow(*args):
@@ -295,8 +301,8 @@ def arrow(*args):
 
 Input arguments can be in the following formats:
 
- - ~a, b~ (Two points specified as lists/tuples/numpy arrays
- - ~x1, y1, x2, y2~, a sequence of numbers, one for each coordinate """
+ - `a, b` (Two points specified as lists/tuples/numpy arrays
+ - `x1, y1, x2, y2`, a sequence of numbers, one for each coordinate """
     pass  # Dummy method for linter
 
 def triangle(*args):
@@ -304,8 +310,8 @@ def triangle(*args):
 
 Input arguments can be in the following formats:
 
- - ~a, b, c~ (Four points specified as lists/tuples/numpy arrays
- - ~x1, y1, x2, y2, x3, y3~ """
+ - `a, b, c` (Four points specified as lists/tuples/numpy arrays
+ - `x1, y1, x2, y2, x3, y3` """
     pass  # Dummy method for linter
 
 def circle(*args):
@@ -313,8 +319,8 @@ def circle(*args):
 
 Input arguments can be in the following formats:
 
-- ~[center_x, center_y], radius~,
-- ~center_x, center_y, raidus~ """
+- `[center_x, center_y], radius`,
+- `center_x, center_y, raidus` """
     pass  # Dummy method for linter
 
 def ellipse(*args):
@@ -322,22 +328,22 @@ def ellipse(*args):
 
 Input arguments can be in the following formats:
 
-- ~[center_x, center_y], [width, height]~,
-- ~[center_x, center_y], width, height~,
-- ~center_x, center_y, width, height~ """
+- `[center_x, center_y], [width, height]`,
+- `[center_x, center_y], width, height`,
+- `center_x, center_y, width, height` """
     pass  # Dummy method for linter
 
 def arc(*args):
-    """Draw an arc given the center of the ellipse ~x, y~
-the size of the ellipse ~w, h~ and the initial and final angles
-in radians  ~start, stop~.
+    """Draw an arc given the center of the ellipse `x, y`
+the size of the ellipse `w, h` and the initial and final angles
+in radians  `start, stop`.
 NB. this differs from Processing/P5js as it always draws
 
 Input arguments can be in the following formats:
 
-  - ~x, y, w, h, start, stop~
-  - ~[x, y]~, ~[w, h]~, ~[start, stop]~
-  - ~[x, y]~, ~w, h, start, stop~ """
+  - `x, y, w, h, start, stop`
+  - `[x, y]`, `[w, h]`, `[start, stop]`
+  - `[x, y]`, `w, h, start, stop` """
     pass  # Dummy method for linter
 
 def clear_segments():
@@ -360,7 +366,7 @@ def end_contour(*args):
 
 Arguments:
 
-- ~close~ (bool, optional): if ~True~ close the contour """
+- `close` (bool, optional): if `True` close the contour """
     pass  # Dummy method for linter
 
 def vertex(*args):
@@ -368,8 +374,8 @@ def vertex(*args):
 
 Input arguments can be in the following formats:
 
-- ~[x, y]~
-- ~x, y~ """
+- `[x, y]`
+- `x, y` """
     pass  # Dummy method for linter
 
 def curve_vertex(*args):
@@ -377,23 +383,23 @@ def curve_vertex(*args):
 
 Input arguments can be in the following formats:
 
-- ~[x, y]~
-- ~x, y~ """
+- `[x, y]`
+- `x, y` """
     pass  # Dummy method for linter
 
 def bezier_vertex(*args):
     """Draw a cubic Bezier segment from the current point
-requires a first control point to be already defined with ~vertex~.
+requires a first control point to be already defined with `vertex`.
 
 
 Requires three points. Input arguments can be in the following formats:
 
-- ~[x1, y1], [x2, y2], [x3, y3]~
-- ~x1, y1, x2, y2, x3, y3~ """
+- `[x1, y1], [x2, y2], [x3, y3]`
+- `x1, y1, x2, y2, x3, y3` """
     pass  # Dummy method for linter
 
 def curve_tightness(*args):
-    """Sets the 'tension' parameter for the curve used when using ~curve_vertex~
+    """Sets the 'tension' parameter for the curve used when using `curve_vertex`
          """
     pass  # Dummy method for linter
 
@@ -402,8 +408,8 @@ def cubic(*args):
 
 Input arguments can be in the following formats:
 
-- ~[x1, y1], [x2, y2], [x3, y3]~
-- ~x1, y1, x2, y2, x3, y3~ """
+- `[x1, y1], [x2, y2], [x3, y3]`
+- `x1, y1, x2, y2, x3, y3` """
     pass  # Dummy method for linter
 
 def quadratic(*args):
@@ -411,8 +417,8 @@ def quadratic(*args):
 
 Input arguments can be in the following formats:
 
--    ~[x1, y1], [x2, y2]~
--    ~x1, y1, x2, y2~ """
+-    `[x1, y1], [x2, y2]`
+-    `x1, y1, x2, y2` """
     pass  # Dummy method for linter
 
 def bezier(*args):
@@ -420,16 +426,16 @@ def bezier(*args):
     The degree of the curve (2 or 3) depends on the input arguments
 Arguments:
 Input arguments can be in the following formats:
-    ~[x1, y1], [x2, y2], [x3, y3]~ is cubic
-    ~x1, y1, x2, y2, x3, y3~ is cubic
-    ~[x1, y1], [x2, y2]~ is quadratic
-    ~x1, y1, x2, y2~ is quadratic """
+    `[x1, y1], [x2, y2], [x3, y3]` is cubic
+    `x1, y1, x2, y2, x3, y3` is cubic
+    `[x1, y1], [x2, y2]` is quadratic
+    `x1, y1, x2, y2` is quadratic """
     pass  # Dummy method for linter
 
 def create_graphics(*args):
     """Create a new canvas with the specified width and height
-E.g. ~c = create_graphics(128, 128)~ will put a new canvas into
-the variable ~c~. You can draw the contents of the canvas with the ~image~ function. """
+E.g. `c = create_graphics(128, 128)` will put a new canvas into
+the variable `c`. You can draw the contents of the canvas with the `image` function. """
     pass  # Dummy method for linter
 
 def image(*args):
@@ -437,20 +443,20 @@ def image(*args):
 
 Arguments:
 
-- ~img~: The input image. Can be either a PIL image, a numpy array, a Canvas or a pyCairo surface.
+- `img`: The input image. Can be either a PIL image, a numpy array, a Canvas or a pyCairo surface.
 - optional arguments: position and size can be specified with the following formats:
-    - ~x, y~:  position only
-    - ~x, y, w, h~: position and size
-    - ~[x, y]~: position only (also a numpy array or tuple are valid)
-    - ~[x, y], [w, h]~: position and size
+    - `x, y`:  position only
+    - `x, y, w, h`: position and size
+    - `[x, y]`: position only (also a numpy array or tuple are valid)
+    - `[x, y], [w, h]`: position and size
 if the position is not specified, the original image dimensions will be used
 
-- ~opacity~: a value between 0 and 1 specifying image opacity. """
+- `opacity`: a value between 0 and 1 specifying image opacity. """
     pass  # Dummy method for linter
 
 def shape(*args):
-    """Draw a shape represented as a list of polylines, see the ~polyline~
-method for the format of each polyline """
+    """Draw a shape represented as a list of polylines, see the `polyline`
+method for the format of each polyline. Also accepts a single polyline as an input """
     pass  # Dummy method for linter
 
 def text(*args):
@@ -458,10 +464,10 @@ def text(*args):
 
 Arguments:
 
-    - ~text`, the text to display
-    - the position of the text, either a pair of x, y arguments or a list like object (e.g. ~[x, y]~)
-    - ~align~, horizontal alignment, etiher ~'left'~ (default), ~'center'~ or ~'right'~
-    - ~valign~, vertical alignment, etiher ~'bottom'~ (default), ~'center'~ or ~'top'~
+    - `text`, the text to display
+    - the position of the text, either a pair of x, y arguments or a list like object (e.g. `[x, y]`)
+    - `align`, horizontal alignment, etiher `'left'` (default), `'center'` or `'right'`
+    - `valign`, vertical alignment, etiher `'bottom'` (default), `'center'` or `'top'`
     (Deprecated) if center=True the text will be horizontally centered """
     pass  # Dummy method for linter
 
@@ -473,11 +479,11 @@ def text_shape(*args):
 
 Arguments:
 
-- ~text`, the text to sample
-- the position of the text, either a pair of x, y arguments or a list like object (e.g. ~[x, y]~)
-- ~dist~, approximate distance between samples
-- ~align~, horizontal alignment, etiher ~'left'~ (default), ~'center'~ or ~'right'~
-- ~valign~, vertical alignment, etiher ~'bottom'~ (default), ~'center'~ or ~'top'~ """
+- `text`, the text to sample
+- the position of the text, either a pair of x, y arguments or a list like object (e.g. `[x, y]`)
+- `dist`, approximate distance between samples
+- `align`, horizontal alignment, etiher `'left'` (default), `'center'` or `'right'`
+- `valign`, vertical alignment, etiher `'bottom'` (default), `'center'` or `'top'` """
     pass  # Dummy method for linter
 
 def text_points(*args):
@@ -485,11 +491,11 @@ def text_points(*args):
 
 Arguments:
 
-- ~text`, the text to sample
-- the position of the text, either a pair of x, y arguments or a list like object (e.g. ~[x, y]~)
-- ~dist~, approximate distance between samples
-- ~align~ (named), horizontal alignment, etiher ~'left'~ (default), ~'center'~ or ~'right'~
-- ~valign~ (named), vertical alignment, etiher ~'bottom'~ (default), ~'center'~ or ~'top'~ """
+- `text`, the text to sample
+- the position of the text, either a pair of x, y arguments or a list like object (e.g. `[x, y]`)
+- `dist`, approximate distance between samples
+- `align` (named), horizontal alignment, etiher `'left'` (default), `'center'` or `'right'`
+- `valign` (named), vertical alignment, etiher `'bottom'` (default), `'center'` or `'top'` """
     pass  # Dummy method for linter
 
 def text_bounds(*args):
@@ -501,11 +507,11 @@ def polygon(*args):
 
 The polyline is specified as either:
 
-- a list of ~[x,y]~ pairs (e.g. ~[[0, 100], [200, 100], [200, 200]]~)
-- a numpy array with shape ~(n, 2)~, representing ~n~ points (a point for each row and a coordinate for each column)
+- a list of `[x,y]` pairs (e.g. `[[0, 100], [200, 100], [200, 200]]`)
+- a numpy array with shape `(n, 2)`, representing `n` points (a point for each row and a coordinate for each column)
 - two lists (or numpy array) of numbers, one for each coordinate
 
-To create an opne polygon set the named ~close~ argument to ~False~, e.g. ~c.polygon(points, close=False)~. """
+To create an opne polygon set the named `close` argument to `False`, e.g. `c.polygon(points, close=False)`. """
     pass  # Dummy method for linter
 
 def curve(*args):
@@ -513,11 +519,11 @@ def curve(*args):
 
 The polyline is specified as either:
 
-- a list of ~[x,y]~ pairs (e.g. ~[[0, 100], [200, 100], [200, 200]]~)
-- a numpy array with shape ~(n, 2)~, representing ~n~ points (a point for each row and a coordinate for each column)
+- a list of `[x,y]` pairs (e.g. `[[0, 100], [200, 100], [200, 200]]`)
+- a numpy array with shape `(n, 2)`, representing `n` points (a point for each row and a coordinate for each column)
 - two lists (or numpy array) of numbers, one for each coordinate
 
-To close the curve set the named ~close~ argument to ~True~, e.g. ~c.curve(points, close=True)~. """
+To close the curve set the named `close` argument to `True`, e.g. `c.curve(points, close=True)`. """
     pass  # Dummy method for linter
 
 def polyline(*args):
@@ -525,7 +531,7 @@ def polyline(*args):
 
 The polyline is specified as either:
 
-- a list of ~[x,y]~ pairs (e.g. ~[[0, 100], [200, 100], [200, 200]]~)
+- a list of `[x,y]` pairs (e.g. ~[[0, 100], [200, 100], [200, 200]]~)
 - a numpy array with shape ~(n, 2)~, representing ~n~ points (a point for each row and a coordinate for each column)
 - two lists (or numpy array) of numbers, one for each coordinate
 
@@ -556,8 +562,16 @@ Accepts either an array with the color components, or single color components (a
 def get_buffer():
     pass  # Dummy method for linter
 
+def get_image_array():
+    """Get canvas image as a numpy array """
+    pass  # Dummy method for linter
+
+def get_grayscale_array():
+    """Get grayscale image of canvas contents as float numpy array (0 to 1 range) """
+    pass  # Dummy method for linter
+
 def get_image():
-    """Get canvas image as a numpy array  """
+    """Get canvas as a PIL image """
     pass  # Dummy method for linter
 
 def get_image_grayscale():
@@ -605,9 +619,9 @@ def show_plt(*args):
 
 Arguments:
 
-- ~size~ (tuple, optional): The size of the displayed image, by default this is the size of the canvas
-- ~title~ (string, optional): A title for the figure
-- ~axis~ (bool, optional): If ~True~ shows the coordinate axes """
+- `size` (tuple, optional): The size of the displayed image, by default this is the size of the canvas
+- `title` (string, optional): A title for the figure
+- `axis` (bool, optional): If `True` shows the coordinate axes """
     pass  # Dummy method for linter
 
 def create_glcontext():
@@ -619,11 +633,11 @@ mouse_y = 'The vertical coordinate of the mouse position'
 
 frame_count = 'The number of frames since the script has loaded'
 
-clicked = 'Returns ~True~ if mouse was clicked'
+clicked = 'Returns `True` if mouse was clicked'
 
-dragging = 'Returns ~True~ if mouse is pressed'
+dragging = 'Returns `True` if mouse is pressed'
 
-mouse_is_pressed = 'Returns ~True~ if mouse is pressed'
+mouse_is_pressed = 'Returns `True` if mouse is pressed'
 
 delta_time = ''
 
@@ -633,7 +647,7 @@ def has_error():
 def open_file_dialog(*args):
     """Opens a dialog to select a file to be opened,
 the first argument is the extension or the file to be opened,
-e.g. ~'png'~ or a list of extensions, e.g. ~['png', 'jpg']
+e.g. `'png'` or a list of extensions, e.g. `['png', 'jpg']`
 
 The function returns the path of the file if it is selected or an empty string othewise. """
     pass  # Dummy method for linter
@@ -641,7 +655,7 @@ The function returns the path of the file if it is selected or an empty string o
 def save_file_dialog(*args):
     """Opens a dialog to select a file to be saved,
 the first argument is the extension or the file to be saved,
-e.g. ~'png'~ or a list of extensions, e.g. ~['png', 'jpg']
+e.g. `'png'` or a list of extensions, e.g. `['png', 'jpg']`
 
 The function returns the path of the file if it is selected or an empty string othewise. """
     pass  # Dummy method for linter
@@ -682,8 +696,12 @@ def toggle_fullscreen(*args):
     """Toggle between fullscreen and windowed mode """
     pass  # Dummy method for linter
 
+def set_floating(*args):
+    """Sets the sketch windo to floating or not """
+    pass  # Dummy method for linter
+
 def fullscreen(*args):
-    """Sets fullscreen or windowed mode depending on the first argument (~True~ or ~False~)
+    """Sets fullscreen or windowed mode depending on the first argument (`True` or `False`)
          """
     pass  # Dummy method for linter
 
@@ -697,6 +715,9 @@ def set_gui_theme(*args):
 def set_gui_callback(*args):
     pass  # Dummy method for linter
 
+def param_changed(*args):
+    pass  # Dummy method for linter
+
 def load(*args):
     pass  # Dummy method for linter
 
@@ -705,8 +726,8 @@ def grab_image_sequence(*args):
 By default this will reload the current script.
 
 Arguments:
-- ~path~ (string), the directory where to save the images
-- ~num_frames~ (int), the number of frames to save """
+- `path` (string), the directory where to save the images
+- `num_frames` (int), the number of frames to save """
     pass  # Dummy method for linter
 
 def grab_movie(*args):
@@ -714,8 +735,8 @@ def grab_movie(*args):
 By default this will reload the current script.
 
 Arguments:
-- ~path~ (string), the directory where to save the video
-- ~num_frames~ (int), the number of frames to save """
+- `path` (string), the directory where to save the video
+- `num_frames` (int), the number of frames to save """
     pass  # Dummy method for linter
 
 def stop_grabbing():
@@ -746,8 +767,16 @@ def title(*args):
     """Sets the title of the sketch window """
     pass  # Dummy method for linter
 
+def description(*args):
+    """Set the description of the current sketch """
+    pass  # Dummy method for linter
+
 def frame_rate(*args):
     """Set the framerate of the sketch in frames-per-second """
+    pass  # Dummy method for linter
+
+def num_movie_frames(*args):
+    """Set the number of frames to export when saving a video """
     pass  # Dummy method for linter
 
 def start_osc():
