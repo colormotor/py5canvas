@@ -1050,8 +1050,9 @@ class Sketch:
             self.first_load = False
             draw_frame = True
 
-        self._update_mouse(draw_frame)
-        self.update_globals()
+        if draw_frame:
+            self._update_mouse(draw_frame)
+            self.update_globals()
 
         glfw.make_context_current(self.window)
         if imgui is not None:
