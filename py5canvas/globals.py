@@ -215,6 +215,11 @@ def load_image(path):
 
     try:
         im = Image.open(path)
+        if im.mode == 'P':
+            if 'transparency' in im.info:
+                im = im.convert('RGBA')
+            else:
+                im = im.convert('RGB')
     except FileNotFoundError:
         print(path, ' not found, trying file relative')
         stack = inspect.stack()
