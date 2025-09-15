@@ -1827,35 +1827,38 @@ def degrees(x):
     ''' Get degrees given an angle in radians'''
     return x * (180.0/np.pi)
 
+import numpy as np
+import cairo
+
+
 def numpy_to_surface(arr):
     ''' Convert numpy array to a pycairo surface'''
     # Get the shape and data type of the numpy array
     if len(arr.shape) == 2:
         if arr.dtype == np.uint8:
-            arr = np.dstack([arr, arr, arr, (np.ones(arr.shape)*255).astype(np.uint8)])
+            arr = np.dstack([arr, arr, arr, (np.ones(arr.shape)*255).astype(np.uint8)])/255
         else:
-            # Assume grayscale 0-1 image
+            # rayscale 0-1 image
             arr = np.dstack([arr, arr, arr, np.ones(arr.shape)])
-            arr = (arr * 255).astype(np.uint8)
     else:
         if arr.shape[2] == 3:
             if arr.dtype == np.uint8:
-                arr = np.dstack([arr, np.ones(arr.shape[:2], dtype=np.uint8)*255])
+                arr = np.dstack([arr, np.ones(arr.shape[:2], dtype=np.uint8)*255])/255
             else:
                 arr = np.dstack([arr, np.ones(arr.shape[:2])])
-                arr = (arr * 255).astype(np.uint8)
         elif arr.shape[2] == 1:
             if arr.dtype == np.uint8:
-                arr = np.dstack([arr]*3 + [np.ones(arr.shape[:2], dtype=np.uint8)*255])
+                arr = np.dstack([arr]*3 + [np.ones(arr.shape[:2], dtype=np.uint8)*255])/255
             else:
                 arr = np.dstack([arr]*3 + [np.ones(arr.shape[:2])])
-                arr = (arr * 255).astype(np.uint8)
         else:
-            if arr.dtype != np.uint8:
-                arr = (arr * 255).astype(np.uint8)
+            if arr.dtype == np.uint8:
+                arr = arr/255
 
+    arr[:,:,:3] *= arr[:,:,3:4] # premultiply alpha
+    arr = (arr * 255).astype(np.uint8) # convert to uint8
     arr = arr.copy(order='C') # must be "C-contiguous"
-    arr[:, :, :3] = arr[:, :, ::-1][:,:,1:]
+    arr[:, :, :3] = arr[:,:,:3][:,:,::-1] # Convert RGB to BGR
     surf = cairo.ImageSurface.create_for_data(
         arr, cairo.FORMAT_ARGB32, arr.shape[1], arr.shape[0])
 
