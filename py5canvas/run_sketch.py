@@ -717,36 +717,36 @@ class Sketch:
         if num_frames > 0:
             self.settings['num_movie_frames'] = num_frames
         self.video_gamma = gamma
-    self.video_fps = framerate
-    print('Saving video to ' + path)
+        self.video_fps = framerate
+        print('Saving video to ' + path)
 
-def stop_grabbing(self):
-    self.settings['num_movie_frames'] = self.current_grab_frame
+    def stop_grabbing(self):
+        self.settings['num_movie_frames'] = self.current_grab_frame
 
-def finalize_grab(self):
-    if not self.grabbing:
-        return
-    self.cur_grab_frame = 0
-    if self.video_writer is not None:
-        print('Writing video')
-        self.video_writer.release()
-        self.video_writer = None
+    def finalize_grab(self):
+        if not self.grabbing:
+            return
+        self.cur_grab_frame = 0
+        if self.video_writer is not None:
+            print('Writing video')
+            self.video_writer.release()
+            self.video_writer = None
 
-def save_copy(self, path):
-    import shutil
-    path = os.path.splitext(path)[0]
-    shutil.copy(self.path, path + '.py')
-    json_path = self.path.replace('.py', '.json')
-    if os.path.isfile(json_path):
-        shutil.copy(json_path, path + '.json')
+    def save_copy(self, path):
+        import shutil
+        path = os.path.splitext(path)[0]
+        shutil.copy(self.path, path + '.py')
+        json_path = self.path.replace('.py', '.json')
+        if os.path.isfile(json_path):
+            shutil.copy(json_path, path + '.json')
 
-def read_fb(self, fb, **kwargs):
-    data = fb.read(**kwargs)
-    err = self.glctx.error
-    if err != "GL_NO_ERROR":
-        print(err)
+    def read_fb(self, fb, **kwargs):
+        data = fb.read(**kwargs)
+        err = self.glctx.error
+        if err != "GL_NO_ERROR":
+            print(err)
         else:
-            print('OK!')
+            pass #print('OK!')
         return data
 
     def grab(self):
