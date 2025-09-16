@@ -717,34 +717,34 @@ class Sketch:
         if num_frames > 0:
             self.settings['num_movie_frames'] = num_frames
         self.video_gamma = gamma
-        self.video_fps = framerate
-        print('Saving video to ' + path)
+    self.video_fps = framerate
+    print('Saving video to ' + path)
 
-    def stop_grabbing(self):
-        self.settings['num_movie_frames'] = self.current_grab_frame
+def stop_grabbing(self):
+    self.settings['num_movie_frames'] = self.current_grab_frame
 
-    def finalize_grab(self):
-        if not self.grabbing:
-            return
-        self.cur_grab_frame = 0
-        if self.video_writer is not None:
-            print('Writing video')
-            self.video_writer.release()
-            self.video_writer = None
+def finalize_grab(self):
+    if not self.grabbing:
+        return
+    self.cur_grab_frame = 0
+    if self.video_writer is not None:
+        print('Writing video')
+        self.video_writer.release()
+        self.video_writer = None
 
-    def save_copy(self, path):
-        import shutil
-        path = os.path.splitext(path)[0]
-        shutil.copy(self.path, path + '.py')
-        json_path = self.path.replace('.py', '.json')
-        if os.path.isfile(json_path):
-            shutil.copy(json_path, path + '.json')
+def save_copy(self, path):
+    import shutil
+    path = os.path.splitext(path)[0]
+    shutil.copy(self.path, path + '.py')
+    json_path = self.path.replace('.py', '.json')
+    if os.path.isfile(json_path):
+        shutil.copy(json_path, path + '.json')
 
-    def read_fb(self, fb, **kwargs):
-        data = fb.read(**kwargs)
-        err = self.glctx.error
-        if err != "GL_NO_ERROR":
-            print(err)
+def read_fb(self, fb, **kwargs):
+    data = fb.read(**kwargs)
+    err = self.glctx.error
+    if err != "GL_NO_ERROR":
+        print(err)
         else:
             print('OK!')
         return data
@@ -762,26 +762,29 @@ class Sketch:
                 self.video_writer = cv2.VideoWriter(self.grabbing, fmt, self.video_fps, (self.canvas.width,
                                                                         self.canvas.height))
 
-            ctx = self.glctx
-            with ctx.scope():
-                #img = self.frame_grabber.grab()[:,:,:3]
+            # GL active: use context
+            if 'draw_gl' in self.var_context:
+                ctx = self.glctx
+                with ctx.scope():
+                    #img = self.frame_grabber.grab()[:,:,:3]
 
-                # pdb.set_trace()
-                fb = ctx.detect_framebuffer()
-                #pdb.set_trace()
-                dim = 3
-                data = fb.read(components=dim, dtype='f1', alignment=1)
-                err = ctx.error
-                drain_glerrors(ctx, 'Error with grab')
-                w, h = ctx.screen.size
-                img = np.frombuffer(data, dtype=np.uint8).reshape(h, w, dim)[:,:,:3]
-                #pdb.set_trace()
-            #img = self.canvas.get_image()
-            #pdb.set_trace()
-            img = adjust_gamma(img[::-1,:,::-1], self.video_gamma)
+                    # pdb.set_trace()
+                    fb = ctx.detect_framebuffer()
+                    #pdb.set_trace()
+                    dim = 3
+                    data = fb.read(components=dim, dtype='f1', alignment=1)
+                    err = ctx.error
+                    drain_glerrors(ctx, 'Error with grab')
+                    w, h = ctx.screen.size
+                    img = np.frombuffer(data, dtype=np.uint8).reshape(h, w, dim)[:,:,:3]
+                    img = adjust_gamma(img[::-1,:,::-1], self.video_gamma)
+            else:
+                # Just use canvas image
+                img = self.canvas.get_image()
+                img = np.array(img)[:, :, ::-1]
             #img = srgb2lin(img[:,:,::-1])
             #img = lin2srgb(img[:,:,::-1])
-            #img = img[:, :, ::-1]
+
             self.video_writer.write(img)
         else:
             # Grab png frame
