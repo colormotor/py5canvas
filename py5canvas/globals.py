@@ -224,6 +224,12 @@ def load_image(path):
                             path)
         im = Image.open(path)
         print('Success')
+    if im.mode == 'P':
+        if 'transparency' in im.info:
+            im = im.convert('RGBA')
+        else:
+            im = im.convert('RGB')
+
     return im
 
 def bezier_point(*args):

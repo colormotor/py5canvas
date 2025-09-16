@@ -1,17 +1,23 @@
 #!/usr/bin/env python3
+import py5canvas
+C = py5canvas.Canvas
+
 from py5canvas import *
 from slimgui import implot, imgui
+
 
 def parameters():
     return {'noise freq':(0.01, 0.001, 0.1),
             'show demo': False}
 
+
 noises = [[], [], []]
+
 
 def setup():
     create_canvas(800, 800)
 
-print(dir(implot))
+
 def gui():
     if implot.begin_plot('Noise', size=[-1, 200]):
         implot.setup_axes(None, None, implot.AxisFlags.AUTO_FIT, implot.AxisFlags.AUTO_FIT)

@@ -22,12 +22,12 @@ def setup():
     color_mode('rgb', 1.0)
 
 def imgui_title(text):
-    imgui.push_style_color(imgui.COLOR_HEADER, 0.3, 0.3, 0.3, 1.0)
+    imgui.push_style_color(imgui.Col.HEADER, [0.3, 0.3, 0.3, 1.0])
     imgui.selectable(text, True)
     imgui.pop_style_color()
 
 def imgui_text_separator(text):
-    imgui.push_style_color(imgui.COLOR_TEXT, 0.6, 0.6, 0.6, 1.0)
+    imgui.push_style_color(imgui.Col.TEXT, [0.6, 0.6, 0.6, 1.0])
     imgui.text("Text")
     imgui.same_line()
     imgui.separator()
@@ -36,17 +36,27 @@ def imgui_text_separator(text):
 def imgui_color_button(text, color):
     if len(color) == 3:
         color = np.concatenate([color, [1.0]])
-    imgui.push_style_color(imgui.COLOR_BUTTON, *color)
+    imgui.push_style_color(imgui.Col.BUTTON, color)
     imgui.button(text)
     imgui.pop_style_color()
 
 def gui():
+    # direct imgui calls should be done in this function
+    global a, b, radius, circle_color # we are modifying these
+
     #print(sketch.window.get_pixel_ratio())
     imgui_title("General")
-    imgui.push_style_color(imgui.COLOR_BUTTON, 1.0, 0.0, 0.0, 1.0)
+    imgui.push_style_color(imgui.Col.BUTTON, [1.0, 0.0, 0.0, 1.0])
     imgui.button("Hello world")
     imgui.pop_style_color()
 
+    imgui.begin("A window", True)
+    # See https://pyimgui.readthedocs.io/en/latest/reference/imgui.core.html
+    imgui.text("Hello world")
+    changed, radius = imgui.slider_float("Radius", radius, 0.5, 60.0)
+    #changed, circle_color = imgui.color_edit4("Circle Color", circle_color, imgui.Col.EDIT_DISPLAY_HSV)
+    #print(circle_color)
+    imgui.end()
 
 def draw():
     global a, b, radius, circle_color # we are modifying these
@@ -71,15 +81,8 @@ def draw():
     for p in points:
         circle(p, radius)
 
-    imgui.begin("A window", True)
-    # See https://pyimgui.readthedocs.io/en/latest/reference/imgui.core.html
-    imgui.text("Hello world")
-    changed, radius = imgui.slider_float("Radius", radius, 0.5, 60.0)
-    changed, circle_color = imgui.color_edit4("Circle Color", *circle_color, imgui.COLOR_EDIT_DISPLAY_HSV)
-    #print(circle_color)
-    imgui.end()
 
 def key_pressed(key):
-    toggle_fullscreen()
+    toggle_gui()
     
 run()

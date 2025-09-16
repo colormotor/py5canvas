@@ -88,14 +88,14 @@ class Canvas:
 
     Constructor arguments:
 
-    - ~width~ : (~int~), width of the canvas in pixels
-    - ~height~ : (~int~), height of the canvas in pixels
-    - ~clear_callback~ (optional): function, a callback to be called when the canvas is cleared (for internal use mostly)
+    - `width` : (`int`), width of the canvas in pixels
+    - `height` : (`int`), height of the canvas in pixels
+    - `clear_callback` (optional): function, a callback to be called when the canvas is cleared (for internal use mostly)
 
     In a notebook you can create a canvas globally with either of:
 
-    - ~size(width, height)~
-    - ~create_canvas(width, height)~
+    - `size(width, height)`
+    - `create_canvas(width, height)`
 
     When using these functions all the canvas functionalities below will become globally available to the notebook.
 
@@ -189,8 +189,8 @@ class Canvas:
 
         Arguments:
 
-        - ~scale~ (float): the color scale. if we want to specify colors in the ~0...255~ range,
-         ~scale~ will be ~255~. If we want to specify colors in the ~0...1~ range, ~scale~ will be ~1~"""
+        - `scale` (float): the color scale. if we want to specify colors in the `0...255` range,
+         `scale` will be `255`. If we want to specify colors in the `0...1` range, `scale` will be `1`"""
         if is_number(scale):
             scale = np.ones(4)*scale
         self.color_scale[:len(scale)] = scale
@@ -214,7 +214,7 @@ class Canvas:
     def _get_stroke_or_fill_color(self):
         """
         Returns the current stroke color if set, the fill color otherwise
-        returns the current stroke or fill color as a numpy array, or ~None~ if no color is set
+        returns the current stroke or fill color as a numpy array, or `None` if no color is set
         """
         if self.cur_stroke is not None:
             return np.array(self.cur_stroke)*self.color_scale
@@ -275,12 +275,12 @@ class Canvas:
 
         Arguments:
 
-        - ~mode~ (string): can be one of 'rgb', 'hsv' depending on the desired color mode
-        - ~scale~ (float): the scale for the color values (e.g. 255 for 0...255 range, 1 for 0...1 range)
+        - `mode` (string): can be one of 'rgb', 'hsv' depending on the desired color mode
+        - `scale` (float): the scale for the color values (e.g. 255 for 0...255 range, 1 for 0...1 range)
 
         Examples:
 
-        - ~color_mode('rgb', 1.0)~ will set the color mode to RGB in the 0-1 range.
+        - `color_mode('rgb', 1.0)` will set the color mode to RGB in the 0-1 range.
         """
         self._color_mode = mode
         if len(args):
@@ -302,8 +302,8 @@ class Canvas:
 
         Arguments:
 
-        - A single argument specifies a grayscale value, e.g ~fill(128)~ will fill with 50% gray.
-        - Two arguments specify grayscale with opacity, e.g. ~fill(255, 128)~ will fill with transparent white.
+        - A single argument specifies a grayscale value, e.g `fill(128)` will fill with 50% gray.
+        - Two arguments specify grayscale with opacity, e.g. `fill(255, 128)` will fill with transparent white.
         - Three arguments specify a color depending on the color mode (rgb or hsv)
         - Four arguments specify a color with opacity
         """
@@ -316,9 +316,9 @@ class Canvas:
         """ Set the color of the current stroke
 
         Arguments:
-        - A single argument specifies a grayscale value, e.g. ~stroke(255)~ will set the stroke to white.
-        - Two arguments specify grayscale with opacity, e.g. ~stroke(0, 128)~ will set the stroke to black with 50% opacity.
-        - Three arguments specify a color depending on the color mode (rgb or hsv), e.g. ~stroke(255, 0, 0)~ will set the stroke to red, when the color mode is RGB
+        - A single argument specifies a grayscale value, e.g. `stroke(255)` will set the stroke to white.
+        - Two arguments specify grayscale with opacity, e.g. `stroke(0, 128)` will set the stroke to black with 50% opacity.
+        - Three arguments specify a color depending on the color mode (rgb or hsv), e.g. `stroke(255, 0, 0)` will set the stroke to red, when the color mode is RGB
         - Four arguments specify a color with opacity
         """
 
@@ -340,7 +340,7 @@ class Canvas:
 
         Arguments:
 
-        - ~join~ (string): can be one of "miter", "bevel" or "round"
+        - `join` (string): can be one of "miter", "bevel" or "round"
         """
         joins = {'miter': cairo.LINE_JOIN_MITER,
                 'bevel': cairo.LINE_JOIN_BEVEL,
@@ -357,9 +357,9 @@ class Canvas:
 
         Arguments:
 
-        - ~mode~ (string) can be one of: "clear", "source", "over", "in", "out", "atop",
+        - `mode` (string) can be one of: "clear", "source", "over", "in", "out", "atop",
           "dest", "dest_over", "dest_in", "dest_out", "dest_atop", "xor", "add", "saturate", "multiply", "screen", "overlay", "darken", "lighten", "color_dodge", "color_burn", "hard_light", "soft_light", "difference", "exclusion", "hsl_hue", "hsl_saturation", "hsl_color", "hsl_luminosity"
-          See [[https://www.cairographics.org/operators/]] for a discussion on the different operators.
+          See [Cairo Graphics Operators](https://www.cairographics.org/operators/) for a discussion on the different operators.
         """
         blend_modes = {
             "clear": cairo.OPERATOR_CLEAR,
@@ -407,7 +407,7 @@ class Canvas:
 
         Arguments:
 
-        - ~cap~ (string): can be one of "butt", "round" or "square"
+        - `cap` (string): can be one of "butt", "round" or "square"
         """
         caps = {'butt': cairo.LINE_CAP_BUTT,
                 'round': cairo.LINE_CAP_ROUND,
@@ -423,8 +423,8 @@ class Canvas:
         """Specify the text alignment
 
         Arguments:
-        - ~halign~ (string): Horizontal alignment. One of "left", "center" or "right"
-        - ~valign~ (string): Horizontal alignment. One of "bottom" (default), "top" or "center"
+        - `halign` (string): Horizontal alignment. One of "left", "center" or "right"
+        - `valign` (string): Horizontal alignment. One of "bottom" (default), "top" or "center"
         """
         self.text_halign = halign
         self.text_valign = valign
@@ -434,7 +434,7 @@ class Canvas:
 
         Arguments:
 
-        - ~size~ (int): the text size
+        - `size` (int): the text size
         """
         self.font_size = size
         self.ctx.set_font_size(self.font_size)
@@ -443,7 +443,7 @@ class Canvas:
         """Specify the font to use for text rendering
         Arguments:
 
-        - ~font~ (string or object): Either a string describing the font file path or system font name, or a font object (created with ~create_font~)
+        - `font` (string or object): Either a string describing the font file path or system font name, or a font object (created with `create_font`)
         """
         if type(font) == str:
             # TODO fix API and redundancy here and in text_font
@@ -476,7 +476,7 @@ class Canvas:
         """Specify the style (normal, italic, bold, bolditalic) to use for text
         rendering
         Arguments:
-        - ~style~ (string): the name of a style ("normal", "italic", "bold",
+        - `style` (string): the name of a style ("normal", "italic", "bold",
         "bolditalic")
         """
         if style == "normal":
@@ -565,12 +565,12 @@ class Canvas:
         self.draw_states.pop()
 
     def translate(self, *args):
-        """Translate by specifying ~x~ and ~y~ offset.
+        """Translate by specifying `x` and `y` offset.
 
         Arguments:
 
-        - The offset can be specified as an array/list (e.g ~translate([x,y])~
-          or as single arguments (e.g. ~translate(x, y)~)
+        - The offset can be specified as an array/list (e.g `translate([x,y])`
+          or as single arguments (e.g. `translate(x, y)`)
         """
         if len(args)==1:
             v = args[0]
@@ -585,8 +585,8 @@ class Canvas:
 
         - Providing a single number will apply a uniform transformation.
         - Providing a pair of number will scale in the x and y directions.
-        - The scale can be specified as an array/list (e.g ~scale([x,y])~
-        or as single arguments (e.g. ~scale(x, y)~)'''
+        - The scale can be specified as an array/list (e.g `scale([x,y])`
+        or as single arguments (e.g. `scale(x, y)`)'''
         """
 
         if len(args)==1:
@@ -598,7 +598,7 @@ class Canvas:
         self.ctx.scale(*s)
 
     def rotate(self, theta):
-        ''' Rotate by ~theta~ radians'''
+        ''' Rotate by `theta` radians'''
         self.ctx.rotate(theta)
 
     rotate_rad = rotate
@@ -638,7 +638,7 @@ class Canvas:
         """ Set the "mode" for drawing rectangles.
 
         Arguments:
-        - ~mode~ (string): can be one of 'corner', 'corners', 'center', 'radius'
+        - `mode` (string): can be one of 'corner', 'corners', 'center', 'radius'
 
         """
         if mode not in ['corner', 'center', 'radius']:
@@ -651,7 +651,7 @@ class Canvas:
         """ Set the "mode" for drawing rectangles.
 
         Arguments:
-        - ~mode~ (string): can be one of 'corner', 'center'
+        - `mode` (string): can be one of 'corner', 'center'
         """
         if mode not in ['corner', 'center']:
             print('rect_mode: invalid mode')
@@ -661,20 +661,20 @@ class Canvas:
 
     def rectangle(self, *args, mode=None):
         """Draw a rectangle.
-        Can use ~rect~ equivalently.
+        Can use `rect` equivalently.
 
         Arguments:
         The first sequence of arguments is one of
 
-         - ~[x, y], [width, height]~,
-         - ~[x, y], width, height~,
-         - ~x, y, width, height~
-         - ~[[topleft_x, topleft_y], [bottomright_x, bottomright_y]]~
+         - `[x, y], [width, height]`,
+         - `[x, y], width, height`,
+         - `x, y, width, height`
+         - `[[topleft_x, topleft_y], [bottomright_x, bottomright_y]]`
 
         The last option will ignore the rect mode since it explictly defines the corners of the rect
 
-        The interpretation of ~x~ and ~y~ depends on the current rect mode. These indicate the
-        center of the rectangle if the rect mode is ~"center"~ and the top left corner otherwise.
+        The interpretation of `x` and `y` depends on the current rect mode. These indicate the
+        center of the rectangle if the rect mode is `"center"` and the top left corner otherwise.
         """
 
         if mode is None:
@@ -715,11 +715,11 @@ class Canvas:
         Arguments:
 
         The first sequence of arguments is one of
-         - ~[x, y], size~,
-         - ~x, y, size~
+         - `[x, y], size`,
+         - `x, y, size`
 
-        The interpretation of ~x~ and ~y~ depends on the current rect mode. These indicate the
-        center of the rectangle if the rect mode is ~"center"~ and the top left corner otherwise.
+        The interpretation of `x` and `y` depends on the current rect mode. These indicate the
+        center of the rectangle if the rect mode is `"center"` and the top left corner otherwise.
         """
         if mode is None:
             mode = self._rect_mode
@@ -737,9 +737,9 @@ class Canvas:
 
         Input arguments can be in the following formats:
 
-         - ~[topleft_x, topleft_y], [width, height]~,
-         - ~[topleft_x, topleft_y], width, height~,
-         - ~topleft_x, topleft_y, width, height~
+         - `[topleft_x, topleft_y], [width, height]`,
+         - `[topleft_x, topleft_y], width, height`,
+         - `topleft_x, topleft_y, width, height`
 
         Depending on
         """
@@ -750,8 +750,8 @@ class Canvas:
 
         Input arguments can be in the following formats:
 
-         - ~a, b, c, d~ (Four points specified as lists/tuples/numpy arrays
-         - ~x1, y1, x2, y2, x3, y3, x4, y4~, a sequence of numbers, one for each coordinate
+         - `a, b, c, d` (Four points specified as lists/tuples/numpy arrays
+         - `x1, y1, x2, y2, x3, y3, x4, y4`, a sequence of numbers, one for each coordinate
         """
 
         if len(args)==4:
@@ -764,8 +764,8 @@ class Canvas:
 
         Input arguments can be in the following formats:
 
-         - ~a, b~ (Two points specified as lists/tuples/numpy arrays
-         - ~x1, y1, x2, y2~, a sequence of numbers, one for each coordinate
+         - `a, b` (Two points specified as lists/tuples/numpy arrays
+         - `x1, y1, x2, y2`, a sequence of numbers, one for each coordinate
         """
         nostroke = False
         if self.cur_stroke is None:
@@ -786,8 +786,8 @@ class Canvas:
 
         Input arguments can be in the following formats:
 
-         - ~[x, y]~: a single point specified as a tuple/list/numpy array
-         - ~x1, y1~: two coordinates
+         - `[x, y]`: a single point specified as a tuple/list/numpy array
+         - `x1, y1`: two coordinates
 
         '''
         nostroke = False
@@ -813,8 +813,8 @@ class Canvas:
 
         Input arguments can be in the following formats:
 
-         - ~a, b~ (Two points specified as lists/tuples/numpy arrays
-         - ~x1, y1, x2, y2~, a sequence of numbers, one for each coordinate
+         - `a, b` (Two points specified as lists/tuples/numpy arrays
+         - `x1, y1, x2, y2`, a sequence of numbers, one for each coordinate
         '''
 
         if len(args) == 2:
@@ -849,8 +849,8 @@ class Canvas:
 
         Input arguments can be in the following formats:
 
-         - ~a, b, c~ (Four points specified as lists/tuples/numpy arrays
-         - ~x1, y1, x2, y2, x3, y3~
+         - `a, b, c` (Four points specified as lists/tuples/numpy arrays
+         - `x1, y1, x2, y2, x3, y3`
         """
 
         if len(args)==3:
@@ -863,8 +863,8 @@ class Canvas:
 
         Input arguments can be in the following formats:
 
-        - ~[center_x, center_y], radius~,
-        - ~center_x, center_y, raidus~
+        - `[center_x, center_y], radius`,
+        - `center_x, center_y, raidus`
         """
 
         if len(args)==3:
@@ -885,9 +885,9 @@ class Canvas:
 
         Input arguments can be in the following formats:
 
-        - ~[center_x, center_y], [width, height]~,
-        - ~[center_x, center_y], width, height~,
-        - ~center_x, center_y, width, height~
+        - `[center_x, center_y], [width, height]`,
+        - `[center_x, center_y], width, height`,
+        - `center_x, center_y, width, height`
         """
 
         if mode is None:
@@ -935,16 +935,16 @@ class Canvas:
             self.ctx.stroke()
 
     def arc(self, *args):
-        """Draw an arc given the center of the ellipse ~x, y~
-        the size of the ellipse ~w, h~ and the initial and final angles
-        in radians  ~start, stop~.
+        """Draw an arc given the center of the ellipse `x, y`
+        the size of the ellipse `w, h` and the initial and final angles
+        in radians  `start, stop`.
         NB. this differs from Processing/P5js as it always draws
 
         Input arguments can be in the following formats:
 
-          - ~x, y, w, h, start, stop~
-          - ~[x, y]~, ~[w, h]~, ~[start, stop]~
-          - ~[x, y]~, ~w, h, start, stop~
+          - `x, y, w, h, start, stop`
+          - `[x, y]`, `[w, h]`, `[start, stop]`
+          - `[x, y]`, `w, h, start, stop`
 
         """
         if len(args) == 3:
@@ -1010,7 +1010,7 @@ class Canvas:
 
         Arguments:
 
-        - ~close~ (bool, optional): if ~True~ close the contour
+        - `close` (bool, optional): if `True` close the contour
         '''
         if isinstance(close, str):
             if close.lower() == 'close':
@@ -1065,8 +1065,8 @@ class Canvas:
 
         Input arguments can be in the following formats:
 
-        - ~[x, y]~
-        - ~x, y~
+        - `[x, y]`
+        - `x, y`
         '''
         if y is None:
             x, y = x
@@ -1081,8 +1081,8 @@ class Canvas:
 
         Input arguments can be in the following formats:
 
-        - ~[x, y]~
-        - ~x, y~
+        - `[x, y]`
+        - `x, y`
         '''
         if y is None:
             x, y = x
@@ -1093,13 +1093,13 @@ class Canvas:
 
     def bezier_vertex(self, *args):
         ''' Draw a cubic Bezier segment from the current point
-        requires a first control point to be already defined with ~vertex~.
+        requires a first control point to be already defined with `vertex`.
 
 
         Requires three points. Input arguments can be in the following formats:
 
-        - ~[x1, y1], [x2, y2], [x3, y3]~
-        - ~x1, y1, x2, y2, x3, y3~
+        - `[x1, y1], [x2, y2], [x3, y3]`
+        - `x1, y1, x2, y2, x3, y3`
         '''
         if len(args) == 3:
             p1, p2, p3 = args
@@ -1116,7 +1116,7 @@ class Canvas:
         self.curve_segments[-1].append(p3)
 
     def curve_tightness(self, val):
-        ''' Sets the 'tension' parameter for the curve used when using ~curve_vertex~
+        ''' Sets the 'tension' parameter for the curve used when using `curve_vertex`
         '''
         self.tension = val
 
@@ -1125,8 +1125,8 @@ class Canvas:
 
         Input arguments can be in the following formats:
 
-        - ~[x1, y1], [x2, y2], [x3, y3]~
-        - ~x1, y1, x2, y2, x3, y3~
+        - `[x1, y1], [x2, y2], [x3, y3]`
+        - `x1, y1, x2, y2, x3, y3`
         '''
         if len(args) == 4:
             p0, p1, p2, p3 = args
@@ -1144,8 +1144,8 @@ class Canvas:
 
         Input arguments can be in the following formats:
 
-        -    ~[x1, y1], [x2, y2]~
-        -    ~x1, y1, x2, y2~
+        -    `[x1, y1], [x2, y2]`
+        -    `x1, y1, x2, y2`
         '''
         if len(args) == 3:
             (x0, y0), (x1, y1), (x2, y2) = args
@@ -1166,10 +1166,10 @@ class Canvas:
             The degree of the curve (2 or 3) depends on the input arguments
         Arguments:
         Input arguments can be in the following formats:
-            ~[x1, y1], [x2, y2], [x3, y3]~ is cubic
-            ~x1, y1, x2, y2, x3, y3~ is cubic
-            ~[x1, y1], [x2, y2]~ is quadratic
-            ~x1, y1, x2, y2~ is quadratic
+            `[x1, y1], [x2, y2], [x3, y3]` is cubic
+            `x1, y1, x2, y2, x3, y3` is cubic
+            `[x1, y1], [x2, y2]` is quadratic
+            `x1, y1, x2, y2` is quadratic
         '''
         if len(args) == 4 or len(args)==8:
             self.cubic(*args)
@@ -1178,8 +1178,8 @@ class Canvas:
 
     def create_graphics(self, w, h):
         ''' Create a new canvas with the specified width and height
-            E.g. ~c = create_graphics(128, 128)~ will put a new canvas into
-            the variable ~c~. You can draw the contents of the canvas with the ~image~ function.
+            E.g. `c = create_graphics(128, 128)` will put a new canvas into
+            the variable `c`. You can draw the contents of the canvas with the `image` function.
         '''
         return Canvas(w, h)
 
@@ -1188,15 +1188,15 @@ class Canvas:
 
         Arguments:
 
-        - ~img~: The input image. Can be either a PIL image, a numpy array, a Canvas or a pyCairo surface.
+        - `img`: The input image. Can be either a PIL image, a numpy array, a Canvas or a pyCairo surface.
         - optional arguments: position and size can be specified with the following formats:
-            - ~x, y~:  position only
-            - ~x, y, w, h~: position and size
-            - ~[x, y]~: position only (also a numpy array or tuple are valid)
-            - ~[x, y], [w, h]~: position and size
+            - `x, y`:  position only
+            - `x, y, w, h`: position and size
+            - `[x, y]`: position only (also a numpy array or tuple are valid)
+            - `[x, y], [w, h]`: position and size
         if the position is not specified, the original image dimensions will be used
 
-        - ~opacity~: a value between 0 and 1 specifying image opacity.
+        - `opacity`: a value between 0 and 1 specifying image opacity.
 
         """
 
@@ -1249,7 +1249,7 @@ class Canvas:
         self.ctx.restore()
 
     def shape(self, poly_list, close=False):
-        '''Draw a shape represented as a list of polylines, see the ~polyline~
+        '''Draw a shape represented as a list of polylines, see the `polyline`
         method for the format of each polyline. Also accepts a single polyline as an input
         '''
         if not is_compound(poly_list):
@@ -1264,10 +1264,10 @@ class Canvas:
 
         Arguments:
 
-            - ~text`, the text to display
-            - the position of the text, either a pair of x, y arguments or a list like object (e.g. ~[x, y]~)
-            - ~align~, horizontal alignment, etiher ~'left'~ (default), ~'center'~ or ~'right'~
-            - ~valign~, vertical alignment, etiher ~'bottom'~ (default), ~'center'~ or ~'top'~
+            - `text`, the text to display
+            - the position of the text, either a pair of x, y arguments or a list like object (e.g. `[x, y]`)
+            - `align`, horizontal alignment, etiher `'left'` (default), `'center'` or `'right'`
+            - `valign`, vertical alignment, etiher `'bottom'` (default), `'center'` or `'top'`
             (Deprecated) if center=True the text will be horizontally centered
         '''
 
@@ -1382,11 +1382,11 @@ class Canvas:
 
         Arguments:
 
-        - ~text`, the text to sample
-        - the position of the text, either a pair of x, y arguments or a list like object (e.g. ~[x, y]~)
-        - ~dist~, approximate distance between samples
-        - ~align~, horizontal alignment, etiher ~'left'~ (default), ~'center'~ or ~'right'~
-        - ~valign~, vertical alignment, etiher ~'bottom'~ (default), ~'center'~ or ~'top'~
+        - `text`, the text to sample
+        - the position of the text, either a pair of x, y arguments or a list like object (e.g. `[x, y]`)
+        - `dist`, approximate distance between samples
+        - `align`, horizontal alignment, etiher `'left'` (default), `'center'` or `'right'`
+        - `valign`, vertical alignment, etiher `'bottom'` (default), `'center'` or `'top'`
         '''
         return sum(self.text_shapes(text, *args, dist=dist, align=align, valign=valign), [])
 
@@ -1459,11 +1459,11 @@ class Canvas:
 
         Arguments:
 
-        - ~text`, the text to sample
-        - the position of the text, either a pair of x, y arguments or a list like object (e.g. ~[x, y]~)
-        - ~dist~, approximate distance between samples
-        - ~align~ (named), horizontal alignment, etiher ~'left'~ (default), ~'center'~ or ~'right'~
-        - ~valign~ (named), vertical alignment, etiher ~'bottom'~ (default), ~'center'~ or ~'top'~
+        - `text`, the text to sample
+        - the position of the text, either a pair of x, y arguments or a list like object (e.g. `[x, y]`)
+        - `dist`, approximate distance between samples
+        - `align` (named), horizontal alignment, etiher `'left'` (default), `'center'` or `'right'`
+        - `valign` (named), vertical alignment, etiher `'bottom'` (default), `'center'` or `'top'`
         '''
         return np.vstack(self.text_shape(text, *args,
                                          dist=dist,
@@ -1510,11 +1510,11 @@ class Canvas:
 
         The polyline is specified as either:
 
-        - a list of ~[x,y]~ pairs (e.g. ~[[0, 100], [200, 100], [200, 200]]~)
-        - a numpy array with shape ~(n, 2)~, representing ~n~ points (a point for each row and a coordinate for each column)
+        - a list of `[x,y]` pairs (e.g. `[[0, 100], [200, 100], [200, 200]]`)
+        - a numpy array with shape `(n, 2)`, representing `n` points (a point for each row and a coordinate for each column)
         - two lists (or numpy array) of numbers, one for each coordinate
 
-        To create an opne polygon set the named ~close~ argument to ~False~, e.g. ~c.polygon(points, close=False)~.
+        To create an opne polygon set the named `close` argument to `False`, e.g. `c.polygon(points, close=False)`.
         '''
         self.polyline(*args, close=close)
 
@@ -1523,11 +1523,11 @@ class Canvas:
 
         The polyline is specified as either:
 
-        - a list of ~[x,y]~ pairs (e.g. ~[[0, 100], [200, 100], [200, 200]]~)
-        - a numpy array with shape ~(n, 2)~, representing ~n~ points (a point for each row and a coordinate for each column)
+        - a list of `[x,y]` pairs (e.g. `[[0, 100], [200, 100], [200, 200]]`)
+        - a numpy array with shape `(n, 2)`, representing `n` points (a point for each row and a coordinate for each column)
         - two lists (or numpy array) of numbers, one for each coordinate
 
-        To close the curve set the named ~close~ argument to ~True~, e.g. ~c.curve(points, close=True)~.
+        To close the curve set the named `close` argument to `True`, e.g. `c.curve(points, close=True)`.
         '''
         if len(args)==1:
             points = args[0]
@@ -1546,11 +1546,11 @@ class Canvas:
 
         The polyline is specified as either:
 
-        - a list of ~[x,y]~ pairs (e.g. ~[[0, 100], [200, 100], [200, 200]]~)
-        - a numpy array with shape ~(n, 2)~, representing ~n~ points (a point for each row and a coordinate for each column)
+        - a list of `[x,y]` pairs (e.g. `[[0, 100], [200, 100], [200, 200]]`)
+        - a numpy array with shape `(n, 2)`, representing `n` points (a point for each row and a coordinate for each column)
         - two lists (or numpy array) of numbers, one for each coordinate
 
-        To close the polyline set the named ~close~ argument to ~True~, e.g. ~c.polyline(points, close=True)~.
+        To close the polyline set the named `close` argument to `True`, e.g. `c.polyline(points, close=True)`.
         '''
         self.ctx.new_sub_path()
         #self.ctx.new_path()
@@ -1579,9 +1579,9 @@ class Canvas:
         The next four parameters, dx, dy, dw, and dh determine the region of the canvas to copy into.
         (dx, dy) is the top-left corner of the region. dw and dh are the region's width and height.
 
-        ~copy(src_image, sx, sy, sw, sh, dx, dy, dw, dh)~
+        `copy(src_image, sx, sy, sw, sh, dx, dy, dw, dh)`
         or
-        ~copy(sx, sy, sw, sh, dx, dy, dw, dh)~
+        `copy(sx, sy, sw, sh, dx, dy, dw, dh)`
         '''
 
         if len(args) % 2 == 1:
@@ -1601,7 +1601,7 @@ class Canvas:
 
     def background(self, *args):
         ''' Clear the canvas with a given color
-            Accepts either an array with the color components, or single color components (as in ~fill~)
+            Accepts either an array with the color components, or single color components (as in `fill`)
         '''
         # self.clear_callback()
         # HACK Save background, this is needed for saving and no_loop in sketches
@@ -1743,9 +1743,9 @@ class Canvas:
 
         Arguments:
 
-        - ~size~ (tuple, optional): The size of the displayed image, by default this is the size of the canvas
-        - ~title~ (string, optional): A title for the figure
-        - ~axis~ (bool, optional): If ~True~ shows the coordinate axes
+        - `size` (tuple, optional): The size of the displayed image, by default this is the size of the canvas
+        - `title` (string, optional): A title for the figure
+        - `axis` (bool, optional): If `True` shows the coordinate axes
         '''
         import matplotlib.pyplot as plt
         if size is not None:
@@ -1827,35 +1827,38 @@ def degrees(x):
     ''' Get degrees given an angle in radians'''
     return x * (180.0/np.pi)
 
+import numpy as np
+import cairo
+
+
 def numpy_to_surface(arr):
     ''' Convert numpy array to a pycairo surface'''
     # Get the shape and data type of the numpy array
     if len(arr.shape) == 2:
         if arr.dtype == np.uint8:
-            arr = np.dstack([arr, arr, arr, (np.ones(arr.shape)*255).astype(np.uint8)])
+            arr = np.dstack([arr, arr, arr, (np.ones(arr.shape)*255).astype(np.uint8)])/255
         else:
-            # Assume grayscale 0-1 image
+            # rayscale 0-1 image
             arr = np.dstack([arr, arr, arr, np.ones(arr.shape)])
-            arr = (arr * 255).astype(np.uint8)
     else:
         if arr.shape[2] == 3:
             if arr.dtype == np.uint8:
-                arr = np.dstack([arr, np.ones(arr.shape[:2], dtype=np.uint8)*255])
+                arr = np.dstack([arr, np.ones(arr.shape[:2], dtype=np.uint8)*255])/255
             else:
                 arr = np.dstack([arr, np.ones(arr.shape[:2])])
-                arr = (arr * 255).astype(np.uint8)
         elif arr.shape[2] == 1:
             if arr.dtype == np.uint8:
-                arr = np.dstack([arr]*3 + [np.ones(arr.shape[:2], dtype=np.uint8)*255])
+                arr = np.dstack([arr]*3 + [np.ones(arr.shape[:2], dtype=np.uint8)*255])/255
             else:
                 arr = np.dstack([arr]*3 + [np.ones(arr.shape[:2])])
-                arr = (arr * 255).astype(np.uint8)
         else:
-            if arr.dtype != np.uint8:
-                arr = (arr * 255).astype(np.uint8)
+            if arr.dtype == np.uint8:
+                arr = arr/255
 
+    arr[:,:,:3] *= arr[:,:,3:4] # premultiply alpha
+    arr = (arr * 255).astype(np.uint8) # convert to uint8
     arr = arr.copy(order='C') # must be "C-contiguous"
-    arr[:, :, :3] = arr[:, :, ::-1][:,:,1:]
+    arr[:, :, :3] = arr[:,:,:3][:,:,::-1] # Convert RGB to BGR
     surf = cairo.ImageSurface.create_for_data(
         arr, cairo.FORMAT_ARGB32, arr.shape[1], arr.shape[0])
 
@@ -1866,7 +1869,7 @@ def create_font(name, size=None, style=None):
     """Create a font from a file or from system fonts
     Arguments:
 
-    - ~font~ (string or object): Either a string describing the font file path or system font name
+    - `font` (string or object): Either a string describing the font file path or system font name
     """
     # TODO fix API and redundancy here and in text_font
     if os.path.isfile(name):
@@ -1955,11 +1958,11 @@ class VideoInput:
 
     Arguments:
 
-    - ~name~: Either an integer indicating the device number, or a string indicating the path of a video file
-    - ~size~: A tuple indicating the desired size of the video frames (width, height)
-    - ~resize_mode~: A string indicating the desired resize mode. Can be 'crop' or 'stretch'
-    - ~flipped~: Boolean indicating if the frame should be flipped horizontally. Defaults to None
-    - ~vertical_flipped~: Boolean indicating if the frame should be flipped vertically. Defaults to None
+    - `name`: Either an integer indicating the device number, or a string indicating the path of a video file
+    - `size`: A tuple indicating the desired size of the video frames (width, height)
+    - `resize_mode`: A string indicating the desired resize mode. Can be 'crop' or 'stretch'
+    - `flipped`: Boolean indicating if the frame should be flipped horizontally. Defaults to None
+    - `vertical_flipped`: Boolean indicating if the frame should be flipped vertically. Defaults to None
     '''
     def __init__(self, name=0, size=None, resize_mode='crop', flipped=None, vertical_flipped=None):
         ''' Constructor'''
@@ -2155,8 +2158,8 @@ def noise_detail(octaves, falloff=0.5, lacunarity=2.0, gradient=True):
 
     Arguments:
 
-    - ~octaves~ (int): the number of noise 'octaves'. Each octave has double the frequency of the previous.
-    - ~falloff~ (float, default 0.5): a number between 0 and 1 that multiplies the amplitude of each consectutive octave
+    - `octaves` (int): the number of noise 'octaves'. Each octave has double the frequency of the previous.
+    - `falloff` (float, default 0.5): a number between 0 and 1 that multiplies the amplitude of each consectutive octave
     """
     global _noise_octaves, _noise_grad
     rumore.cfg.falloff = falloff
@@ -2170,7 +2173,7 @@ def noise(*args):
     By default this function returns "gradient noise", a variant of noise similar to Ken Perlin's original version.
     Alternatively the function can return "value noise", which is a faster but more blocky version.
     By default each octave has double the frequency (lacunarity) of the previous and an amplitude falls off for each octave. By default the falloff is 0.5.
-    The default number of octaves is ~4~. Use `noise_detail~ to set the number of octaves and optionally falloff, lacunarity and whether to use gradient or value noise.
+    The default number of octaves is `4`. Use `noise_detail` to set the number of octaves and optionally falloff, lacunarity and whether to use gradient or value noise.
 
     Arguments:
 
@@ -2184,20 +2187,20 @@ def noise_grid(*args, **kwargs):
     """ Returns a 2d array of noise values (between 0 and 1).
     The array can be treated as a grayscale image and is defined by two input 1d array parameters, x and y.
     The number of elements in x and y define the number of columns and rows, respectively.
-    Optionally a third ~z~ parameter can be specified and it defines the depth of a "slice" in a 3d noise volume.
+    Optionally a third `z` parameter can be specified and it defines the depth of a "slice" in a 3d noise volume.
 
     Arguments:
 
     - The arguments to this function can be either two arrays, say
-    #begin_src python
+    ```python
     img = noise_grid(np.linspace(0, width, 100),
                      np.linspace(0, height, 100))
-    #end_src
+    ```
     or three, where the third parameter can be a scalar
-    #begin_src python
+    ```python
     img = noise_grid(np.linspace(0, width, 100),
                      np.linspace(0, height, 100), 3.4)
-    #end_src
+    ```
     """
     return rumore.noise_grid(*args, gradient=_noise_grad, octaves=_noise_octaves, **kwargs)*0.5+0.5
 

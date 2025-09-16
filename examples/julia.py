@@ -13,7 +13,7 @@ def setup():
     
 
 def draw():
-    global scale, target
+    global scale_factor, target
     background(0)
 
     iterations = 300
@@ -44,6 +44,6 @@ def draw():
     image(img, [0, 0], [width, height])
 
     # zoom in
-    scale *= 1.1
+    scale_factor *= 1.1
 
 run()

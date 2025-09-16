@@ -3,7 +3,7 @@ Using py5sketch with differentiable rasterization to approximate an image.
 Uses diffvg https://github.com/BachiLi/diffvg and pytorch
 '''
 from py5canvas import *
-
+from slimgui import implot
 from skimage import io
 import numpy as np
 import pydiffvg, torch
@@ -13,9 +13,7 @@ from array import array
 img = None
 
 # Load grayscale image
-img = np.array(load_image('images/frida128.png'))
-img = img[:, :, 0]
-img = img / 255.0
+img = np.array(load_image('images/frida128.png').convert('L'))/255
 w, h = img.shape[1], img.shape[0]
 
 # setup diffvg
@@ -92,14 +90,10 @@ def setup():
 def gui():
     # Visualize losses
     if losses:
-        if imgui.tree_node("Loss", imgui.TREE_NODE_DEFAULT_OPEN):
-            imgui.plot_lines("Losses", array('f', losses), graph_size=(300, 100))
-            imgui.text('Loss: %.4f' % losses[-1])
-            imgui.tree_pop()
-
-        if imgui.button('Save video'):
-            sketch.save_movie('./test.mp4', 200)
-            # sketch.grab_image_sequence('./test_seq', 30)
+        if implot.begin_plot('Loss', size=[-1, 200]):
+            implot.setup_axes(None, None, implot.AxisFlags.AUTO_FIT, implot.AxisFlags.AUTO_FIT)
+            implot.plot_line('loss', np.array(losses))
+            implot.end_plot()
 
 def draw():
     c = sketch.canvas
