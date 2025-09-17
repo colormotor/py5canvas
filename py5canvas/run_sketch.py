@@ -221,7 +221,7 @@ class Sketch:
         self.settings = {
             'num_movie_frames': 100,
             'floating_window': False,
-            'show_toolbar': False,
+            'show_toolbar': True,
             'osc': {
                 'recv_addr': '0.0.0.0',
                 'recv_port': 9999,
