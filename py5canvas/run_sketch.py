@@ -452,7 +452,7 @@ class Sketch:
         import xdialog
         return xdialog.directory(title)
 
-    def _create_canvas(self, w, h, canvas_size=None, fullscreen=False, screen=None, save_background=False):
+    def _create_canvas(self, w, h, canvas_size=None, fullscreen=False, screen=None, save_background=True):
         self.is_fullscreen = fullscreen
         glfw.swap_interval(0)
         #if screen is not None:
@@ -515,7 +515,7 @@ class Sketch:
         # buf = (pyglet.gl.GLubyte * len(buf))(*buf)
         # self.image = pyglet.image.ImageData(*canvas_size, "BGRA", buf)
 
-    def create_canvas(self, w, h, gui_width=300, fullscreen=False, with_gui=True, screen=None, save_background=False):
+    def create_canvas(self, w, h, gui_width=300, fullscreen=False, with_gui=True, screen=None, save_background=True):
         print("Creating canvas with size", w, h, "fullscreen:", fullscreen, "gui_width:", gui_width, "with_gui:", with_gui)
         if imgui is None or not with_gui:
             print("Creating canvas no gui")
