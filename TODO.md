@@ -10,6 +10,9 @@
   - `toggle_gui()`
 - [ ] place the sketch in the upper left corner when in fullscreen, rather than bottom left?
   - Check should be centered
-  
+- [ ] Describe slimgui deps 
+- [ ] Check fullscreen on different platforms, especially Windows
+- [ ] Clen up and test OSC setup
+- [ ] Add optinal Syphon (and Spout?) support
 # Maybe
 - [ ] change `draw_gl` to `render` ? Also might be worth having two callbacks, one overlayed on under. 
