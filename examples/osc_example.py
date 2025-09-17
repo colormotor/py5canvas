@@ -22,7 +22,7 @@ def setup():
 def draw():
     c = sketch.canvas
     c.background(bg)
-    sketch.send_osc('/value', np.sin(sketch.frame_count/100))
+    send_osc('/value', np.sin(sketch.frame_count/100))
 
 def received_osc(addr, val):
     global bg
