@@ -14,5 +14,6 @@
 - [ ] Check fullscreen on different platforms, especially Windows
 - [ ] Clen up and test OSC setup
 - [ ] Add optinal Syphon (and Spout?) support
+- [ ] fix arcs & stroke width ([see this](https://www.cairographics.org/cookbook/ellipses/)
 # Maybe
 - [ ] change `draw_gl` to `render` ? Also might be worth having two callbacks, one overlayed on under. 
