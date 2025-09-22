@@ -476,16 +476,16 @@ if imgui is not None:
                 path = ''
                 if imgui.menu_item('Pdf...')[0]:
                     path = sketch.save_file_dialog('pdf', filename=name) #['pdf', 'svg', 'png'], filename=name)
-                if imgui.menu_item('Svg...')[0]:
+                elif imgui.menu_item('Svg...')[0]:
                     path = sketch.save_file_dialog('svg', filename=name) #['pdf', 'svg', 'png'], filename=name)
-                if imgui.menu_item('Png...')[0]:
+                elif imgui.menu_item('Png...')[0]:
                     path = sketch.save_file_dialog('png', filename=name) #['pdf', 'svg', 'png'], filename=name)
                 if path:
                     sketch.dump_canvas(path)
                 if imgui.menu_item('Mp4...')[0]:
                     path = sketch.save_file_dialog('mp4', filename=name) #['pdf', 'svg', 'png'], filename=name)
-                if path:
-                    sketch.grab_movie(path)
+                    if path:
+                        sketch.grab_movie(path)
                 imgui.end_popup()
             imgui.same_line()
             if imgui.button('Settings...'):

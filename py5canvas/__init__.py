@@ -10,7 +10,7 @@ from .globals import *
 
 _canvas = None
 
-def create_canvas(w, h, save_background=False):
+def create_canvas(w, h, save_background=True):
     global _canvas
     # Create the canvas
     _canvas = canvas.Canvas(w, h, save_background=save_background)

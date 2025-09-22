@@ -105,10 +105,11 @@ class Canvas:
                  clear_callback=lambda: None,
                  output_file='',
                  recording=True,
-                 save_background=False):
+                 save_background=True):
         """Constructor"""
         # See https://pycairo.readthedocs.io/en/latest/reference/context.html
         surf = cairo.ImageSurface(cairo.FORMAT_ARGB32, width, height)
+        #surf = cairo.ImageSurface(cairo.FORMAT_RGB30, width, height)
         ctx = MultiContext(surf) #cairo.Context(surf)
 
         # Create SVG surface for saving
@@ -1615,13 +1616,24 @@ class Canvas:
         # HACK - we don't want to necessarily save the background when exporting SVG
         # Especially if we want to plot the output, so only draw the background to the
         # bitmap surface if that is the case.
+        # if self._save_background:
+        #     ctx = self.ctx
+        # else:
+        #     ctx = self.ctx.ctxs[0]
+
+        #self.push()
+        ctx = self.ctx
+        rgba = np.array(self._apply_colormode(self._convert_rgba(args)))
+        ctx.set_source_rgba(*rgba)
         if self._save_background:
-            ctx = self.ctx
+            ctx.rectangle(0, 0, self.width, self.height)
+            ctx.fill()
         else:
-            ctx = self.ctx.ctxs[0]
-        ctx.set_source_rgba(*self._apply_colormode(self._convert_rgba(args)))
-        ctx.rectangle(0, 0, self.width, self.height)
-        ctx.fill()
+            ctx.paint()
+
+        #ctx.rectangle(0, 0, self.width, self.height)
+        #ctx.fill()
+        #self.pop()
 
     def get_buffer(self):
         return self.surf.get_data()
