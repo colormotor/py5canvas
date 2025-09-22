@@ -65,9 +65,13 @@ params = None
 def is_number(x):
     return isinstance(x, numbers.Number)
 
-def Color(*args):
-    ''' Create a color'''
-    if len(args)==1:
+def color(*args):
+    ''' Create a cector with components specified as comma-separated values.
+    :returns: A NumPy array representing the specified color components.
+    This returns either a 3d (RGB) array if 3 or 1 (luminosity) components are specified,
+    or a 4d (RGBA) array if 4 or 2 components are specified.
+    '''
+    if len(args) == 1:
         if is_number(args[0]):
             # Assume this is Luminosity and convert to RGB
             return np.ones(3, dtype=np.float32)*args[0]
@@ -81,15 +85,25 @@ def Color(*args):
         else:
             return np.array(args).astype(np.float32)
 
+Color = color
 
-def Vector(*args):
-    ''' Create a color'''
+def vector(*args):
+    ''' Create a vector with components specified as comma-separated values
+    :returns: A NumPy array with the specified components
+    '''
     if len(args)==1:
         v = args[0]
     else:
         v = args
     return np.array(v, dtype=np.float64)
 
+Vector = vector
+
+def create_vector(*args):
+    ''' Create a vector with components specified as comma-separated values
+    :returns: A NumPy array with the specified components
+    '''
+    return Vecor(*args)
 
 def range_between(a, b, num, endpoint=True):
     ''' Returns a list of numbers that goes from a and b in a specified number of steps.
