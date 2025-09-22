@@ -62,13 +62,24 @@ abs = np.abs
 
 params = None
 
+def is_number(x):
+    return isinstance(x, numbers.Number)
+
 def Color(*args):
     ''' Create a color'''
     if len(args)==1:
-        v = args[0]
+        if is_number(args[0]):
+            # Assume this is Luminosity and convert to RGB
+            return np.ones(3, dtype=np.float32)*args[0]
+        else:
+            # Assume this is either RGB or RGBA
+            return np.array(args).astype(np.float32)
     else:
-        v = args
-    return np.array(v, dtype=np.float32)
+        if len(args) == 2:
+            # Assume this is Luminosity and Alpha
+            return np.concatenate([np.ones(3)*args[0], [args[1]]]).astype(np.float32)
+        else:
+            return np.array(args).astype(np.float32)
 
 
 def Vector(*args):
