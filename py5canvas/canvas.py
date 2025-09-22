@@ -963,6 +963,13 @@ class Canvas:
           - `[x, y]`, `w, h, start, stop`
 
         """
+        # Check if we specified a mode
+        if type(args[-1]) == str:
+            mode = args[-1]
+            args = args[::-1]
+        else:
+            mode = "open"
+
         if len(args) == 3:
             x, y = args[0]
             w, h = args[1]
@@ -973,9 +980,9 @@ class Canvas:
             x, y = args[0]
             w, h, start, stop = args[1:]
 
-        self.push()
-        self.translate(x, y)
-        self.scale(w/2,h/2)
+        #self.push()
+        #self.translate(x, y)
+        #self.scale(w/2,h/2)
 
         save_mat = self.ctx.get_matrix()
         self.ctx.translate(x, y)
@@ -1005,7 +1012,7 @@ class Canvas:
             #     self.ctx.fill_preserve()
             # else:
             #     self.ctx.fill()
-        self.pop()
+        #self.pop()
 
     def clear_segments(self):
         self.curve_segments = []
