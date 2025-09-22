@@ -671,7 +671,6 @@ class Sketch:
         if self.gui is None:
             print("No gui set, you may need to install slimgui")
             return False
-
         for arg in args:
             if arg in self.gui.changed:
                 return True
@@ -918,7 +917,8 @@ class Sketch:
                 if '__' not in g:
                     var_context[g] = getattr(glob, g)
 
-            # And basic functions from sketch
+            # Inject basic functions from sketch
+            # Add the name here if you want to extend these
             if self.inject:
                 export_methods = ['title',
                                 'frame_rate',
@@ -930,6 +930,7 @@ class Sketch:
                                 'send_osc',
                                 'no_loop',
                                 'grab_movie',
+                                'param_changed',
                                 'grab_image_sequence',
                                 'fullscreen',
                                 'show_gui',
@@ -1010,6 +1011,7 @@ class Sketch:
 
 
     def update_globals(self):
+        ''' Inject globals that are not updated automatically'''
         self.var_context['delta_time'] = self._delta_time
         self.var_context['frame_count'] = self._frame_count
         self.var_context['width'] = self.width
