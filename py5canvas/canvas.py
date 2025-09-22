@@ -977,20 +977,29 @@ class Canvas:
         self.translate(x, y)
         self.scale(w/2,h/2)
 
+        save_mat = self.ctx.get_matrix()
+        self.ctx.translate(x, y)
+        self.ctx.scale(w/2, h/2)
+        #cairo_scale(cr, 0.5, 1);
+
         if self.cur_fill is not None:
             self.ctx.set_source_rgba(*self.cur_fill)
             self.ctx.new_sub_path()
             self.ctx.move_to(0, 0)
             self.ctx.arc(0, 0, 1, start, stop)
             self.ctx.fill()
+
         if self.cur_stroke is not None:
-            lw = self.ctx.get_line_width()
-            self.ctx.set_line_width(lw*(2.0/min(w, h)))
+            #lw = self.ctx.get_line_width()
+            #self.ctx.set_line_width(lw*(2.0/min(w, h)))
             self.ctx.set_source_rgba(*self.cur_stroke)
             self.ctx.new_sub_path()
             self.ctx.arc(0, 0, 1, start, stop)
+
+        self.ctx.set_matrix(save_mat)
+        if self.cur_stroke is not None:
             self.ctx.stroke()
-            self.ctx.set_line_width(lw)
+            #self.ctx.set_line_width(lw)
 
             # if self.cur_stroke is not None:
             #     self.ctx.fill_preserve()
