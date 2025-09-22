@@ -181,6 +181,7 @@ class Canvas:
         self.ctx.select_font_face(self.font)
         self.font_size = 16
         self.ctx.set_font_size(self.font_size)
+        self.ctx.set_line_width(1.0)
 
         self.line_cap('round')
         self.text_halign = 'left'
