@@ -679,10 +679,13 @@ class Canvas:
          - `x, y, width, height`
          - `[[topleft_x, topleft_y], [bottomright_x, bottomright_y]]`
 
-        The last option will ignore the rect mode since it explictly defines the corners of the rect
+        The last option will ignore the rect mode since it explictly defines the
+        corners of the rect
 
-        The interpretation of `x` and `y` depends on the current rect mode. These indicate the
-        center of the rectangle if the rect mode is `"center"` and the top left corner otherwise.
+        The interpretation of `x` and `y` depends on the current rect mode.
+        These indicate the center of the rectangle if the rect mode is
+        `"center"` or `"radius"` and the top-left corner otherwise.
+
         """
 
         if mode is None:

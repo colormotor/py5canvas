@@ -342,6 +342,8 @@ class Sketch:
         # Local info
         self._frame_count = 0
         self._delta_time = 0.0
+        self._seconds = 0
+        self._start_time = 0
 
         self._mouse_pos = None #np.zeros(2)
         self.mouse_pos = np.zeros(2)
@@ -393,6 +395,14 @@ class Sketch:
     def frame_count(self):
         ''' The number of frames since the script has loaded'''
         return self._frame_count
+
+    def millis(self):
+        ''' The number of milliseconds since the script has loaded'''
+        return int(self._seconds*1000)
+
+    def seconds(self):
+        ''' The number of seconds since the script has loaded'''
+        return self._seconds
 
     @property
     def clicked(self):
@@ -943,6 +953,8 @@ class Sketch:
                                 'dump_canvas',
                                 'send_osc',
                                 'no_loop',
+                                'millis',
+                                'seconds',
                                 'grab_movie',
                                 'param_changed',
                                 'grab_image_sequence',
@@ -1023,7 +1035,6 @@ class Sketch:
         #     print(self.mouse_pos)
         #     print(self.mouse_delta)
 
-
     def update_globals(self):
         ''' Inject globals that are not updated automatically'''
         self.var_context['delta_time'] = self._delta_time
@@ -1068,6 +1079,9 @@ class Sketch:
             # Do stuff on first load
             self.first_load = False
             draw_frame = True
+            self._start_time = time.time()
+
+        self._seconds = time.time() - self._start_time
 
         if draw_frame:
             self._update_mouse(draw_frame)

@@ -238,10 +238,12 @@ The first sequence of arguments is one of
  - `x, y, width, height`
  - `[[topleft_x, topleft_y], [bottomright_x, bottomright_y]]`
 
-The last option will ignore the rect mode since it explictly defines the corners of the rect
+The last option will ignore the rect mode since it explictly defines the
+corners of the rect
 
-The interpretation of `x` and `y` depends on the current rect mode. These indicate the
-center of the rectangle if the rect mode is `"center"` and the top left corner otherwise. """
+The interpretation of `x` and `y` depends on the current rect mode.
+These indicate the center of the rectangle if the rect mode is
+`"center"` or `"radius"` and the top-left corner otherwise. """
     pass  # Dummy method for linter
 
 def square(*args):
@@ -262,9 +264,9 @@ def rect(*args):
 
 Input arguments can be in the following formats:
 
- - ~[topleft_x, topleft_y], [width, height]~,
- - ~[topleft_x, topleft_y], width, height~,
- - ~topleft_x, topleft_y, width, height~
+ - `[topleft_x, topleft_y], [width, height]`,
+ - `[topleft_x, topleft_y], width, height`,
+ - `topleft_x, topleft_y, width, height`
 
 Depending on """
     pass  # Dummy method for linter
@@ -274,8 +276,8 @@ def quad(*args):
 
 Input arguments can be in the following formats:
 
- - ~a, b, c, d~ (Four points specified as lists/tuples/numpy arrays
- - ~x1, y1, x2, y2, x3, y3, x4, y4~, a sequence of numbers, one for each coordinate """
+ - `a, b, c, d` (Four points specified as lists/tuples/numpy arrays
+ - `x1, y1, x2, y2, x3, y3, x4, y4`, a sequence of numbers, one for each coordinate """
     pass  # Dummy method for linter
 
 def line(*args):
@@ -531,11 +533,11 @@ def polyline(*args):
 
 The polyline is specified as either:
 
-- a list of `[x,y]` pairs (e.g. ~[[0, 100], [200, 100], [200, 200]]~)
-- a numpy array with shape ~(n, 2)~, representing ~n~ points (a point for each row and a coordinate for each column)
+- a list of `[x,y]` pairs (e.g. `[[0, 100], [200, 100], [200, 200]]`)
+- a numpy array with shape `(n, 2)`, representing `n` points (a point for each row and a coordinate for each column)
 - two lists (or numpy array) of numbers, one for each coordinate
 
-To close the polyline set the named ~close~ argument to ~True~, e.g. ~c.polyline(points, close=True)~. """
+To close the polyline set the named `close` argument to `True`, e.g. `c.polyline(points, close=True)`. """
     pass  # Dummy method for linter
 
 def identity():
@@ -549,14 +551,14 @@ The next four parameters, sx, sy, sw, and sh determine the region to copy from t
 The next four parameters, dx, dy, dw, and dh determine the region of the canvas to copy into.
 (dx, dy) is the top-left corner of the region. dw and dh are the region's width and height.
 
-~copy(src_image, sx, sy, sw, sh, dx, dy, dw, dh)~
+`copy(src_image, sx, sy, sw, sh, dx, dy, dw, dh)`
 or
-~copy(sx, sy, sw, sh, dx, dy, dw, dh)~ """
+`copy(sx, sy, sw, sh, dx, dy, dw, dh)` """
     pass  # Dummy method for linter
 
 def background(*args):
     """Clear the canvas with a given color
-Accepts either an array with the color components, or single color components (as in ~fill~) """
+Accepts either an array with the color components, or single color components (as in `fill`) """
     pass  # Dummy method for linter
 
 def get_buffer():
@@ -632,6 +634,10 @@ mouse_x = 'The horizontal coordinate of the mouse position'
 mouse_y = 'The vertical coordinate of the mouse position'
 
 frame_count = 'The number of frames since the script has loaded'
+
+millis = 'The number of milliseconds since the script has loaded'
+
+seconds = 'The number of seconds since the script has loaded'
 
 clicked = 'Returns `True` if mouse was clicked'
 
@@ -755,6 +761,7 @@ def grab():
     pass  # Dummy method for linter
 
 def update_globals():
+    """Inject globals that are not updated automatically """
     pass  # Dummy method for linter
 
 def check_reload():
@@ -779,7 +786,7 @@ def num_movie_frames(*args):
     """Set the number of frames to export when saving a video """
     pass  # Dummy method for linter
 
-def start_osc():
+def start_osc(*args):
     pass  # Dummy method for linter
 
 def send_osc(*args):
