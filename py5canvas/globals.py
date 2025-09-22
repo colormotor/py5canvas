@@ -24,6 +24,9 @@ BOTTOM = 'bottom'
 RADIUS = 'radius'
 CLOSE = 'close'
 OPEN = 'OPEN'
+CHORD = 'chord'
+PIE = 'pie'
+
 random = np.random.uniform
 random_uniform = np.random.uniform
 random_choice = np.random.choice

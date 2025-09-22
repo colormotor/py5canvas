@@ -162,6 +162,9 @@ class Canvas:
         self.RGB = 'rgb'
         self.CLOSE = 'close'
         self.OPEN = 'open'
+        self.PIE = 'pie'
+        self.CHORD = 'chord'
+
 
         # Utils
         self._cur_point = []
@@ -965,8 +968,8 @@ class Canvas:
         """
         # Check if we specified a mode
         if type(args[-1]) == str:
-            mode = args[-1]
-            args = args[::-1]
+            mode = args[-1].lower()
+            args = args[:-1]
         else:
             mode = "open"
 
@@ -992,7 +995,8 @@ class Canvas:
         if self.cur_fill is not None:
             self.ctx.set_source_rgba(*self.cur_fill)
             self.ctx.new_sub_path()
-            self.ctx.move_to(0, 0)
+            if mode != "chord":
+                self.ctx.move_to(0, 0)
             self.ctx.arc(0, 0, 1, start, stop)
             self.ctx.fill()
 
@@ -1001,7 +1005,11 @@ class Canvas:
             #self.ctx.set_line_width(lw*(2.0/min(w, h)))
             self.ctx.set_source_rgba(*self.cur_stroke)
             self.ctx.new_sub_path()
+            if mode == 'pie':
+                self.ctx.move_to(0, 0)
             self.ctx.arc(0, 0, 1, start, stop)
+            if mode != 'open':
+                self.ctx.close_path()
 
         self.ctx.set_matrix(save_mat)
         if self.cur_stroke is not None:
