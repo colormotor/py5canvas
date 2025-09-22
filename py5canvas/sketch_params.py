@@ -512,6 +512,37 @@ if imgui is not None:
                 else:
                     imgui.text('No framerate set')
 
+                if sketch.osc_enabled:
+                    imgui.separator_text('OSC')
+                    changed, res = imgui.input_text('Recv. port',
+                                                   str(sketch.settings['osc']['recv_port']),
+                                                   flags=imgui.InputTextFlags.ENTER_RETURNS_TRUE)
+                    if changed:
+                        try:
+                            res = int(res)
+                            sketch.settings['osc']['recv_port'] = res
+                            sketch.start_osc()
+                        except ValueError:
+                            print("Port must be an integer")
+
+                        
+                    changed, res = imgui.input_text('Send addr.',
+                                                    str(sketch.settings['osc']['send_addr']),
+                                                    imgui.InputTextFlags.ENTER_RETURNS_TRUE)
+                    if changed:
+                        sketch.settings['osc']['send_addr'] = res
+                        sketch.start_osc()
+                    changed, res = imgui.input_text('Send port',
+                                                   str(sketch.settings['osc']['send_port']),
+                                                   flags=imgui.InputTextFlags.ENTER_RETURNS_TRUE)
+                    if changed:
+                        try:
+                            res = int(res)
+                            sketch.settings['osc']['send_port'] = res
+                            sketch.start_osc()
+                        except ValueError:
+                            print("Port must be an integer")
+
                 imgui.end_popup()
 
             # if imgui.button('Save Canvas...'):

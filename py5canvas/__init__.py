@@ -10,10 +10,10 @@ from .globals import *
 
 _canvas = None
 
-def create_canvas(w, h, save_background=True):
+def create_canvas(w, h, save_background=True, **kwargs):
     global _canvas
     # Create the canvas
-    _canvas = canvas.Canvas(w, h, save_background=save_background)
+    _canvas = canvas.Canvas(w, h, save_background=save_background, **kwargs)
     width, height = w, h
     center = np.array([w/2, h/2])
 

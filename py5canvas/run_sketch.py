@@ -103,6 +103,14 @@ class perf_timer:
         if self.name and self.verbose:
             print('%s: elapsed time %.3f milliseconds'%(self.name, self.elapsed))
 
+def update_dict(d, u):
+    '''Recurisvely updates a dict to avoid replacing sub-dict entries'''
+    for k, v in u.items():
+        if isinstance(v, dict) and isinstance(d.get(k), dict):
+            update_dict(d[k], v)
+        else:
+            d[k] = v
+    return d
 
 class FileWatcher:
     """Checks if a file has been modified"""
@@ -213,14 +221,20 @@ class Sketch:
         self.settings = {
             'num_movie_frames': 100,
             'floating_window': False,
-            'show_toolbar': False,
+            'show_toolbar': True,
+            'osc': {
+                'recv_addr': '0.0.0.0',
+                'recv_port': 9999,
+                'send_addr': '127.0.0.1',
+                'send_port': 9998
+                }
         }
 
         if os.path.isfile(settings_path):
             settings = load_json(settings_path)
             if settings:
-                self.settings.update(settings)
-
+                update_dict(self.settings, settings)
+                #self.settings.update(settings)
 
         if show_toolbar is None:
             show_toolbar = self.settings['show_toolbar']
@@ -346,10 +360,10 @@ class Sketch:
         # TODO sort these and move to settings
         osc_loader = importlib.util.find_spec('pythonosc')
         if osc_loader is not None:
-            self.server_address = '0.0.0.0' # Will listen from all IPs
-            self.server_port = 9999
-            self.client_address = '127.0.0.1'
-            self.client_port = 9998
+            #self.server_address = '0.0.0.0' # Will listen from all IPs
+            #self.server_port = self.settings['osc']['recv_port'] #  9999
+            #self.client_address = self.setting '127.0.0.1'
+            #self.client_port = 9998
             self.dispatcher = None
             self.oscserver = None
             self.oscclient = None
@@ -1234,7 +1248,7 @@ class Sketch:
         ''' Set the number of frames to export when saving a video'''
         self.settings['num_movie_frames'] = num
 
-    def start_osc(self):
+    def start_osc(self, load_settings=True):
         # Load server/client data from json
         # startup
         # if 'osc_message' in self.var_context:
@@ -1244,35 +1258,44 @@ class Sketch:
         from pythonosc.dispatcher import Dispatcher
         from pythonosc import osc_server
 
+        if self.server_thread is not None:
+            self.oscserver.shutdown()
+            self.oscserver.server_close()
+            self.server_thread.join(timeout=2.0)
+            sock = getattr(self.oscclient, "_sock", None)
+            if sock is not None:
+                sock.close()
+
         # Check if OSC setup file exists
         path = os.path.dirname(self.path)
-        path = os.path.join(path, 'osc.json')
-        oscsetup = load_json(path)
-        if oscsetup:
-            print('Reading json OSC setup')
-            if 'client address' in oscsetup:
-                self.client_address = oscsetup['client address']
-                print('Setting client address to ' + self.client_address)
-            if 'client port' in oscsetup:
-                self.client_port = oscsetup['client port']
-                print('Setting client port to ' + str(self.client_port))
-            if 'server port' in oscsetup:
-                self.server_port = oscsetup['server port']
-                print('Setting server port to ' + str(self.server_port))
+        path = os.path.join(path, 'osc_settings.json')
+        if os.path.isfile(path):
+            if load_settings:
+                settings = load_json(path)
+                self.settings.update(settings)
+            else:
+                print("Re-initializing Json with custom settings but these will not be saved: custom settings in script directory.")
 
-        if self.client_address == 'localhost':
-            self.client_address = '127.0.0.1'
+        if self.settings['osc']['send_addr'] == 'localhost':
+            self.settings['osc']['send_addr'] = '127.0.0.1'
+        # if self.client_address == 'localhost':
+        #     self.client_address = '127.0.0.1'
+        print(self.settings['osc'])
 
         self.dispatcher = Dispatcher()
         self.dispatcher.set_default_handler(self._handle_osc)
 
         print("Starting OSC Server")
-        self.oscserver = osc_server.ThreadingOSCUDPServer((self.server_address, self.server_port), self.dispatcher)
+        self.oscserver = osc_server.ThreadingOSCUDPServer((self.settings['osc']['recv_addr'], 
+                                                           self.settings['osc']['recv_port']), 
+                                                          self.dispatcher)
         self.server_thread = threading.Thread(target=self.oscserver.serve_forever)
         self.server_thread.start()
 
         print("Initializing OSC client")
-        self.oscclient = udp_client.SimpleUDPClient(self.client_address, self.client_port)
+        self.oscclient = udp_client.SimpleUDPClient(self.settings['osc']['send_addr'],
+                                                    self.settings['osc']['send_port'])
+            
 
     def send_osc(self, addr, val):
         ''' Send an OSC message'''

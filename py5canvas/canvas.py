@@ -101,7 +101,7 @@ class Canvas:
 
     """
 
-    def __init__(self, width, height, background=(128.0, 128.0, 128.0, 255.0),
+    def __init__(self, width, height, background=(200.0, 200.0, 200.0, 255.0),
                  clear_callback=lambda: None,
                  output_file='',
                  recording=True,
@@ -127,6 +127,7 @@ class Canvas:
         #ctx.set_fill_rule(cairo.FILL_RULE_EVEN_ODD) #FILL_RULE_WINDING) #EVEN_ODD)
         ctx.set_fill_rule(cairo.FILL_RULE_WINDING) #FILL_RULE_WINDING) #EVEN_ODD)
         ctx.set_line_join(cairo.LINE_JOIN_MITER)
+        #ctx.set_antialias(cairo.ANTIALIAS_BEST)
         ctx.set_source_rgba(*self._apply_colormode(self._convert_rgba(background)))
         ctx.rectangle(0, 0, width, height)
         ctx.fill()
@@ -642,7 +643,8 @@ class Canvas:
         - `mode` (string): can be one of 'corner', 'corners', 'center', 'radius'
 
         """
-        if mode not in ['corner', 'center', 'radius']:
+        mode = mode.lower()
+        if mode not in ['corner', 'center', 'radius', 'corners']:
             print('rect_mode: invalid mode')
             print('choose one among: corner, center, radius')
             return
@@ -654,7 +656,8 @@ class Canvas:
         Arguments:
         - `mode` (string): can be one of 'corner', 'center'
         """
-        if mode not in ['corner', 'center']:
+        mode = mode.lower()
+        if mode not in ['corner', 'center', 'radius', 'corners']:
             print('rect_mode: invalid mode')
             print('choose one among: corner, center')
             return
@@ -859,7 +862,7 @@ class Canvas:
         else:
             self.polygon([[args[i*2], args[i*2+1]] for i in range(3)])
 
-    def circle(self, *args, mode='center'):
+    def circle(self, *args, mode=''):
         """Draw a circle given center and radius
 
         Input arguments can be in the following formats:
@@ -867,18 +870,26 @@ class Canvas:
         - `[center_x, center_y], radius`,
         - `center_x, center_y, raidus`
         """
-
-        if len(args)==3:
-            center = args[:2]
-            radius = args[2]
+        if not mode:
+            mode = self._ellipse_mode.lower()
         else:
-            center, radius = args
+            mode = mode.lower()
+
+        if len(args) == 3:
+            center = args[:2]
+            size = args[2]
+        else:
+            center, size = args
         x, y = center[:2]
-        if mode.lower() != 'center':
+        if mode == 'radius':
+            radius = size
+        else:
+            radius = size/2
+        if mode == 'corner':
             x += radius
             y += radius
         self.ctx.new_sub_path()
-        self.ctx.arc(*center[:2], radius, 0, np.pi*2.)
+        self.ctx.arc(x, y, radius, 0, np.pi*2.)
         self._fillstroke()
 
     def ellipse(self, *args, mode=None):
@@ -918,8 +929,11 @@ class Canvas:
 
         if mode.lower() == 'corner':
             self.translate(w/2, h/2)
+        if mode.lower() == 'radius':
+            w = w*2
+            h = h*2
 
-        self.scale([w/2,h/2])
+        self.scale([w/2, h/2])
 
         self.ctx.new_sub_path()
         self.ctx.arc(0, 0, 1, 0, np.pi*2.)

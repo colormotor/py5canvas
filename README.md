@@ -52,8 +52,8 @@ The interactive sketch system allows for the easy creation of a UI and parameter
 
 # Installation
 
-While you can install py5canvas directly with &ldquo;pip&rdquo;, it is recommended to create a conda environment
-and pre-install the dependencies using conda.
+While you can install py5canvas directly with pip it is recommended to create a
+conda environment and pre-install the dependencies using conda.
 
 
 <a id="orga1f0f22"></a>
@@ -122,7 +122,7 @@ If you installed from source (pip+git) but not locally update to the latest vers
 
 <a id="orged21b61"></a>
 
-## Install through pip (needs testing on Mac)
+## Install through pip 
 
 While the whole package can be installed with
 
@@ -144,14 +144,6 @@ To install on Google Colab, and Linux if you don&rsquo;t want to use conda
 <a id="org93d4241"></a>
 
 ## Optional (but suggested) extensions
-
-1.  IMGUI
-
-    The interactive sketch interface supports automatic GUI creation for parameters. To support this feature do:
-    
-        pip install "imgui[glfw]"
-    
-    The quotes are necessary for this to work on Mac.
 
 2.  Open Sound Control (OSC)
 
@@ -201,8 +193,7 @@ Note also that the Canvas object is intended to be a simple interface on top of 
 
 ## Interactive sketches
 
-While the Canvas API alone does not supprt interactivity, the `py5sketch` program allows to create simple &ldquo;sketches&rdquo; that can be run interactively in a window.
-
+While the Canvas API alone does not supprt interactivity, you can run interactive sketches with a program structure similar to P5js and Processing.
 
 <a id="orgb7067ec"></a>
 
@@ -236,8 +227,7 @@ the command line
 
     python basic_animation.py
 
-This will open a window with the sketch. If `run()` is not preceded by a `if __name__=='__main__':` statement, any change to the script file will reload it in the window. This will result in a behavior more similar to [p5py](https://p5.rtfd.io).
-
+This will open a window with the sketch. If `run()` is not preceded by a `if __name__=='__main__':` statement, any change to the script file will reload it in the window. 
 
 <a id="orga99bc84"></a>
 
@@ -268,7 +258,7 @@ However, there are a number of differences to take into account.
     
     1.  Avoiding globals with a container
     
-        One way to avoid haing to declare globals every time is to put the parameters that can be modified within a function inside a container. As an example, we could use an anonymous function or an [EasyDict](https://pypi.org/project/easydict/) dictionary. The anonymous function trick would be as follows:
+        One way to avoid having to declare globals every time is to put the parameters that can be modified within a function inside a container. As an example, we could use an anonymous function or an [EasyDict](https://pypi.org/project/easydict/) dictionary. The anonymous function trick would be as follows:
         
             params = lambda: None
             params.foo = 10
@@ -496,13 +486,13 @@ If [python-osc](https://pypi.org/project/python-osc/) is installed, py5sketch au
 By default, the client will run on localhost address (127.0.0.1) with port 9998,
 and the server will listen on port 9999 for any incoming OSC message.
 
-You can configure these parameters by creating an `osc.json` file that is located in the same directory as the script.
+You can configure these parameters from the GUI or by creating an `settings_osc.json` file that is located in the same directory as the script.
 A default setup would look like this
 
     {
-        'server port': 9999,
-        'client address': 'localhost',
-        'client port': '9998'
+        'recv_port': 9999,
+        'send_address': 'localhost',
+        'send_port': '9998'
     }
 
 These parameters will not change until you restart py5sketch.
