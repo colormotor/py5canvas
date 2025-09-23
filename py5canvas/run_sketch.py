@@ -159,6 +159,8 @@ def wrap_canvas_method(sketch, func):
     return wrapper
 
 
+ASYNC_BG = True
+
 class Sketch:
     def create_glcontext(self):
         glfw.make_context_current(self.window)
@@ -357,6 +359,10 @@ class Sketch:
         self.prog_uses_imgui = False
 
         self.blit_scale_factor = (1.0, 1.0)
+
+        self._background_args = None
+        # Allow setting background outside of setup/draw
+        self._async_background = False
 
         # Check if OSC is available
         # TODO sort these and move to settings
@@ -772,6 +778,13 @@ class Sketch:
             pass #print('OK!')
         return data
 
+    def _background(self, *args):
+        ''' Sets backgroud color args internally, it will get exposed in '''
+        if not self._async_background:
+            self.canvas.background(*args)
+        else:
+            self._background_args = args
+
     def grab(self):
         if not self.grabbing:
             return
@@ -903,7 +916,7 @@ class Sketch:
             self.update_globals()
 
             # Default setup, so user is not obliged to define it
-            var_context['setup'] = lambda: self.create_canvas(512, 512)
+            var_context['setup'] = lambda: None #self.create_canvas(512, 512)
             var_context['sketch'] = self
 
             exec(prog, var_context)
@@ -971,8 +984,8 @@ class Sketch:
                 # For compatibility expose "size"
                 if can_inject('size'):
                     var_context['size'] = wrap_method(self, 'create_canvas')
-                # else:
-                #     pdb.set_trace()
+                # Background hack so we clear once
+                var_context['background'] = wrap_method(self, '_background')
 
             var_context['save'] = wrap_method(self, 'dump_canvas')
 
@@ -997,7 +1010,12 @@ class Sketch:
                 self.params.load()
 
             # call setup
+            # When inside setup we want to directly set the background of the canvas
+            # This is in case we don't do any drawing in draw
+            self._async_background = False
             var_context['setup']()
+            self._async_background = True
+
             # User might create parameters in setup
             if self.params is not None:
                 # print('Load params after setup')
@@ -1146,7 +1164,13 @@ class Sketch:
                 try:
                     if 'draw' in self.var_context and draw_frame:
                         self.canvas.identity()
+                        # Draw background before drawing if specified
+                        if self._background_args is not None:
+                            self.canvas.background(*self.background_args)
+                            self._background_args = None
+                        self._async_background = False
                         self.var_context['draw']()
+                        self._async_background = True
                         did_draw = True
                         if self._clicked:
                             self._clicked = False

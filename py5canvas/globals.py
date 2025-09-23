@@ -26,6 +26,12 @@ CLOSE = 'close'
 OPEN = 'OPEN'
 CHORD = 'chord'
 PIE = 'pie'
+CHORD = 'chord'
+MITER = 'miter'
+BEVEL = 'bevel'
+ROUND = 'round'
+SQUARE = 'square'
+PROJECT = 'project'
 
 random = np.random.uniform
 random_uniform = np.random.uniform

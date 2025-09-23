@@ -164,7 +164,11 @@ class Canvas:
         self.OPEN = 'open'
         self.PIE = 'pie'
         self.CHORD = 'chord'
-
+        self.MITER = 'miter'
+        self.BEVEL = 'bevel'
+        self.ROUND = 'round'
+        self.SQUARE = 'square'
+        self.PROJECT = 'project'
 
         # Utils
         self._cur_point = []
@@ -341,13 +345,14 @@ class Canvas:
         """
         self.ctx.set_line_width(w)
 
-    def line_join(self, join):
+    def stroke_join(self, join):
         """Specify the 'join' mode for polylines.
 
         Arguments:
 
         - `join` (string): can be one of "miter", "bevel" or "round"
         """
+        join = join.lower()
         joins = {'miter': cairo.LINE_JOIN_MITER,
                 'bevel': cairo.LINE_JOIN_BEVEL,
                 'round': cairo.LINE_CAP_ROUND}
@@ -357,6 +362,8 @@ class Canvas:
             return
 
         self.ctx.set_line_join(joins[join])
+
+    line_join = stroke_join
 
     def blend_mode(self, mode="over"):
         """Specify the blending mode
@@ -408,22 +415,25 @@ class Canvas:
             raise ValueError(f"Invalid blend mode: {mode}")
 
 
-    def line_cap(self, cap):
+    def stroke_cap(self, cap):
         """Specify the 'cap' for lines.
 
         Arguments:
 
         - `cap` (string): can be one of "butt", "round" or "square"
         """
-        caps = {'butt': cairo.LINE_CAP_BUTT,
+        cap = cap.lower()
+        caps = {'square': cairo.LINE_CAP_BUTT,
                 'round': cairo.LINE_CAP_ROUND,
-                'square': cairo.LINE_CAP_SQUARE}
+                'project': cairo.LINE_CAP_SQUARE}
         if cap not in caps:
             print(str(cap) + ' not a valid line cap')
             print('Choose one of ' + str(caps.keys()))
             return
 
         self.ctx.set_line_cap(caps[cap])
+
+    line_cap = stroke_cap
 
     def text_align(self, halign, valign='bottom'):
         """Specify the text alignment
@@ -625,6 +635,12 @@ class Canvas:
             return hsv_to_rgb(np.array(args[0]))*self.color_scale
 
     hsb = hsv
+
+    def rgb(self, *args):
+        if len(args) > 1:
+            return rgb_to_hsv(np.array(args))*self.color_scale
+        else:
+            return rgb_to_hsv(np.array(args[0]))*self.color_scale
 
     def _fillstroke(self):
         if self.no_draw: # we are in a begin_shape end_shape pair
@@ -1971,6 +1987,39 @@ def show_images(images, ncols, size=None, title='', cmap='gray'):
         ax.axis('off')
     plt.tight_layout()
     plt.show()
+
+
+def hsv_to_rgb(hsva):
+    h, s, v = hsva[:3]
+    a = 1
+    if len(hsva) > 3:
+        a = hsva[3]
+
+    if s == 0.0:
+        r = g = b = v
+    else:
+        h = fmod(h, 1) / (60.0 / 360.0)
+        i = int(h)
+        f = h - i
+        p = v * (1.0 - s)
+        q = v * (1.0 - s * f)
+        t = v * (1.0 - s * (1.0 - f))
+
+        if i == 0:
+            r, g, b = v, t, p
+        elif i == 1:
+            r, g, b = q, v, p
+        elif i == 2:
+            r, g, b = p, v, t
+        elif i == 3:
+            r, g, b = p, q, v
+        elif i == 4:
+            r, g, b = t, p, v
+        else:
+            r, g, b = v, p, q
+
+    return np.array([r,g,b,a])[:len(hsva)]
+
 
 def hsv_to_rgb(hsva):
     h, s, v = hsva[:3]
