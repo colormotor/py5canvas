@@ -1628,6 +1628,11 @@ class Canvas:
         self._fillstroke()
 
     def identity(self):
+        ''' Resets the current matrix to the identity (no transformation)'''
+        self.ctx.identity_matrix()
+
+    def reset_matrix(self):
+        ''' Resets the current matrix to the identity (no transformation)'''
         self.ctx.identity_matrix()
 
     def copy(self, *args):
