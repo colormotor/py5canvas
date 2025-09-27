@@ -1166,7 +1166,7 @@ class Sketch:
                         self.canvas.identity()
                         # Draw background before drawing if specified
                         if self._background_args is not None:
-                            self.canvas.background(*self.background_args)
+                            self.canvas.background(*self._background_args)
                             self._background_args = None
                         self._async_background = False
                         self.var_context['draw']()
