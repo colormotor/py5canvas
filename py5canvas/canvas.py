@@ -923,14 +923,25 @@ class Canvas:
         - `[center_x, center_y], [width, height]`,
         - `[center_x, center_y], width, height`,
         - `center_x, center_y, width, height`
+        - `[center_x, center_y], width`,
+        - `center_x, center_y, width`,
         """
 
         if mode is None:
             mode = self._ellipse_mode
 
-        if len(args) == 3:
+        if len(args) == 2:
             center = args[0]
-            w, h = args[1:]
+            w = args[1]
+            h = w
+        elif len(args) == 3:
+            if is_number(args[0]):
+                center = args[:2]
+                w = args[2]
+                h = w
+            else:
+                center = args[0]
+                w, h = args[1:]
         elif len(args) == 4:
             center = args[:2]
             w, h = args[2:]
