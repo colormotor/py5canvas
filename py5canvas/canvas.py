@@ -683,6 +683,24 @@ class Canvas:
             return
         self._ellipse_mode = mode
 
+
+    def _roundrect(self, x, y, w, h, r):
+        # https://www.geeksforgeeks.org/python/pycairo-drawing-the-roundrect/
+        self.ctx.arc(x+r, y+r, r,
+                    np.pi, 3*np.pi/2)
+
+        self.ctx.arc(x+w-r, y+r, r,
+                    3*np.pi/2, 0)
+
+        self.ctx.arc(x+w-r, y+h-r,
+                    r, 0, np.pi/2)
+
+        self.ctx.arc(x+r, y+h-r, r,
+                    np.pi/2, np.pi)
+
+        self.ctx.close_path()
+
+
     def rectangle(self, *args, mode=None):
         """Draw a rectangle.
         Can use `rect` equivalently.
@@ -695,7 +713,9 @@ class Canvas:
          - `x, y, width, height`
          - `[[topleft_x, topleft_y], [bottomright_x, bottomright_y]]`
 
-        The last option will ignore the rect mode since it explictly defines the
+        Followed by an optional radius parameter that can be used to create rounded rectangles
+
+        An optional named `mode` argument allows to ignore the current rect mode since it explictly defines the
         corners of the rect
 
         The interpretation of `x` and `y` depends on the current rect mode.
@@ -706,6 +726,12 @@ class Canvas:
 
         if mode is None:
             mode = self._rect_mode
+
+        if len(args)%2 == 1:
+            radius = args[-1]
+            args = args[:-1]
+        else:
+            radius = None
 
         if len(args) == 1:
             p = args[0][0]
@@ -731,7 +757,12 @@ class Canvas:
             # Interpret 'size' as the bottom right corner
             size = size - p
 
-        self.ctx.rectangle(*p, *size)
+        if radius is None:
+            self.ctx.rectangle(*p, *size)
+        else:
+            radius = min(radius, min(size)/2)
+            self._roundrect(*p, *size, radius)
+
         self._fillstroke()
 
     rect = rectangle
