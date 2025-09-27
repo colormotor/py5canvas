@@ -549,7 +549,7 @@ class Sketch:
         print("Creating canvas with size", w, h, "fullscreen:", fullscreen, "gui_width:", gui_width, "with_gui:", with_gui)
         if imgui is None or not with_gui:
             print("Creating canvas no gui")
-            self._create_canvas(w, h, fullscreen=fullscreen, screen=screen, save_background=save_background)
+            self._create_canvas(w, h, (w, h), fullscreen=fullscreen, screen=screen, save_background=save_background)
             return
         has_gui = 'gui' in self.var_context and callable(self.var_context['gui'])
         if self.params or self.gui_callback is not None or has_gui:
