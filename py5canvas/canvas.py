@@ -73,8 +73,48 @@ class MultiContext:
 
 class CanvasState:
     def __init__(self, c):
+        self.c = c
+
         self.cur_fill = c._convert_rgba([255.0])
         self.cur_stroke = c._convert_rgba([0.0])
+
+        self._stroke_cap = 'round'
+        self._stroke_join = 'miter'
+        self._text_halign = 'left'
+        self._text_valign = 'bottom'
+        self._rect_mode = 'corner'
+        self._ellipse_mode = 'center'
+        self._font = 'sans-serif'
+        self._text_size = 16
+        self._line_width = 1.0
+
+    def set(self, prev=None):
+        def should_set(prev, name):
+            if prev is None:
+                return True
+            return prev.__dict__[name] != self.__dict__[name]
+
+        if should_set(prev, '_stroke_cap'):
+            self.c.stroke_cap(self._stroke_cap)
+        if should_set(prev, '_stroke_join'):
+            self.c.stroke_join(self._stroke_join)
+        if should_set(prev, '_line_width'):
+            self.c.stroke_weight(self._line_width)
+        if should_set(prev, '_text_size'):
+            self.c.text_size(self._text_size)
+
+def draw_states_properties(*names):
+    def decorator(cls):
+        for name in names:
+            def getter(self, n=name):
+                return getattr(self.draw_states[-1], n)
+
+            def setter(self, value, n=name):
+                setattr(self.draw_states[-1], n, value)
+
+            setattr(cls, name, property(getter, setter))
+        return cls
+    return decorator
 
 @dataclass
 class Font:
@@ -82,6 +122,16 @@ class Font:
     size: int = None
     style: str = None
 
+@draw_states_properties("cur_fill",
+                        "cur_stroke",
+                        "_stroke_join",
+                        "_text_halign",
+                        "_text_valign",
+                        "_rect_mode",
+                        "_ellipse_mode",
+                        "_font",
+                        "_text_size",
+                        "_line_width")
 class Canvas:
     """
     Defines a drawing canvas (pyCairo) that behaves similarly to p5js
@@ -133,18 +183,18 @@ class Canvas:
         ctx.fill()
         self.last_background = background
 
+        # Keep track of draw states
         self.draw_states = [CanvasState(self)]
+        self.draw_states[-1].set()
 
         # self.cur_fill = self._convert_rgba([255.0])
         # self.cur_stroke = None
-        self._rect_mode = 'corner'
-        self._ellipse_mode = 'center'
+
 
         self.no_draw = False
 
         self._save_background = save_background
 
-        self.tension = 0.5
 
         # Constants
         self.PI = pi
@@ -182,17 +232,18 @@ class Canvas:
         else:
             print("Not creating recording context")
 
+        self.tension = 0.5
+
+        #self.stroke_cap('round')
+        #self.stroke_join('miter')
+
         # self.ctx.select_font_face("sans-serif")
         # self.ctx.set_font_size(16)
-        self.font = "sans-serif"
-        self.ctx.select_font_face(self.font)
-        self.font_size = 16
-        self.ctx.set_font_size(self.font_size)
-        self.ctx.set_line_width(1.0)
 
-        self.line_cap('round')
-        self.text_halign = 'left'
-        self.text_valign = 'bottom'
+        #self.ctx.select_font_face(self._font)
+        #self.ctx.set_font_size(self._text_size)
+        #self.ctx.set_line_width(1.0)
+
 
     def set_color_scale(self, scale):
         """Set color scale:
@@ -443,7 +494,7 @@ class Canvas:
         - `valign` (string): Horizontal alignment. One of "bottom" (default), "top" or "center"
         """
         self.text_halign = halign
-        self.text_valign = valign
+        self._text_valign = valign
 
     def text_size(self, size):
         """Specify the text size
@@ -452,8 +503,8 @@ class Canvas:
 
         - `size` (int): the text size
         """
-        self.font_size = size
-        self.ctx.set_font_size(self.font_size)
+        self._text_size = size
+        self.ctx.set_font_size(self._text_size)
 
     def text_font(self, font):
         """Specify the font to use for text rendering
@@ -466,23 +517,23 @@ class Canvas:
             if os.path.isfile(font):
                 try:
                     info = read_font_names(font)
-                    self.font = f"{info['family']} {info['subfamily']}"
+                    self._font = f"{info['family']} {info['subfamily']}"
                     self.ctx.set_font_face(create_cairo_font_face_for_file(font))
                 except Exception as e:
                     print(f"Error: failed to load font {font}:")
                     print(e)
                 return
             else:
-                self.font = font
-                self.ctx.select_font_face(self.font)
+                self._font = font
+                self.ctx.select_font_face(self._font)
         else:
-            self.font = font.obj
-            if type(self.font) == str:
+            self._font = font.obj
+            if type(self._font) == str:
                 # "Toy" case of a System font selected by name
-                self.ctx.select_font_face(self.font)
+                self.ctx.select_font_face(self._font)
             else:
                 # Loaded font case
-                self.ctx.set_font_face(self.font)
+                self.ctx.set_font_face(self._font)
             if font.style is not None:
                 self.text_style(font.style)
             if font.size is not None:
@@ -496,13 +547,13 @@ class Canvas:
         "bolditalic")
         """
         if style == "normal":
-            self.ctx.select_font_face(self.font, cairo.FontSlant.NORMAL)
+            self.ctx.select_font_face(self._font, cairo.FontSlant.NORMAL)
         elif style == "italic":
-            self.ctx.select_font_face(self.font, cairo.FontSlant.ITALIC)
+            self.ctx.select_font_face(self._font, cairo.FontSlant.ITALIC)
         elif style == "bold":
-            self.ctx.select_font_face(self.font, cairo.FontSlant.NORMAL, cairo.FontWeight.BOLD)
+            self.ctx.select_font_face(self._font, cairo.FontSlant.NORMAL, cairo.FontWeight.BOLD)
         elif style == "bolditalic":
-            self.ctx.select_font_face(self.font, cairo.FontSlant.ITALIC, cairo.FontWeight.BOLD)
+            self.ctx.select_font_face(self._font, cairo.FontSlant.ITALIC, cairo.FontWeight.BOLD)
         else:
             print(f"font style `{style}` not recognised (choose from: normal, italic, bold, bolditalic)")
 
@@ -548,14 +599,15 @@ class Canvas:
             finally:
                 self.pop_style()
 
-        self.draw_states.append(copy.deepcopy(self.draw_states[-1]))
+        self.draw_states.append(copy.copy(self.draw_states[-1]))
         return popmanager()
 
     def pop_style(self):
         """
         Restore the previously pushed drawing state
         """
-        self.draw_states.pop()
+        old = self.draw_states.pop()
+        self.draw_states[-1].set(old)
 
     def push(self):
         """
@@ -570,7 +622,7 @@ class Canvas:
                 self.pop()
 
         self.ctx.save()
-        self.draw_states.append(copy.deepcopy(self.draw_states[-1]))
+        self.draw_states.append(copy.copy(self.draw_states[-1]))
         return popmanager()
 
     def pop(self):
@@ -578,7 +630,8 @@ class Canvas:
         Restore the previously pushed drawing state and transformations
         """
         self.ctx.restore()
-        self.draw_states.pop()
+        old = self.draw_states.pop()
+        self.draw_states[-1].set(old)
 
     def translate(self, *args):
         """Translate by specifying `x` and `y` offset.
@@ -1573,9 +1626,9 @@ class Canvas:
     def _text_offset(self, text, align, valign):
         (x_bearing, y_bearing, w, h, x_advance, y_advance) = self.ctx.text_extents(text)
         if not align:
-            align = self.text_halign
+            align = self._text_halign
         if not valign:
-            valign = self.text_valign
+            valign = self._text_valign
 
         ox = 0
         oy = 0
