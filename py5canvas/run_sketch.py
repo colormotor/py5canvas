@@ -1726,114 +1726,115 @@ def main(path='', fps=0, inject=True, show_toolbar=False):
 
     prev_t = 0 #100000 #time.perf_counter()
 
-    while not glfw.window_should_close(sketch.window):
-        # Updates input and calls draw in the sketch
-        # Poll for and process events
-        glfw.poll_events()
-        sketch._mouse_pos = np.array(glfw.get_cursor_pos(sketch.window))
+    try:
+        while not glfw.window_should_close(sketch.window):
+            # Updates input and calls draw in the sketch
+            # Poll for and process events
+            glfw.poll_events()
+            sketch._mouse_pos = np.array(glfw.get_cursor_pos(sketch.window))
 
-        do_frame = False
-        delta_t = time.perf_counter() - prev_t
-        sketch.fps = np.round(1.0 / delta_t, 2)
-
-        if sketch._fps <= 0:
-            do_frame = True
-        else:
-            if time.perf_counter() - prev_t >= 1.0 / sketch._fps:
-                do_frame = True
-                prev_t = time.perf_counter()
-
-        if sketch._no_loop:
             do_frame = False
+            delta_t = time.perf_counter() - prev_t
+            sketch.fps = np.round(1.0 / delta_t, 2)
 
-        if sketch.first_load:
-            do_frame = True
-
-        # Check if we need to reload
-        sketch.check_reload()
-
-        frame_drawn = sketch.frame(do_frame)
-
-
-        # if sketch.impl is not None:
-        #     sketch.impl.process_inputs()
-
-        sketch.canvas_tex.use(0)
-        content_scale = glfw.get_window_content_scale(sketch.window)
-        content_scale = [int(s) for s in content_scale] # Hack for floating point scale?
-        sketch.glctx.clear(0, 0, 0) # perhaps better to set this with the sketch background
-        #prev_viewport = sketch.glctx.viewport
-        #sketch.glctx.viewport = (0, 0, sketch.canvas.width*content_scale[0], sketch.canvas.height*content_scale[1])
-
-        if sketch.is_fullscreen:
-            aspect_canvas = sketch.canvas.width / sketch.canvas.height
-            aspect_display = sketch.canvas_display_width / sketch.canvas_display_height
-
-            if aspect_canvas > aspect_display:
-                # canvas is wider -> fit width
-                vp_width = sketch.canvas_display_width * content_scale[0]
-                vp_height = vp_width / aspect_canvas
+            if sketch._fps <= 0:
+                do_frame = True
             else:
-                # canvas is taller -> fit height
-                vp_height = sketch.canvas_display_height * content_scale[1]
-                vp_width = vp_height * aspect_canvas
+                if time.perf_counter() - prev_t >= 1.0 / sketch._fps:
+                    do_frame = True
+                    prev_t = time.perf_counter()
 
-            vp_x = (sketch.canvas_display_width * content_scale[0] - vp_width) / 2
-            vp_y = (sketch.canvas_display_height * content_scale[1] - vp_height) / 2
+            if sketch._no_loop:
+                do_frame = False
 
-            sketch.glctx.viewport = (int(vp_x), int(vp_y), int(vp_width), int(vp_height))
-        else:
-            sketch.glctx.viewport = (0, 0, sketch.canvas.width*content_scale[0], sketch.canvas.height*content_scale[1])
-        sketch.quad_vao.render(mgl.TRIANGLES)  # Render the VAO
-        sketch.glctx.viewport = (0, 0, sketch.window_width*content_scale[0], sketch.window_height*content_scale[1])
-        #sketch.glctx.viewport = prev_viewport
+            if sketch.first_load:
+                do_frame = True
 
-        # if sketch.keep_aspect_ratio:
-        #     sketch.blit_scale_factor = (sketch.canvas_display_height / sketch.canvas.height,
-        #                                 sketch.canvas_display_height / sketch.canvas.height)
-        # else:
-        #     sketch.blit_scale_factor = (sketch.canvas_display_width / sketch.canvas.width,
-        #                               sketch.canvas_display_height / sketch.canvas.height)
+            # Check if we need to reload
+            sketch.check_reload()
+
+            frame_drawn = sketch.frame(do_frame)
 
 
+            # if sketch.impl is not None:
+            #     sketch.impl.process_inputs()
 
-        # sketch.image.blit(0, 0,
-        #                   width=sketch.canvas.width*sketch.blit_scale_factor[0],
-        #                   height=sketch.canvas.height*sketch.blit_scale_factor[1])
+            sketch.canvas_tex.use(0)
+            content_scale = glfw.get_window_content_scale(sketch.window)
+            content_scale = [int(s) for s in content_scale] # Hack for floating point scale?
+            sketch.glctx.clear(0, 0, 0) # perhaps better to set this with the sketch background
+            #prev_viewport = sketch.glctx.viewport
+            #sketch.glctx.viewport = (0, 0, sketch.canvas.width*content_scale[0], sketch.canvas.height*content_scale[1])
 
-        # if sketch.has_error():
-        #     sketch.error_label.draw()
+            if sketch.is_fullscreen:
+                aspect_canvas = sketch.canvas.width / sketch.canvas.height
+                aspect_display = sketch.canvas_display_width / sketch.canvas_display_height
 
-        if not sketch.runtime_error and 'draw_gl' in sketch.var_context:
-            try:
-                sketch.var_context['draw_gl']()
-            except Exception as e:
-                print('Error in draw_gl')
-                print(e)
-                # sketch.error_label.text = str(e)
-                sketch.runtime_error = True
-                print_traceback()
+                if aspect_canvas > aspect_display:
+                    # canvas is wider -> fit width
+                    vp_width = sketch.canvas_display_width * content_scale[0]
+                    vp_height = vp_width / aspect_canvas
+                else:
+                    # canvas is taller -> fit height
+                    vp_height = sketch.canvas_display_height * content_scale[1]
+                    vp_width = vp_height * aspect_canvas
 
-                # if sketch.impl is not None:
-                #     sketch.impl.process_inputs()
+                vp_x = (sketch.canvas_display_width * content_scale[0] - vp_width) / 2
+                vp_y = (sketch.canvas_display_height * content_scale[1] - vp_height) / 2
 
-        if sketch.grabbing and not sketch.must_reload and frame_drawn:
-            sketch.grab()
+                sketch.glctx.viewport = (int(vp_x), int(vp_y), int(vp_width), int(vp_height))
+            else:
+                sketch.glctx.viewport = (0, 0, sketch.canvas.width*content_scale[0], sketch.canvas.height*content_scale[1])
+            sketch.quad_vao.render(mgl.TRIANGLES)  # Render the VAO
+            sketch.glctx.viewport = (0, 0, sketch.window_width*content_scale[0], sketch.window_height*content_scale[1])
+            #sketch.glctx.viewport = prev_viewport
 
-        if imgui is not None:
-            try:
-                imgui.render()
-                # pdb.set_trace()
-                sketch.impl.render(imgui.get_draw_data())
-
-            except imgui.core.ImGuiError as e:
-                print('Error in imgui render')
-                print(e)
+            # if sketch.keep_aspect_ratio:
+            #     sketch.blit_scale_factor = (sketch.canvas_display_height / sketch.canvas.height,
+            #                                 sketch.canvas_display_height / sketch.canvas.height)
+            # else:
+            #     sketch.blit_scale_factor = (sketch.canvas_display_width / sketch.canvas.width,
+            #                               sketch.canvas_display_height / sketch.canvas.height)
 
 
 
-        # Swap front and back buffers
-        glfw.swap_buffers(sketch.window)
+            # sketch.image.blit(0, 0,
+            #                   width=sketch.canvas.width*sketch.blit_scale_factor[0],
+            #                   height=sketch.canvas.height*sketch.blit_scale_factor[1])
+
+            # if sketch.has_error():
+            #     sketch.error_label.draw()
+
+            if not sketch.runtime_error and 'draw_gl' in sketch.var_context:
+                try:
+                    sketch.var_context['draw_gl']()
+                except Exception as e:
+                    print('Error in draw_gl')
+                    print(e)
+                    # sketch.error_label.text = str(e)
+                    sketch.runtime_error = True
+                    print_traceback()
+
+                    # if sketch.impl is not None:
+                    #     sketch.impl.process_inputs()
+
+            if sketch.grabbing and not sketch.must_reload and frame_drawn:
+                sketch.grab()
+
+            if imgui is not None:
+                try:
+                    imgui.render()
+                    # pdb.set_trace()
+                    sketch.impl.render(imgui.get_draw_data())
+
+                except Exception as e:
+                    print('Error in imgui render')
+                    print(e)
+
+            # Swap front and back buffers
+            glfw.swap_buffers(sketch.window)
+    except KeyboardInterrupt:
+        print("Exiting")
 
     close()
     glfw.terminate()
