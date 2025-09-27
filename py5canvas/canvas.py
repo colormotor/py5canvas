@@ -2312,6 +2312,8 @@ def noise_detail(octaves, falloff=0.5, lacunarity=2.0, gradient=True):
     - `falloff` (float, default 0.5): a number between 0 and 1 that multiplies the amplitude of each consectutive octave
     """
     global _noise_octaves, _noise_grad
+    # no < 1 octaves, thank you
+    octaves = int(max(1, octaves))
     rumore.cfg.falloff = falloff
     rumore.cfg.lacunarity = lacunarity
     _noise_octaves = octaves
