@@ -386,7 +386,7 @@ if imgui is not None:
                     try:
                         changed = False
                         if param_type == 'int':
-                            changed, params[key] = imgui.input_int(name, params[key])
+                            changed, params[key] = imgui.input_int(name, int(params[key]))
                             if 'min' in opts:
                                 params[key] = max(params[key], opts['min'])
                             if 'max' in opts:

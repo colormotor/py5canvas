@@ -781,16 +781,26 @@ class Canvas:
             mode = self._rect_mode
 
         if len(args)%2 == 1:
-            radius = args[-1]
-            args = args[:-1]
+            if len(args) != 1:
+                radius = args[-1]
+                args = args[:-1]
+            else:
+                # Packed single arg rect case
+                radius = None
         else:
-            radius = None
+            if len(args)==2 and is_number(args[1]):
+                # # Packed single arg rect with radius case
+                radius = args[-1]
+                args = args[:-1]
+            else:
+                radius = None
 
         if len(args) == 1:
-            p = args[0][0]
+            p = np.array(args[0][0])
             size = [args[0][1][0]-args[0][0][0], args[0][1][1]-args[0][0][1]]
             mode = 'corner' # Force the mode to corner since we explicitly defined the rect
         elif len(args) == 2:
+
             p, size = args
         elif len(args) == 3:
             p = args[0]
