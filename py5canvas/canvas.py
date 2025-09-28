@@ -1531,6 +1531,8 @@ class Canvas:
 
         if valign == 'center':
             start_pos[1] -= (self._text_leading*(len(lines)-1))/2
+        elif valign == 'bottom':
+            start_pos[1] -= (self._text_leading*(len(lines)-1))
 
         all_shapes = []
 

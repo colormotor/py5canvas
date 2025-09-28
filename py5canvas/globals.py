@@ -113,7 +113,7 @@ def create_vector(*args):
     ''' Create a vector with components specified as comma-separated values
     :returns: A NumPy array with the specified components
     '''
-    return Vecor(*args)
+    return vector(*args)
 
 def range_between(a, b, num, endpoint=True):
     ''' Returns a list of numbers that goes from a and b in a specified number of steps.
