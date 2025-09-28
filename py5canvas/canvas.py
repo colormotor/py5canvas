@@ -178,9 +178,10 @@ class Canvas:
         ctx.set_fill_rule(cairo.FILL_RULE_WINDING) #FILL_RULE_WINDING) #EVEN_ODD)
         ctx.set_line_join(cairo.LINE_JOIN_MITER)
         #ctx.set_antialias(cairo.ANTIALIAS_BEST)
+        print(*self._apply_colormode(self._convert_rgba(background)))
         ctx.set_source_rgba(*self._apply_colormode(self._convert_rgba(background)))
-        ctx.rectangle(0, 0, width, height)
-        ctx.fill()
+        ctx.paint() #rectangle(0, 0, width, height)
+        #ctx.fill()
         self.last_background = background
 
         # Keep track of draw states
@@ -493,7 +494,7 @@ class Canvas:
         - `halign` (string): Horizontal alignment. One of "left", "center" or "right"
         - `valign` (string): Horizontal alignment. One of "bottom" (default), "top" or "center"
         """
-        self.text_halign = halign
+        self._text_halign = halign
         self._text_valign = valign
 
     def text_size(self, size):
@@ -780,13 +781,20 @@ class Canvas:
         if mode is None:
             mode = self._rect_mode
 
-        if len(args)%2 == 1:
-            if len(args) != 1:
+        if len(args)==1:
+            # Packed single arg rect case
+            radius = None
+        elif len(args)%2 == 1:
+            if len(args) == 3:
+                if not is_number(args[1]):
+                    # [x, y], [width, height], radius
+                    radius = args[-1]
+                    args = args[:-1]
+                else:
+                    radius = None
+            else:
                 radius = args[-1]
                 args = args[:-1]
-            else:
-                # Packed single arg rect case
-                radius = None
         else:
             if len(args)==2 and is_number(args[1]):
                 # # Packed single arg rect with radius case
@@ -800,7 +808,6 @@ class Canvas:
             size = [args[0][1][0]-args[0][0][0], args[0][1][1]-args[0][0][1]]
             mode = 'corner' # Force the mode to corner since we explicitly defined the rect
         elif len(args) == 2:
-
             p, size = args
         elif len(args) == 3:
             p = args[0]
