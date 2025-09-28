@@ -86,6 +86,7 @@ class CanvasState:
         self._ellipse_mode = 'center'
         self._font = 'sans-serif'
         self._text_size = 16
+        self._text_leading = 16
         self._line_width = 1.0
 
     def set(self, prev=None):
@@ -131,7 +132,8 @@ class Font:
                         "_ellipse_mode",
                         "_font",
                         "_text_size",
-                        "_line_width")
+                        "_line_width",
+                        "_text_leading")
 class Canvas:
     """
     Defines a drawing canvas (pyCairo) that behaves similarly to p5js
@@ -499,13 +501,25 @@ class Canvas:
 
     def text_size(self, size):
         """Specify the text size
-
+        N.B. this will also reset the text leading
         Arguments:
 
         - `size` (int): the text size
         """
         self._text_size = size
+        self._text_leading = size
         self.ctx.set_font_size(self._text_size)
+
+    def text_leading(self, *args):
+        """Specify the space between consecutive lines of text
+        if no arguments are specified, returns the text leading values
+        Arguments:
+
+        - `leading` (int, optional): the text leading
+        """
+        if len(args) == 0:
+            return self._text_leading
+        self._text_leading = args[0]
 
     def text_font(self, font):
         """Specify the font to use for text rendering
@@ -1465,17 +1479,13 @@ class Canvas:
             else:
                 align = 'left'
 
-        ox, oy = self._text_offset(text, align, valign)
-
-        self.ctx.move_to(pos[0]+ox, pos[1]+oy)
-        self.ctx.text_path(text)
-        self._fillstroke()
-
-        #self.ctx.fill()
-
-    # def text_bounds(self, text, *args):
-    #     { x: 5.7, y: 12.1 , w: 9.9, h: 28.6 }.
-
+        x, y = pos
+        for line in text.splitlines():
+            ox, oy = self._text_offset(line, align, valign)
+            self.ctx.move_to(x+ox, y+oy)
+            self.ctx.text_path(line)
+            self._fillstroke()
+            y += self._text_leading
 
     def text_shapes(self, text, *args, dist=1, align='', valign=''):
         if len(args) == 2:
@@ -1494,57 +1504,61 @@ class Canvas:
             raise ValueError("text: wrong number of args")
 
         ctx = self.ctx
-        pos = np.array(pos, dtype=np.float32)
-        pos += self._text_offset(text, align, valign)
         font = ctx.get_scaled_font()
+
+        start_pos = np.array(pos, dtype=np.float32)
 
         all_shapes = []
 
-        for char in text:
-            extents = font.text_extents(char)
+        for line in text.splitlines():
+            pos = start_pos + self._text_offset(line, align, valign)
+            start_pos[1] += self._text_leading
 
-            # Extract path data
-            ctx.text_path(char)
-            path = ctx.copy_path()
-            # Clear path so we don't draw
-            ctx.new_path()
+            for char in line:
+                extents = font.text_extents(char)
 
-            shape = []
+                # Extract path data
+                ctx.text_path(char)
+                path = ctx.copy_path()
+                # Clear path so we don't draw
+                ctx.new_path()
 
-            def prev():
-                return shape[-1][-1][-1]
+                shape = []
 
-            def sample_line(points):
-                a = prev()
-                b = np.array(points)
-                s = np.linalg.norm(b - a)
-                n = max(int(s / dist)+1, 2)
-                t = np.linspace(0, 1, n)[1:]
-                res = a + (b - a)*t.reshape(-1, 1)
-                return res
+                def prev():
+                    return shape[-1][-1][-1]
 
-            def sample_cubic(points):
-                b, c, d = [np.array(p) for p in [points[:2], points[2:4], points[4:6]]]
-                a = prev()
-                s = approx_arc_length_cubic(a, b, c, d)
-                n = max(int(s / dist)+1, 2)
-                t = np.linspace(0, 1, n)[1:]
-                P = np.array([a, b, c, d])
-                return eval_bezier(P, t)
+                def sample_line(points):
+                    a = prev()
+                    b = np.array(points)
+                    s = np.linalg.norm(b - a)
+                    n = max(int(s / dist)+1, 2)
+                    t = np.linspace(0, 1, n)[1:]
+                    res = a + (b - a)*t.reshape(-1, 1)
+                    return res
 
-            for kind, points in path:
-                if kind == cairo.PATH_MOVE_TO:
-                    shape.append([np.array([points])])
-                elif kind == cairo.PATH_LINE_TO:
-                    shape[-1].append(sample_line(points))
-                elif kind == cairo.PATH_CURVE_TO:
-                    shape[-1].append(sample_cubic(points))
-                elif kind == cairo.PATH_CLOSE_PATH:
-                    shape[-1].append(sample_line(shape[-1][0][0]))
+                def sample_cubic(points):
+                    b, c, d = [np.array(p) for p in [points[:2], points[2:4], points[4:6]]]
+                    a = prev()
+                    s = approx_arc_length_cubic(a, b, c, d)
+                    n = max(int(s / dist)+1, 2)
+                    t = np.linspace(0, 1, n)[1:]
+                    P = np.array([a, b, c, d])
+                    return eval_bezier(P, t)
 
-            res = [np.vstack(P)+pos for P in shape if len(P) > 1]
-            all_shapes.append(res)
-            pos += [extents.x_advance, 0]
+                for kind, points in path:
+                    if kind == cairo.PATH_MOVE_TO:
+                        shape.append([np.array([points])])
+                    elif kind == cairo.PATH_LINE_TO:
+                        shape[-1].append(sample_line(points))
+                    elif kind == cairo.PATH_CURVE_TO:
+                        shape[-1].append(sample_cubic(points))
+                    elif kind == cairo.PATH_CLOSE_PATH:
+                        shape[-1].append(sample_line(shape[-1][0][0]))
+
+                res = [np.vstack(P)+pos for P in shape if len(P) > 1]
+                all_shapes.append(res)
+                pos += [extents.x_advance, 0]
 
         return all_shapes  # List of lists: one list per glyph
 
@@ -1561,69 +1575,6 @@ class Canvas:
         '''
         return sum(self.text_shapes(text, *args, dist=dist, align=align, valign=valign), [])
 
-        if len(args) == 2:
-            if is_number(args[0]):
-                pos = args
-            else:
-                pos = args[0]
-                dist = args[1]
-        elif len(args) == 3:
-            pos = args[:2]
-            dist = args[2]
-        elif len(args) == 1:
-            pos = args[0]
-        else:
-            print(args, len(args))
-            raise ValueError("text: wrong number of args")
-
-        ctx = self.ctx
-        pos = np.array(pos, dtype=np.float32)
-        pos += self._text_offset(text, align, valign)
-        # Extract path data
-        ctx.text_path(text)
-        path = ctx.copy_path()
-        # Clear path so we don't draw
-        ctx.new_path()
-        shape = []
-
-        def prev():
-            return shape[-1][-1][-1]
-
-        def sample_line(points):
-            a = prev()
-            b = np.array(points)
-            s = np.linalg.norm(b - a)
-            n = max(int(s / dist)+1, 2)
-            t = np.linspace(0, 1, n)[1:]
-            res = a + (b - a)*t.reshape(-1, 1)
-            return res
-
-        def sample_cubic(points):
-
-            b, c, d = [np.array(p) for p in [points[:2], points[2:4], points[4:6]]]
-            #return sample_line(d)
-            a = prev()
-            s = approx_arc_length_cubic(a, b, c, d)
-            n = max(int(s / dist)+1, 2)
-            t = np.linspace(0, 1, n)[1:]
-            P = np.array([a, b, c, d])
-            res = eval_bezier(P, t)
-            #print('cubic', res.shape)
-            return res
-
-
-        for kind, points in path:
-            if kind == cairo.PATH_MOVE_TO:
-                shape.append([np.array([points])])
-            elif kind == cairo.PATH_LINE_TO:
-                shape[-1].append(sample_line(points))
-            elif kind == cairo.PATH_CURVE_TO:
-                shape[-1].append(sample_cubic(points))
-            elif kind == cairo.PATH_CLOSE_PATH:
-                shape[-1].append(sample_line(shape[-1][0][0]))
-        res = [np.vstack(P)+pos for P in shape]
-        #print(res)
-        return [P for P in res if len(P) > 1]
 
     def text_points(self, text, *args, dist=1, align='', valign=''):
         ''' Retrieves points for a given string of text in the current font
