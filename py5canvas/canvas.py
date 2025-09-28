@@ -81,7 +81,7 @@ class CanvasState:
         self._stroke_cap = 'round'
         self._stroke_join = 'miter'
         self._text_halign = 'left'
-        self._text_valign = 'bottom'
+        self._text_valign = 'baseline'
         self._rect_mode = 'corner'
         self._ellipse_mode = 'center'
         self._font = 'sans-serif'
@@ -207,6 +207,7 @@ class Canvas:
         self.CENTER = 'center'
         self.TOP = 'top'
         self.BOTTOM = 'bottom'
+        self.BASELINE = 'baseline'
         self.CORNER = 'corner'
         self.CORNERS = 'corners'
         self.RADIUS = 'radius'
@@ -494,7 +495,7 @@ class Canvas:
 
         Arguments:
         - `halign` (string): Horizontal alignment. One of "left", "center" or "right"
-        - `valign` (string): Horizontal alignment. One of "bottom" (default), "top" or "center"
+        - `valign` (string): Horizontal alignment. One of "baseline" (default), "top", "bottom", or "center"
         """
         self._text_halign = halign
         self._text_valign = valign
@@ -1473,6 +1474,11 @@ class Canvas:
         if self.cur_fill is not None:
             self.ctx.set_source_rgba(*self.cur_fill)
 
+        if not align:
+            align = self._text_halign
+        if not valign:
+            valign = self._text_valign
+
         if center is not None:
             if center:
                 align = 'center'
@@ -1480,7 +1486,13 @@ class Canvas:
                 align = 'left'
 
         x, y = pos
-        for line in text.splitlines():
+
+        lines = text.splitlines()
+
+        if valign == 'center':
+            y -= (self._text_leading*(len(lines)-1))/2
+
+        for line in lines:
             ox, oy = self._text_offset(line, align, valign)
             self.ctx.move_to(x+ox, y+oy)
             self.ctx.text_path(line)
@@ -1503,14 +1515,24 @@ class Canvas:
             print(args, len(args))
             raise ValueError("text: wrong number of args")
 
+        if not align:
+            align = self._text_halign
+        if not valign:
+            valign = self._text_valign
+
         ctx = self.ctx
         font = ctx.get_scaled_font()
 
         start_pos = np.array(pos, dtype=np.float32)
 
+        lines = text.splitlines()
+
+        if valign == 'center':
+            start_pos[1] -= (self._text_leading*(len(lines)-1))/2
+
         all_shapes = []
 
-        for line in text.splitlines():
+        for line in lines:
             pos = start_pos + self._text_offset(line, align, valign)
             start_pos[1] += self._text_leading
 
@@ -1625,7 +1647,9 @@ class Canvas:
         return edict({'x':x, 'y':y,
                       'pos':np.array([x, y]),
                       'w':w, 'h':h,
-                      'size': np.array([w, h])})
+                      'size': np.array([w, h]),
+                      'offset': np.array([ox, oy]),
+                      })
 
     def polygon(self, *args, close=True):
         ''' Draw a polygon (closed by default).
