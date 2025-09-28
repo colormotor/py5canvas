@@ -1491,6 +1491,8 @@ class Canvas:
 
         if valign == 'center':
             y -= (self._text_leading*(len(lines)-1))/2
+        elif valign == 'bottom':
+            y -= (self._text_leading*(len(lines)-1))
 
         for line in lines:
             ox, oy = self._text_offset(line, align, valign)
@@ -1635,20 +1637,40 @@ class Canvas:
     def text_bounds(self, text, *args, align='', valign=''):
         ''' Returns the bounding box of a string of text at a given position'''
         if len(args) == 2:
-            pos = args
+            pos = np.array(args)
         elif len(args) == 1:
-            pos = args[0]
+            pos = np.array(args[0])
         else:
             pos = np.zeros(2)
 
-        (x_bearing, y_bearing, w, h, x_advance, y_advance) = self.ctx.text_extents(text)
-        ox, oy = self._text_offset(text, align, valign)
-        x, y = pos[0]+ox, pos[1]+oy-h
-        return edict({'x':x, 'y':y,
-                      'pos':np.array([x, y]),
-                      'w':w, 'h':h,
-                      'size': np.array([w, h]),
-                      'offset': np.array([ox, oy]),
+        if not align:
+            align = self._text_halign
+        if not valign:
+            valign = self._text_valign
+
+        lines = text.splitlines()
+        if valign == 'center':
+            pos[1] -= (self._text_leading*(len(lines)-1))/2
+        elif valign == 'bottom':
+            pos[1] -= (self._text_leading*(len(lines)-1))
+
+        tl = []
+        br = []
+        for line in lines:
+            (x_bearing, y_bearing, w, h, x_advance, y_advance) = self.ctx.text_extents(line)
+            ox, oy = self._text_offset(line, align, valign)
+            x, y = pos[0]+ox, pos[1]+oy-h
+            tl.append((x, y))
+            br.append((x+w, y+h))
+            pos[1] += self._text_leading
+
+        tl = np.min(tl, axis=0)
+        br = np.max(br, axis=0)
+        size = br - tl
+        return edict({'x':tl[0], 'y':tl[1],
+                      'pos':tl,
+                      'w':size[0], 'h':size[1],
+                      'size': size,
                       })
 
     def polygon(self, *args, close=True):
