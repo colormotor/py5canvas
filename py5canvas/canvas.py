@@ -355,9 +355,12 @@ class Canvas:
                 # Specify each component
                 self.set_color_scale(args)
 
-    def _apply_colormode(self, clr):
+    def _is_hsv(self):
         mode = self._color_mode.lower()
-        if mode == 'hsv' or mode == 'hsb':
+        return mode == 'hsv' or mode == 'hsb'
+
+    def _apply_colormode(self, clr):
+        if self._is_hsv():
             return hsv_to_rgb(clr)
         return clr
 
@@ -1964,41 +1967,53 @@ class Canvas:
         else:
             raise ValueError("Invalid HTML color format")
 
-
-    def _convert_rgb(self, x):
-        if len(x)==1:
-            if not is_number(x[0]): # array like input
-                return np.array(x[0])/self.color_scale[:len(x[0])]
-            return (x[0]/self.color_scale[0],
-                    x[0]/self.color_scale[0],
-                    x[0]/self.color_scale[0])
-        return (x[0]/self.color_scale[0],
-                x[1]/self.color_scale[1],
-                x[2]/self.color_scale[2])
+    # def _convert_rgb(self, x):
+    #     # DEPRECATED
+    #     if len(x)==1:
+    #         if not is_number(x[0]): # array like input
+    #             return np.array(x[0])/self.color_scale[:len(x[0])]
+    #         return (x[0]/self.color_scale[0],
+    #                 x[0]/self.color_scale[0],
+    #                 x[0]/self.color_scale[0])
+    #     return (x[0]/self.color_scale[0],
+    #             x[1]/self.color_scale[1],
+    #             x[2]/self.color_scale[2])
 
     def _convert_rgba(self, x):
         if len(x)==1:
-            if type(x[0]) == str:
+            if type(x[0])==str:
                 return self._convert_html_color(x[0])
             elif not is_number(x[0]): # array like input
                 return self._convert_rgba(*x)
                 #return np.array(x[0])/self.color_scale[:len(x[0])]
-            return (x[0]/self.color_scale[0],
-                    x[0]/self.color_scale[0],
-                    x[0]/self.color_scale[0], 1.0)
+            if self._is_hsv():
+                # HSV sets value
+                return (0,
+                        0,
+                        x[0]/self.color_scale[2], 1.0)
+            else:
+                return (x[0]/self.color_scale[0],
+                        x[0]/self.color_scale[0],
+                        x[0]/self.color_scale[0], 1.0)
         elif len(x) == 3:
             return (x[0]/self.color_scale[0],
                     x[1]/self.color_scale[1],
                     x[2]/self.color_scale[2], 1.0)
         elif len(x) == 2:
-            if type(x[0]) == str:
+            if type(x[0])==str:
                 clr = self._convert_html_color(x[0])
                 clr[-1] = x[1]/self.color_scale[-1]
                 return clr
-            return (x[0]/self.color_scale[0],
-                    x[0]/self.color_scale[0],
-                    x[0]/self.color_scale[0],
-                    x[1]/self.color_scale[3])
+            if self._is_hsv():
+                return (0,
+                        0,
+                        x[0]/self.color_scale[2],
+                        x[1]/self.color_scale[3])
+            else:
+                return (x[0]/self.color_scale[0],
+                        x[0]/self.color_scale[0],
+                        x[0]/self.color_scale[0],
+                        x[1]/self.color_scale[3])
         return (x[0]/self.color_scale[0],
                 x[1]/self.color_scale[1],
                 x[2]/self.color_scale[2],
