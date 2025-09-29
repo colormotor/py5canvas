@@ -13,10 +13,8 @@ def parameters():
 
 noises = [[], [], []]
 
-
 def setup():
     create_canvas(800, 800)
-
 
 def gui():
     if implot.begin_plot('Noise', size=[-1, 200]):

@@ -14,7 +14,7 @@ def draw():
     # To increase similarity to p5, the canvas functions can be called as globals, but
     # the function names are quite common and it is easy to ovveride them by mistake.
     # As a result, we can always access them through a global Canvas instance `c`
-    c = canvas
+    c = sketch.canvas
     c.background(0) 
     # Center of screen
     c.translate(c.width/2, c.height/2)
@@ -42,7 +42,4 @@ def draw():
     c.no_fill()
     c.shape(paths)
 
-if __name__== '__main__':
-    # This gets automatically called when running with python rather than py5sketch
-    import py5canvas
-    py5canvas.run()
+run()
