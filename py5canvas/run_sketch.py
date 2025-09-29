@@ -360,6 +360,8 @@ class Sketch:
 
         self.blit_scale_factor = (1.0, 1.0)
 
+        # HACK (disabled in background) trying to get background to work async
+        # Works better without
         self._background_args = None
         # Allow setting background outside of setup/draw
         self._async_background = False
@@ -780,7 +782,7 @@ class Sketch:
 
     def _background(self, *args):
         ''' Sets backgroud color args internally, it will get exposed in '''
-        if not self._async_background:
+        if True: #not self._async_background: # Disabled
             self.canvas.background(*args)
         else:
             self._background_args = args
