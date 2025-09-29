@@ -145,6 +145,15 @@ def arange(a, b, step):
     return np.arange(a, b, step)
 
 
+def grid_points(x, y):
+    ''' Given two 1d arrays/lists of numbers representing the x and y axes,
+       return a sequence of points on a grid represented as a numpy array.
+       It can be useful to accelerate noise computations in vectorized form
+    '''
+    xx, yy = np.meshgrid(x, y)
+    return np.stack([xx.ravel(), yy.ravel()], axis=-1)
+
+
 def angle_between(*args):
     ''' Angle between two vectors (2d) [-pi,pi]'''
     if len(args)==2:

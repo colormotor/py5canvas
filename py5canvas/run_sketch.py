@@ -311,7 +311,7 @@ class Sketch:
         self.startup_error = False
         self.runtime_error = False
         self._fps = 60
-        self.fps = 0
+        self.fps = 0 # Actual sketch frame rate, gets set
         self.first_load = True
         self._no_loop = False
 
@@ -1057,6 +1057,7 @@ class Sketch:
         ''' Inject globals that are not updated automatically'''
         self.var_context['delta_time'] = self._delta_time
         self.var_context['frame_count'] = self._frame_count
+        self.var_context['fps'] = self._fps
         self.var_context['width'] = self.width
         self.var_context['height'] = self.height
         self.var_context['center'] = self.canvas.center

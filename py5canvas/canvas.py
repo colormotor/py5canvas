@@ -180,7 +180,6 @@ class Canvas:
         ctx.set_fill_rule(cairo.FILL_RULE_WINDING) #FILL_RULE_WINDING) #EVEN_ODD)
         ctx.set_line_join(cairo.LINE_JOIN_MITER)
         #ctx.set_antialias(cairo.ANTIALIAS_BEST)
-        print(*self._apply_colormode(self._convert_rgba(background)))
         ctx.set_source_rgba(*self._apply_colormode(self._convert_rgba(background)))
         ctx.paint() #rectangle(0, 0, width, height)
         #ctx.fill()
@@ -2089,7 +2088,6 @@ def show_images(images, ncols, size=None, title='', cmap='gray'):
     from matplotlib.gridspec import GridSpec
     n = len(images)
     nrows = int(np.ceil(n/ncols))
-    print(nrows)
     if size is not None:
         plt.figure(figsize=size)
     else:
@@ -2367,10 +2365,24 @@ _noise_octaves = 4
 _noise_grad = True
 _noise_funcs = [rumore.value_noise, rumore.grad_noise]
 
+
 def noise_seed(seed):
     """ Sets the seed for the noise generator
     """
     rumore.cfg.seed = seed
+
+
+def noise_func(*args):
+    args = list(args)
+    narg = len(args)
+    # Make sure all elements are arrays if the first one is
+    if narg > 1:
+        if not is_number(args[0]):
+            for i in range(1, narg):
+                if is_number(args[i]):
+                    args[i] = np.ones_like(args[0])*args[i]
+    return _noise_funcs[_noise_grad](*args, octaves=_noise_octaves)
+
 
 def noise_detail(octaves, falloff=0.5, lacunarity=2.0, gradient=True):
     """ Adjusts the character and level of detail produced by the Perlin noise function.
@@ -2388,6 +2400,7 @@ def noise_detail(octaves, falloff=0.5, lacunarity=2.0, gradient=True):
     _noise_octaves = octaves
     _noise_grad = int(gradient)
 
+
 def noise(*args):
     """ Returns noise (between 0 and 1) at a given coordinate or at multiple coordinates.
     Noise is created by summing consecutive "octaves" with increasing level of detail.
@@ -2401,8 +2414,9 @@ def noise(*args):
     - The arguments to this function can vary from 1 to 3, determining the "space" that is sampled to generate noise.
     The function also accepts numpy arrays for each coordinate but these must be of the same size.
     """
-    res = _noise_funcs[_noise_grad](*args, octaves=_noise_octaves)
+    res = noise_func(*args) #_noise_funcs[_noise_grad](*args, octaves=_noise_octaves)
     return res*0.5 + 0.5
+
 
 def noise_grid(*args, **kwargs):
     """ Returns a 2d array of noise values (between 0 and 1).
