@@ -1460,7 +1460,7 @@ class Canvas:
         '''
 
         # Backwards compatibility since previous version has position first
-        if type(text) != str:
+        if type(text) not in [str, np.str_]:
             if len(args) != 1:
                 raise ValueError("text: wrong number of args")
             print("Position before text is deprecated")
