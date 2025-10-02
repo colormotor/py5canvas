@@ -887,7 +887,7 @@ class Sketch:
         # Attempt to compile script
         try:
             print("Compiling script", self.path)
-            prog_text = open(self.path).read()
+            prog_text = open(self.path, encoding="utf-8").read()
             if 'imgui.' in prog_text:
                 self.prog_uses_imgui = True
             else:
