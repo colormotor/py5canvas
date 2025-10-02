@@ -1,4 +1,6 @@
 
+![img](./images/py5.gif)
+
 # Table of Contents
 
 1.  [Similar projects](#org93cb45b)
@@ -163,7 +165,7 @@ To install on Google Colab, and Linux if you don&rsquo;t want to use conda
 
 ## Canvas API
 
-Once installed you can use the py5canvas API in a notebook (or Python program) by simply importing it. This is a simple example that will save an image and show it with Matplotlib:
+Once installed you can use the py5canvas API in a notebook (or Python program) by simply importing it. This is a simple example that will save an image and show it below the notebook cell:
 
     from py5canvas import *
     # Create our canvas object
