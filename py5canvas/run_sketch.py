@@ -1166,6 +1166,7 @@ class Sketch:
             if not self.runtime_error or self._frame_count==0:
                 try:
                     if 'draw' in self.var_context and draw_frame:
+                        self.canvas.blend_mode('over')
                         self.canvas.identity()
                         # Draw background before drawing if specified
                         if self._background_args is not None:
