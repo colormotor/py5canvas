@@ -75,8 +75,8 @@ class CanvasState:
     def __init__(self, c):
         self.c = c
 
-        self.cur_fill = c._convert_rgba([255.0])
-        self.cur_stroke = c._convert_rgba([0.0])
+        self.cur_fill = c._scale_color([255.0])
+        self.cur_stroke = c._scale_color([0.0])
 
         self._stroke_cap = 'round'
         self._stroke_join = 'miter'
@@ -180,7 +180,7 @@ class Canvas:
         ctx.set_fill_rule(cairo.FILL_RULE_WINDING) #FILL_RULE_WINDING) #EVEN_ODD)
         ctx.set_line_join(cairo.LINE_JOIN_MITER)
         #ctx.set_antialias(cairo.ANTIALIAS_BEST)
-        ctx.set_source_rgba(*self._apply_colormode(self._convert_rgba(background)))
+        ctx.set_source_rgba(*self._apply_colormode(background))
         ctx.paint() #rectangle(0, 0, width, height)
         #ctx.fill()
         self.last_background = background
@@ -189,7 +189,7 @@ class Canvas:
         self.draw_states = [CanvasState(self)]
         self.draw_states[-1].set()
 
-        # self.cur_fill = self._convert_rgba([255.0])
+        # self.cur_fill = self._scale_color([255.0])
         # self.cur_stroke = None
 
 
@@ -359,10 +359,19 @@ class Canvas:
         mode = self._color_mode.lower()
         return mode == 'hsv' or mode == 'hsb'
 
+
     def _apply_colormode(self, clr):
+        # Convert to 0,1 scale
+        col = self._scale_color(clr)
+        # If originally user provided a string return rgba
+        if type(clr[0]) in [str, np.str_]:
+            print("Color is string")
+            return col
+        # otherwise check if it needs HSV conversion
         if self._is_hsv():
-            return hsv_to_rgb(clr)
-        return clr
+            return hsv_to_rgb(col)
+        return col
+
 
     def fill(self, *args):
         """ Set the color of the current fill
@@ -377,7 +386,7 @@ class Canvas:
         if args[0] is None:
             self.cur_fill = None
         else:
-            self.cur_fill = self._apply_colormode(self._convert_rgba(args))
+            self.cur_fill = self._apply_colormode(args) 
 
     def stroke(self, *args):
         """ Set the color of the current stroke
@@ -392,7 +401,7 @@ class Canvas:
         if args[0] is None:
             self.cur_stroke = None
         else:
-            self.cur_stroke = self._apply_colormode(self._convert_rgba(args))
+            self.cur_stroke = self._apply_colormode(args) 
 
     def stroke_weight(self, w):
         """Set the line width
@@ -1799,7 +1808,7 @@ class Canvas:
 
         #self.push()
         ctx = self.ctx
-        rgba = np.array(self._apply_colormode(self._convert_rgba(args)))
+        rgba = np.array(self._apply_colormode(args)) 
         ctx.set_source_rgba(*rgba)
         if self._save_background:
             ctx.rectangle(0, 0, self.width, self.height)
@@ -1979,12 +1988,12 @@ class Canvas:
     #             x[1]/self.color_scale[1],
     #             x[2]/self.color_scale[2])
 
-    def _convert_rgba(self, x):
+    def _scale_color(self, x):
         if len(x)==1:
             if type(x[0])==str:
                 return self._convert_html_color(x[0])
             elif not is_number(x[0]): # array like input
-                return self._convert_rgba(*x)
+                return self._scale_color(*x)
                 #return np.array(x[0])/self.color_scale[:len(x[0])]
             if self._is_hsv():
                 # HSV sets value
