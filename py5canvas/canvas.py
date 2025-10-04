@@ -197,7 +197,6 @@ class Canvas:
 
         self._save_background = save_background
 
-
         # Constants
         self.PI = pi
         self.TWO_PI = pi*2
@@ -436,7 +435,23 @@ class Canvas:
 
         Arguments:
 
-        - `mode` (string) can be one of: "clear", "source", "over", "in", "out", "atop",
+        - `mode` (string) can be a one of the blend mode constants:
+            - `BLEND = "over"` (default) - Source overwrites canvas
+            - `REPLACE = "source"` - Source completely replaces canvas
+            - `ADD = "add"` - Source colors added to canvas
+            - `MULTIPLY = "multiply"` - Colors multiplied (always darker)
+            - `SCREEN = "screen"` - Colors inverted, multiplied, then inverted (always lighter)
+            - `OVERLAY = "overlay"` - MULTIPLY for dark areas, SCREEN for light areas
+            - `DARKEST = "darken"` - Keeps the darker color value
+            - `LIGHTEST = "lighten"` - Keeps the lighter color value
+            - `DIFFERENCE = "difference"` - Canvas minus source (absolute value)
+            - `EXCLUSION = "exclusion"` - Similar to DIFFERENCE but lower contrast
+            - `HARD_LIGHT = "hard_light"` - Like OVERLAY but based on source brightness
+            - `SOFT_LIGHT = "soft_light"` - Softer version of HARD_LIGHT
+            - `DODGE = "color_dodge"` - Lightens and increases contrast
+            - `BURN = "color_burn"` - Darkens and increases contrast
+            - `REMOVE = "clear"` - Overlapping pixels become transparent
+          or a string of of: "clear", "source", "over", "in", "out", "atop",
           "dest", "dest_over", "dest_in", "dest_out", "dest_atop", "xor", "add", "saturate", "multiply", "screen", "overlay", "darken", "lighten", "color_dodge", "color_burn", "hard_light", "soft_light", "difference", "exclusion", "hsl_hue", "hsl_saturation", "hsl_color", "hsl_luminosity"
           See [Cairo Graphics Operators](https://www.cairographics.org/operators/) for a discussion on the different operators.
         """
@@ -1111,10 +1126,12 @@ class Canvas:
             self.ctx.stroke()
 
     def arc(self, *args):
-        """Draw an arc given the center of the ellipse `x, y`
+        """Draw an ellpitical arc, given the center of the ellipse `x, y`
         the size of the ellipse `w, h` and the initial and final angles
         in radians  `start, stop`.
-        NB. this differs from Processing/P5js as it always draws
+        A last optional `mode` argument determines the arc's fill style.
+        The fill modes are a semi-circle (`OPEN`), a closed semi-circle (`CHORD`),
+        or a closed pie segment (`PIE`).
 
         Input arguments can be in the following formats:
 
@@ -1124,7 +1141,7 @@ class Canvas:
 
         """
         # Check if we specified a mode
-        if type(args[-1]) == str:
+        if type(args[-1])==str:
             mode = args[-1].lower()
             args = args[:-1]
         else:
