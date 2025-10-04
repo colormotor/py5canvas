@@ -401,7 +401,7 @@ class Canvas:
         if args[0] is None:
             self.cur_stroke = None
         else:
-            self.cur_stroke = self._apply_colormode(args) 
+            self.cur_stroke = self._apply_colormode(args)
 
     def stroke_weight(self, w):
         """Set the line width
@@ -2125,38 +2125,6 @@ def show_images(images, ncols, size=None, title='', cmap='gray'):
         ax.axis('off')
     plt.tight_layout()
     plt.show()
-
-
-def hsv_to_rgb(hsva):
-    h, s, v = hsva[:3]
-    a = 1
-    if len(hsva) > 3:
-        a = hsva[3]
-
-    if s == 0.0:
-        r = g = b = v
-    else:
-        h = fmod(h, 1) / (60.0 / 360.0)
-        i = int(h)
-        f = h - i
-        p = v * (1.0 - s)
-        q = v * (1.0 - s * f)
-        t = v * (1.0 - s * (1.0 - f))
-
-        if i == 0:
-            r, g, b = v, t, p
-        elif i == 1:
-            r, g, b = q, v, p
-        elif i == 2:
-            r, g, b = p, v, t
-        elif i == 3:
-            r, g, b = p, q, v
-        elif i == 4:
-            r, g, b = t, p, v
-        else:
-            r, g, b = v, p, q
-
-    return np.array([r,g,b,a])[:len(hsva)]
 
 
 def hsv_to_rgb(hsva):
