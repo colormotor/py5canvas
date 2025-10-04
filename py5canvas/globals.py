@@ -33,6 +33,24 @@ BEVEL = 'bevel'
 ROUND = 'round'
 SQUARE = 'square'
 PROJECT = 'project'
+# Blend modes
+BLEND = "over"
+REPLACE = "source"
+ADD = "add"
+MULTIPLY = "multiply"
+SCREEN = "screen"
+OVERLAY = "overlay"
+DARKEST = "darken"
+LIGHTEST = "lighten"
+DIFFERENCE = "difference"
+EXCLUSION = "exclusion"
+HARD_LIGHT = "hard_light"
+SOFT_LIGHT = "soft_light"
+DODGE = "color_dodge"
+BURN = "color_burn"
+REMOVE = "clear"
+SUBTRACT = "difference"  # Using difference as closest approximation
+
 
 random = np.random.uniform
 random_uniform = np.random.uniform
