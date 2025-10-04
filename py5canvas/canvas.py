@@ -26,7 +26,7 @@ import importlib
 import importlib.util
 from contextlib import contextmanager
 from easydict import EasyDict as edict
-import rumore # Noise utils
+import rumore  # Noise utils
 from dataclasses import dataclass
 from typing import Union, Optional
 from fontTools.ttLib import TTFont
@@ -40,29 +40,33 @@ import pdb
 #     print("Perlin noise not installed. Use `pip install perlin-noise` to install")
 #     perlin = None
 
+
 def is_number(x):
     return isinstance(x, numbers.Number)
+
 
 def wrapper(self, fn):
     def result(*args, **kwargs):
         res = None
         self.dirty = True
-        for ctx in self.ctxs: #[::-1]:
+        for ctx in self.ctxs:  # [::-1]:
             res = getattr(ctx, fn)(*args, **kwargs)
         return res
 
     return result
 
+
 class MultiContext:
-    ''' Workaround for TeeSurface not working on Mac (at least)
+    """Workaround for TeeSurface not working on Mac (at least)
     This should enable rendering to multiple surfaces (each with their own context)
-    '''
+    """
+
     def __init__(self, surf):
         self.surface = surf
         self.dirty = False
         self.ctxs = [cairo.Context(surf)]
-        for key, value in cairo.Context.__dict__.items( ):
-            if hasattr( value, '__call__' ):
+        for key, value in cairo.Context.__dict__.items():
+            if hasattr(value, "__call__"):
                 self.__dict__[key] = wrapper(self, key)
 
     def push_context(self, ctx):
@@ -71,6 +75,7 @@ class MultiContext:
     def pop_context(self):
         self.ctxs.pop()
 
+
 class CanvasState:
     def __init__(self, c):
         self.c = c
@@ -78,13 +83,13 @@ class CanvasState:
         self.cur_fill = c._scale_color([255.0])
         self.cur_stroke = c._scale_color([0.0])
 
-        self._stroke_cap = 'round'
-        self._stroke_join = 'miter'
-        self._text_halign = 'left'
-        self._text_valign = 'baseline'
-        self._rect_mode = 'corner'
-        self._ellipse_mode = 'center'
-        self._font = 'sans-serif'
+        self._stroke_cap = "round"
+        self._stroke_join = "miter"
+        self._text_halign = "left"
+        self._text_valign = "baseline"
+        self._rect_mode = "corner"
+        self._ellipse_mode = "center"
+        self._font = "sans-serif"
         self._text_size = 16
         self._text_leading = 16
         self._line_width = 1.0
@@ -95,18 +100,20 @@ class CanvasState:
                 return True
             return prev.__dict__[name] != self.__dict__[name]
 
-        if should_set(prev, '_stroke_cap'):
+        if should_set(prev, "_stroke_cap"):
             self.c.stroke_cap(self._stroke_cap)
-        if should_set(prev, '_stroke_join'):
+        if should_set(prev, "_stroke_join"):
             self.c.stroke_join(self._stroke_join)
-        if should_set(prev, '_line_width'):
+        if should_set(prev, "_line_width"):
             self.c.stroke_weight(self._line_width)
-        if should_set(prev, '_text_size'):
+        if should_set(prev, "_text_size"):
             self.c.text_size(self._text_size)
+
 
 def draw_states_properties(*names):
     def decorator(cls):
         for name in names:
+
             def getter(self, n=name):
                 return getattr(self.draw_states[-1], n)
 
@@ -115,7 +122,9 @@ def draw_states_properties(*names):
 
             setattr(cls, name, property(getter, setter))
         return cls
+
     return decorator
+
 
 @dataclass
 class Font:
@@ -123,17 +132,20 @@ class Font:
     size: int = None
     style: str = None
 
-@draw_states_properties("cur_fill",
-                        "cur_stroke",
-                        "_stroke_join",
-                        "_text_halign",
-                        "_text_valign",
-                        "_rect_mode",
-                        "_ellipse_mode",
-                        "_font",
-                        "_text_size",
-                        "_line_width",
-                        "_text_leading")
+
+@draw_states_properties(
+    "cur_fill",
+    "cur_stroke",
+    "_stroke_join",
+    "_text_halign",
+    "_text_valign",
+    "_rect_mode",
+    "_ellipse_mode",
+    "_font",
+    "_text_size",
+    "_line_width",
+    "_text_leading",
+)
 class Canvas:
     """
     Defines a drawing canvas (pyCairo) that behaves similarly to p5js
@@ -153,36 +165,41 @@ class Canvas:
 
     """
 
-    def __init__(self, width, height, background=(200.0, 200.0, 200.0, 255.0),
-                 clear_callback=lambda: None,
-                 output_file='',
-                 recording=True,
-                 save_background=True):
+    def __init__(
+        self,
+        width,
+        height,
+        background=(200.0, 200.0, 200.0, 255.0),
+        clear_callback=lambda: None,
+        output_file="",
+        recording=True,
+        save_background=True,
+    ):
         """Constructor"""
         # See https://pycairo.readthedocs.io/en/latest/reference/context.html
         surf = cairo.ImageSurface(cairo.FORMAT_ARGB32, width, height)
-        #surf = cairo.ImageSurface(cairo.FORMAT_RGB30, width, height)
-        ctx = MultiContext(surf) #cairo.Context(surf)
+        # surf = cairo.ImageSurface(cairo.FORMAT_RGB30, width, height)
+        ctx = MultiContext(surf)  # cairo.Context(surf)
 
         # Create SVG surface for saving
-        self.color_scale = np.ones(4)*255.0
+        self.color_scale = np.ones(4) * 255.0
 
         # This is useful for py5sketch to reset SVG each time background is cleared
         self.clear_callback = clear_callback
 
-        self._color_mode = 'rgb'
+        self._color_mode = "rgb"
         self._width = width
         self._height = height
         self.surf = surf
         self.ctx = ctx
 
-        #ctx.set_fill_rule(cairo.FILL_RULE_EVEN_ODD) #FILL_RULE_WINDING) #EVEN_ODD)
-        ctx.set_fill_rule(cairo.FILL_RULE_WINDING) #FILL_RULE_WINDING) #EVEN_ODD)
+        # ctx.set_fill_rule(cairo.FILL_RULE_EVEN_ODD) #FILL_RULE_WINDING) #EVEN_ODD)
+        ctx.set_fill_rule(cairo.FILL_RULE_WINDING)  # FILL_RULE_WINDING) #EVEN_ODD)
         ctx.set_line_join(cairo.LINE_JOIN_MITER)
-        #ctx.set_antialias(cairo.ANTIALIAS_BEST)
+        # ctx.set_antialias(cairo.ANTIALIAS_BEST)
         ctx.set_source_rgba(*self._apply_colormode(background))
-        ctx.paint() #rectangle(0, 0, width, height)
-        #ctx.fill()
+        ctx.paint()  # rectangle(0, 0, width, height)
+        # ctx.fill()
         self.last_background = background
 
         # Keep track of draw states
@@ -192,35 +209,34 @@ class Canvas:
         # self.cur_fill = self._scale_color([255.0])
         # self.cur_stroke = None
 
-
         self.no_draw = False
 
         self._save_background = save_background
 
         # Constants
         self.PI = pi
-        self.TWO_PI = pi*2
-        self.HALF_PI = pi/2
-        self.QUARTER_PI = pi/4
-        self.CENTER = 'center'
-        self.TOP = 'top'
-        self.BOTTOM = 'bottom'
-        self.BASELINE = 'baseline'
-        self.CORNER = 'corner'
-        self.CORNERS = 'corners'
-        self.RADIUS = 'radius'
-        self.HSB = 'hsv'
-        self.HSV = 'hsv'
-        self.RGB = 'rgb'
-        self.CLOSE = 'close'
-        self.OPEN = 'open'
-        self.PIE = 'pie'
-        self.CHORD = 'chord'
-        self.MITER = 'miter'
-        self.BEVEL = 'bevel'
-        self.ROUND = 'round'
-        self.SQUARE = 'square'
-        self.PROJECT = 'project'
+        self.TWO_PI = pi * 2
+        self.HALF_PI = pi / 2
+        self.QUARTER_PI = pi / 4
+        self.CENTER = "center"
+        self.TOP = "top"
+        self.BOTTOM = "bottom"
+        self.BASELINE = "baseline"
+        self.CORNER = "corner"
+        self.CORNERS = "corners"
+        self.RADIUS = "radius"
+        self.HSB = "hsv"
+        self.HSV = "hsv"
+        self.RGB = "rgb"
+        self.CLOSE = "close"
+        self.OPEN = "open"
+        self.PIE = "pie"
+        self.CHORD = "chord"
+        self.MITER = "miter"
+        self.BEVEL = "bevel"
+        self.ROUND = "round"
+        self.SQUARE = "square"
+        self.PROJECT = "project"
 
         # Utils
         self._cur_point = []
@@ -228,7 +244,9 @@ class Canvas:
         self.output_file = output_file
         self.recording_surface = None
         if output_file or recording:
-            self.recording_surface = cairo.RecordingSurface(cairo.CONTENT_COLOR_ALPHA, None)
+            self.recording_surface = cairo.RecordingSurface(
+                cairo.CONTENT_COLOR_ALPHA, None
+            )
             recording_context = cairo.Context(self.recording_surface)
             self.ctx.push_context(recording_context)
         else:
@@ -236,16 +254,15 @@ class Canvas:
 
         self.tension = 0.5
 
-        #self.stroke_cap('round')
-        #self.stroke_join('miter')
+        # self.stroke_cap('round')
+        # self.stroke_join('miter')
 
         # self.ctx.select_font_face("sans-serif")
         # self.ctx.set_font_size(16)
 
-        #self.ctx.select_font_face(self._font)
-        #self.ctx.set_font_size(self._text_size)
-        #self.ctx.set_line_width(1.0)
-
+        # self.ctx.select_font_face(self._font)
+        # self.ctx.set_font_size(self._text_size)
+        # self.ctx.set_line_width(1.0)
 
     def set_color_scale(self, scale):
         """Set color scale:
@@ -255,8 +272,8 @@ class Canvas:
         - `scale` (float): the color scale. if we want to specify colors in the `0...255` range,
          `scale` will be `255`. If we want to specify colors in the `0...1` range, `scale` will be `1`"""
         if is_number(scale):
-            scale = np.ones(4)*scale
-        self.color_scale[:len(scale)] = scale
+            scale = np.ones(4) * scale
+        self.color_scale[: len(scale)] = scale
 
     @property
     def cur_fill(self):
@@ -280,33 +297,32 @@ class Canvas:
         returns the current stroke or fill color as a numpy array, or `None` if no color is set
         """
         if self.cur_stroke is not None:
-            return np.array(self.cur_stroke)*self.color_scale
+            return np.array(self.cur_stroke) * self.color_scale
         if self.cur_fill is not None:
-            return np.array(self.cur_fill)*self.color_scale
-        return None #self.cur_fill
+            return np.array(self.cur_fill) * self.color_scale
+        return None  # self.cur_fill
 
     @property
     def center(self):
-        """ The center of the canvas (as a 2d numpy array)"""
-        return np.array([self._width/2,
-                         self._height/2])
+        """The center of the canvas (as a 2d numpy array)"""
+        return np.array([self._width / 2, self._height / 2])
 
     def get_width(self):
-        """ The width of canvas"""
+        """The width of canvas"""
         return self._width
 
     def get_height(self):
-        """ The height of canvas"""
+        """The height of canvas"""
         return self._height
 
     @property
     def width(self):
-        """ The width of canvas"""
+        """The width of canvas"""
         return self._width
 
     @property
     def height(self):
-        """ The height of canvas"""
+        """The height of canvas"""
         return self._height
 
     @property
@@ -314,27 +330,27 @@ class Canvas:
         return self.surf
 
     def no_fill(self):
-        """ Do not fill subsequent shapes"""
+        """Do not fill subsequent shapes"""
         self.fill(None)
 
     def no_stroke(self):
-        """ Do not stroke subsequent shapes"""
+        """Do not stroke subsequent shapes"""
         self.stroke(None)
 
     def fill_rule(self, rule):
-        """ Sets the fill rule
-
-        """
-        rules = {'evenodd':  cairo.FILL_RULE_EVEN_ODD,
-                 'nonzero': cairo.FILL_RULE_WINDING,
-                 'winding': cairo.FILL_RULE_WINDING}
+        """Sets the fill rule"""
+        rules = {
+            "evenodd": cairo.FILL_RULE_EVEN_ODD,
+            "nonzero": cairo.FILL_RULE_WINDING,
+            "winding": cairo.FILL_RULE_WINDING,
+        }
         if rule not in rules:
-            print('Rule ', rule, ' is not valid')
+            print("Rule ", rule, " is not valid")
             print('Use either "nonzero" or "evenodd"')
         self.ctx.set_fill_rule(rules[rule])
 
     def color_mode(self, mode, *args):
-        """ Set the color mode for the canvas
+        """Set the color mode for the canvas
 
         Arguments:
 
@@ -347,7 +363,7 @@ class Canvas:
         """
         self._color_mode = mode
         if len(args):
-            if len(args)==1:
+            if len(args) == 1:
                 # Assume we set all scale to be equal
                 self.set_color_scale(args[0])
             else:
@@ -356,8 +372,7 @@ class Canvas:
 
     def _is_hsv(self):
         mode = self._color_mode.lower()
-        return mode == 'hsv' or mode == 'hsb'
-
+        return mode == "hsv" or mode == "hsb"
 
     def _apply_colormode(self, clr):
         # Convert to 0,1 scale
@@ -371,9 +386,8 @@ class Canvas:
             return hsv_to_rgb(col)
         return col
 
-
     def fill(self, *args):
-        """ Set the color of the current fill
+        """Set the color of the current fill
 
         Arguments:
 
@@ -385,10 +399,10 @@ class Canvas:
         if args[0] is None:
             self.cur_fill = None
         else:
-            self.cur_fill = self._apply_colormode(args) 
+            self.cur_fill = self._apply_colormode(args)
 
     def stroke(self, *args):
-        """ Set the color of the current stroke
+        """Set the color of the current stroke
 
         Arguments:
         - A single argument specifies a grayscale value, e.g. `stroke(255)` will set the stroke to white.
@@ -400,7 +414,7 @@ class Canvas:
         if args[0] is None:
             self.cur_stroke = None
         else:
-            self.cur_stroke = self._apply_colormode(args) 
+            self.cur_stroke = self._apply_colormode(args)
 
     def stroke_weight(self, w):
         """Set the line width
@@ -418,12 +432,14 @@ class Canvas:
         - `join` (string): can be one of "miter", "bevel" or "round"
         """
         join = join.lower()
-        joins = {'miter': cairo.LINE_JOIN_MITER,
-                'bevel': cairo.LINE_JOIN_BEVEL,
-                'round': cairo.LINE_CAP_ROUND}
+        joins = {
+            "miter": cairo.LINE_JOIN_MITER,
+            "bevel": cairo.LINE_JOIN_BEVEL,
+            "round": cairo.LINE_CAP_ROUND,
+        }
         if join not in joins:
-            print(str(join) + ' not a valid line join')
-            print('Choose one of ' + str(joins.keys()))
+            print(str(join) + " not a valid line join")
+            print("Choose one of " + str(joins.keys()))
             return
 
         self.ctx.set_line_join(joins[join])
@@ -484,7 +500,7 @@ class Canvas:
             "hsl_hue": cairo.OPERATOR_HSL_HUE,
             "hsl_saturation": cairo.OPERATOR_HSL_SATURATION,
             "hsl_color": cairo.OPERATOR_HSL_COLOR,
-            "hsl_luminosity": cairo.OPERATOR_HSL_LUMINOSITY
+            "hsl_luminosity": cairo.OPERATOR_HSL_LUMINOSITY,
         }
 
         mode = mode.lower()
@@ -495,7 +511,6 @@ class Canvas:
         else:
             raise ValueError(f"Invalid blend mode: {mode}")
 
-
     def stroke_cap(self, cap):
         """Specify the 'cap' for lines.
 
@@ -504,19 +519,21 @@ class Canvas:
         - `cap` (string): can be one of "butt", "round" or "square"
         """
         cap = cap.lower()
-        caps = {'square': cairo.LINE_CAP_BUTT,
-                'round': cairo.LINE_CAP_ROUND,
-                'project': cairo.LINE_CAP_SQUARE}
+        caps = {
+            "square": cairo.LINE_CAP_BUTT,
+            "round": cairo.LINE_CAP_ROUND,
+            "project": cairo.LINE_CAP_SQUARE,
+        }
         if cap not in caps:
-            print(str(cap) + ' not a valid line cap')
-            print('Choose one of ' + str(caps.keys()))
+            print(str(cap) + " not a valid line cap")
+            print("Choose one of " + str(caps.keys()))
             return
 
         self.ctx.set_line_cap(caps[cap])
 
     line_cap = stroke_cap
 
-    def text_align(self, halign, valign='bottom'):
+    def text_align(self, halign, valign="bottom"):
         """Specify the text alignment
 
         Arguments:
@@ -593,14 +610,20 @@ class Canvas:
         elif style == "italic":
             self.ctx.select_font_face(self._font, cairo.FontSlant.ITALIC)
         elif style == "bold":
-            self.ctx.select_font_face(self._font, cairo.FontSlant.NORMAL, cairo.FontWeight.BOLD)
+            self.ctx.select_font_face(
+                self._font, cairo.FontSlant.NORMAL, cairo.FontWeight.BOLD
+            )
         elif style == "bolditalic":
-            self.ctx.select_font_face(self._font, cairo.FontSlant.ITALIC, cairo.FontWeight.BOLD)
+            self.ctx.select_font_face(
+                self._font, cairo.FontSlant.ITALIC, cairo.FontWeight.BOLD
+            )
         else:
-            print(f"font style `{style}` not recognised (choose from: normal, italic, bold, bolditalic)")
+            print(
+                f"font style `{style}` not recognised (choose from: normal, italic, bold, bolditalic)"
+            )
 
     def text_width(self, txt):
-        # x_advance safer than width (works with spaces)
+        # x_advance safer than width (works with spaces)
         info = self.ctx.get_scaled_font().text_extents(txt)
         return info.x_advance
 
@@ -633,6 +656,7 @@ class Canvas:
         """
         Save the current drawing state
         """
+
         @contextmanager
         def popmanager():
             pass
@@ -655,6 +679,7 @@ class Canvas:
         """
         Save the current drawing state and transformations
         """
+
         @contextmanager
         def popmanager():
             pass
@@ -683,7 +708,7 @@ class Canvas:
         - The offset can be specified as an array/list (e.g `translate([x,y])`
           or as single arguments (e.g. `translate(x, y)`)
         """
-        if len(args)==1:
+        if len(args) == 1:
             v = args[0]
         else:
             v = args
@@ -700,7 +725,7 @@ class Canvas:
         or as single arguments (e.g. `scale(x, y)`)'''
         """
 
-        if len(args)==1:
+        if len(args) == 1:
             s = args[0]
             if is_number(s):
                 s = [s, s]
@@ -709,37 +734,39 @@ class Canvas:
         self.ctx.scale(*s)
 
     def rotate(self, theta):
-        ''' Rotate by `theta` radians'''
+        """Rotate by `theta` radians"""
         self.ctx.rotate(theta)
 
     rotate_rad = rotate
 
     def apply_matrix(self, mat):
-        ''' Apply an affine (3x3) transformation matrix'''
-        matrix = cairo.Matrix(mat[0][0], mat[1][0], mat[0][1], mat[1][1], mat[0][2], mat[1][2])
+        """Apply an affine (3x3) transformation matrix"""
+        matrix = cairo.Matrix(
+            mat[0][0], mat[1][0], mat[0][1], mat[1][1], mat[0][2], mat[1][2]
+        )
         self.ctx.transform(matrix)
 
     def rotate_deg(self, deg):
-        ''' Rotate using degrees'''
+        """Rotate using degrees"""
         self.ctx.rotate(radians(deg))
 
     def hsv(self, *args):
         if len(args) > 1:
-            return hsv_to_rgb(np.array(args))*self.color_scale
+            return hsv_to_rgb(np.array(args)) * self.color_scale
         else:
-            return hsv_to_rgb(np.array(args[0]))*self.color_scale
+            return hsv_to_rgb(np.array(args[0])) * self.color_scale
 
     hsb = hsv
 
     def rgb(self, *args):
         if len(args) > 1:
-            return rgb_to_hsv(np.array(args))*self.color_scale
+            return rgb_to_hsv(np.array(args)) * self.color_scale
         else:
-            return rgb_to_hsv(np.array(args[0]))*self.color_scale
+            return rgb_to_hsv(np.array(args[0])) * self.color_scale
 
     def _fillstroke(self):
-        if self.no_draw: # we are in a begin_shape end_shape pair
-           return
+        if self.no_draw:  # we are in a begin_shape end_shape pair
+            return
 
         if self.cur_fill is not None:
             self.ctx.set_source_rgba(*self.cur_fill)
@@ -752,49 +779,43 @@ class Canvas:
             self.ctx.stroke()
 
     def rect_mode(self, mode):
-        """ Set the "mode" for drawing rectangles.
+        """Set the "mode" for drawing rectangles.
 
         Arguments:
         - `mode` (string): can be one of 'corner', 'corners', 'center', 'radius'
 
         """
         mode = mode.lower()
-        if mode not in ['corner', 'center', 'radius', 'corners']:
-            print('rect_mode: invalid mode')
-            print('choose one among: corner, center, radius')
+        if mode not in ["corner", "center", "radius", "corners"]:
+            print("rect_mode: invalid mode")
+            print("choose one among: corner, center, radius")
             return
         self._rect_mode = mode
 
     def ellipse_mode(self, mode):
-        """ Set the "mode" for drawing rectangles.
+        """Set the "mode" for drawing rectangles.
 
         Arguments:
         - `mode` (string): can be one of 'corner', 'center'
         """
         mode = mode.lower()
-        if mode not in ['corner', 'center', 'radius', 'corners']:
-            print('rect_mode: invalid mode')
-            print('choose one among: corner, center')
+        if mode not in ["corner", "center", "radius", "corners"]:
+            print("rect_mode: invalid mode")
+            print("choose one among: corner, center")
             return
         self._ellipse_mode = mode
 
-
     def _roundrect(self, x, y, w, h, r):
         # https://www.geeksforgeeks.org/python/pycairo-drawing-the-roundrect/
-        self.ctx.arc(x+r, y+r, r,
-                    np.pi, 3*np.pi/2)
+        self.ctx.arc(x + r, y + r, r, np.pi, 3 * np.pi / 2)
 
-        self.ctx.arc(x+w-r, y+r, r,
-                    3*np.pi/2, 0)
+        self.ctx.arc(x + w - r, y + r, r, 3 * np.pi / 2, 0)
 
-        self.ctx.arc(x+w-r, y+h-r,
-                    r, 0, np.pi/2)
+        self.ctx.arc(x + w - r, y + h - r, r, 0, np.pi / 2)
 
-        self.ctx.arc(x+r, y+h-r, r,
-                    np.pi/2, np.pi)
+        self.ctx.arc(x + r, y + h - r, r, np.pi / 2, np.pi)
 
         self.ctx.close_path()
-
 
     def rectangle(self, *args, mode=None):
         """Draw a rectangle.
@@ -822,10 +843,10 @@ class Canvas:
         if mode is None:
             mode = self._rect_mode
 
-        if len(args)==1:
+        if len(args) == 1:
             # Packed single arg rect case
             radius = None
-        elif len(args)%2 == 1:
+        elif len(args) % 2 == 1:
             if len(args) == 3:
                 if not is_number(args[1]):
                     # [x, y], [width, height], radius
@@ -837,7 +858,7 @@ class Canvas:
                 radius = args[-1]
                 args = args[:-1]
         else:
-            if len(args)==2 and is_number(args[1]):
+            if len(args) == 2 and is_number(args[1]):
                 # # Packed single arg rect with radius case
                 radius = args[-1]
                 args = args[:-1]
@@ -846,8 +867,8 @@ class Canvas:
 
         if len(args) == 1:
             p = np.array(args[0][0])
-            size = [args[0][1][0]-args[0][0][0], args[0][1][1]-args[0][0][1]]
-            mode = 'corner' # Force the mode to corner since we explicitly defined the rect
+            size = [args[0][1][0] - args[0][0][0], args[0][1][1] - args[0][0][1]]
+            mode = "corner"  # Force the mode to corner since we explicitly defined the rect
         elif len(args) == 2:
             p, size = args
         elif len(args) == 3:
@@ -859,19 +880,19 @@ class Canvas:
         p = np.array(p).astype(float)
         size = np.array(size).astype(float)
 
-        if mode.lower() == 'center':
-            p -= size/2
-        elif mode.lower() == 'radius':
+        if mode.lower() == "center":
+            p -= size / 2
+        elif mode.lower() == "radius":
             p -= size
             size *= 2
-        elif mode.lower() == 'corners':
+        elif mode.lower() == "corners":
             # Interpret 'size' as the bottom right corner
             size = size - p
 
         if radius is None:
             self.ctx.rectangle(*p, *size)
         else:
-            radius = min(radius, min(size)/2)
+            radius = min(radius, min(size) / 2)
             self._roundrect(*p, *size, radius)
 
         self._fillstroke()
@@ -892,14 +913,14 @@ class Canvas:
         """
         if mode is None:
             mode = self._rect_mode
-        if mode == 'corners':
-            mode = 'corner'
+        if mode == "corners":
+            mode = "corner"
         if len(args) == 2:
             self.rectangle(args[0], [args[1], args[1]], mode=mode)
         elif len(args) == 3:
             self.rectangle(args[0], args[1], args[2], args[2], mode=mode)
         else:
-            raise ValueError('square: wrong number of arguments')
+            raise ValueError("square: wrong number of arguments")
 
     def rect(self, *args, mode=None):
         """Draws a rectangle.
@@ -923,13 +944,13 @@ class Canvas:
          - `x1, y1, x2, y2, x3, y3, x4, y4`, a sequence of numbers, one for each coordinate
         """
 
-        if len(args)==4:
+        if len(args) == 4:
             self.polygon(args)
         else:
-            self.polygon([[args[i*2], args[i*2+1]] for i in range(4)])
+            self.polygon([[args[i * 2], args[i * 2 + 1]] for i in range(4)])
 
     def line(self, *args):
-        """ Draws a line between two points
+        """Draws a line between two points
 
         Input arguments can be in the following formats:
 
@@ -942,69 +963,67 @@ class Canvas:
             if self.cur_fill is not None:
                 self.cur_stroke = self.cur_fill
             else:
-                print('line: No color is set')
-        if len(args)==2:
+                print("line: No color is set")
+        if len(args) == 2:
             self.polyline([args[0], args[1]])
-        if len(args)==4:
+        if len(args) == 4:
             self.polyline([[args[0], args[1]], [args[2], args[3]]])
         if nostroke:
             self.cur_stroke = None
 
     def point(self, *args):
-        ''' Draw a point at a given position
+        """Draw a point at a given position
 
         Input arguments can be in the following formats:
 
          - `[x, y]`: a single point specified as a tuple/list/numpy array
          - `x1, y1`: two coordinates
 
-        '''
+        """
         nostroke = False
         if self.cur_stroke is None:
             nostroke = True
             if self.cur_fill is not None:
                 self.cur_stroke = self.cur_fill
             else:
-                print('point: No color is set')
-        if len(args)==1:
+                print("point: No color is set")
+        if len(args) == 1:
             self.polyline(args[0], args[0])
-        elif len(args)==2:
-            self.polyline([[args[0], args[1]],
-                           [args[0], args[1]]])
+        elif len(args) == 2:
+            self.polyline([[args[0], args[1]], [args[0], args[1]]])
         else:
             raise ValueError("point: Illegal number of arguments")
         if nostroke:
             self.cur_stroke = None
 
-
     def arrow(self, *args, size=2.5, overhang=0.7, length=2.0):
-        ''' Draw an arrow between two points
+        """Draw an arrow between two points
 
         Input arguments can be in the following formats:
 
          - `a, b` (Two points specified as lists/tuples/numpy arrays
          - `x1, y1, x2, y2`, a sequence of numbers, one for each coordinate
-        '''
+        """
 
         if len(args) == 2:
             a, b = args
         elif len(args) == 4:
             a = args[:2]
             b = args[2:]
-        w = self.ctx.get_line_width()*size
+        w = self.ctx.get_line_width() * size
         # Arrow width and 'height' (length)
-        h = w*length
+        h = w * length
         a = np.array(a)
         b = np.array(b)
         # direction
-        d = b-a
+        d = b - a
         l = np.linalg.norm(d)
-        d = d / (np.linalg.norm(d)+1e-10)
+        d = d / (np.linalg.norm(d) + 1e-10)
         # Shift end of segment so arrow tip is at end
-        b = a+d*max(0.0, l-h)
+        b = a + d * max(0.0, l - h)
         p = np.array([-d[1], d[0]])
         # arrow polygon
-        P = [b + p*w - d*w*overhang, b + d*h, b - p*w - d*w*overhang, b]
+        P = [b + p * w - d * w * overhang, b + d * h, b - p * w - d * w * overhang, b]
         # draw
         self.line(a, b)
         self.push()
@@ -1022,12 +1041,12 @@ class Canvas:
          - `x1, y1, x2, y2, x3, y3`
         """
 
-        if len(args)==3:
+        if len(args) == 3:
             self.polygon(args)
         else:
-            self.polygon([[args[i*2], args[i*2+1]] for i in range(3)])
+            self.polygon([[args[i * 2], args[i * 2 + 1]] for i in range(3)])
 
-    def circle(self, *args, mode=''):
+    def circle(self, *args, mode=""):
         """Draw a circle given center and radius
 
         Input arguments can be in the following formats:
@@ -1046,15 +1065,15 @@ class Canvas:
         else:
             center, size = args
         x, y = center[:2]
-        if mode == 'radius':
+        if mode == "radius":
             radius = size
         else:
-            radius = size/2
-        if mode == 'corner':
+            radius = size / 2
+        if mode == "corner":
             x += radius
             y += radius
         self.ctx.new_sub_path()
-        self.ctx.arc(x, y, radius, 0, np.pi*2.)
+        self.ctx.arc(x, y, radius, 0, np.pi * 2.0)
         self._fillstroke()
 
     def ellipse(self, *args, mode=None):
@@ -1091,10 +1110,10 @@ class Canvas:
             center = args[0]
             w, h = args[1]
 
-        if mode.lower() == 'corners':
+        if mode.lower() == "corners":
             x1, y1 = center
             x2, y2 = w, h
-            center = np.array([x1 + x2, y1 + y2])/2
+            center = np.array([x1 + x2, y1 + y2]) / 2
             w, h = abs(x2 - x1), abs(y2 - y1)
 
         if not (w > 0 and h > 0):
@@ -1103,16 +1122,16 @@ class Canvas:
         self.push()
         self.translate(center)
 
-        if mode.lower() == 'corner':
-            self.translate(w/2, h/2)
-        if mode.lower() == 'radius':
-            w = w*2
-            h = h*2
+        if mode.lower() == "corner":
+            self.translate(w / 2, h / 2)
+        if mode.lower() == "radius":
+            w = w * 2
+            h = h * 2
 
-        self.scale([w/2, h/2])
+        self.scale([w / 2, h / 2])
 
         self.ctx.new_sub_path()
-        self.ctx.arc(0, 0, 1, 0, np.pi*2.)
+        self.ctx.arc(0, 0, 1, 0, np.pi * 2.0)
         if self.cur_fill is not None:
             self.ctx.set_source_rgba(*self.cur_fill)
             if self.cur_stroke is not None:
@@ -1120,7 +1139,7 @@ class Canvas:
             else:
                 self.ctx.fill()
         self.pop()
-        
+
         if self.cur_stroke is not None:
             self.ctx.set_source_rgba(*self.cur_stroke)
             self.ctx.stroke()
@@ -1141,7 +1160,7 @@ class Canvas:
 
         """
         # Check if we specified a mode
-        if type(args[-1])==str:
+        if type(args[-1]) == str:
             mode = args[-1].lower()
             args = args[:-1]
         else:
@@ -1157,14 +1176,14 @@ class Canvas:
             x, y = args[0]
             w, h, start, stop = args[1:]
 
-        #self.push()
-        #self.translate(x, y)
-        #self.scale(w/2,h/2)
+        # self.push()
+        # self.translate(x, y)
+        # self.scale(w/2,h/2)
 
         save_mat = self.ctx.get_matrix()
         self.ctx.translate(x, y)
-        self.ctx.scale(w/2, h/2)
-        #cairo_scale(cr, 0.5, 1);
+        self.ctx.scale(w / 2, h / 2)
+        # cairo_scale(cr, 0.5, 1);
 
         if self.cur_fill is not None:
             self.ctx.set_source_rgba(*self.cur_fill)
@@ -1175,38 +1194,38 @@ class Canvas:
             self.ctx.fill()
 
         if self.cur_stroke is not None:
-            #lw = self.ctx.get_line_width()
-            #self.ctx.set_line_width(lw*(2.0/min(w, h)))
+            # lw = self.ctx.get_line_width()
+            # self.ctx.set_line_width(lw*(2.0/min(w, h)))
             self.ctx.set_source_rgba(*self.cur_stroke)
             self.ctx.new_sub_path()
-            if mode == 'pie':
+            if mode == "pie":
                 self.ctx.move_to(0, 0)
             self.ctx.arc(0, 0, 1, start, stop)
-            if mode != 'open':
+            if mode != "open":
                 self.ctx.close_path()
 
         self.ctx.set_matrix(save_mat)
         if self.cur_stroke is not None:
             self.ctx.stroke()
-            #self.ctx.set_line_width(lw)
+            # self.ctx.set_line_width(lw)
 
             # if self.cur_stroke is not None:
             #     self.ctx.fill_preserve()
             # else:
             #     self.ctx.fill()
-        #self.pop()
+        # self.pop()
 
     def clear_segments(self):
         self.curve_segments = []
         self.curve_segment_types = []
 
     def begin_shape(self):
-        ''' Begin drawing a compound shape'''
+        """Begin drawing a compound shape"""
         self.no_draw = True
         self.clear_segments()
 
     def end_shape(self, close=False):
-        ''' End drawing a compound shape'''
+        """End drawing a compound shape"""
         self.no_draw = False
         self.end_contour(close)
         # if close:
@@ -1214,20 +1233,20 @@ class Canvas:
         # self._fillstroke()
 
     def begin_contour(self):
-        ''' Begin drawing a contour'''
+        """Begin drawing a contour"""
         self.clear_segments()
         self.ctx.new_sub_path()
         self._first_point = True
 
     def end_contour(self, close=False):
-        ''' End drawing a contour
+        """End drawing a contour
 
         Arguments:
 
         - `close` (bool, optional): if `True` close the contour
-        '''
+        """
         if isinstance(close, str):
-            if close.lower() == 'close':
+            if close.lower() == "close":
                 close = True
             else:
                 close = False
@@ -1236,15 +1255,14 @@ class Canvas:
                 self.ctx.close_path()
             self._fillstroke()
             return
-        if (len(self.curve_segments)==1 and
-            self.curve_segment_types[-1] == 'C'):
+        if len(self.curve_segments) == 1 and self.curve_segment_types[-1] == "C":
             P = self.curve_segments[-1]
             if len(P) < 3:
-                raise ValueError('Insufficient points for spline')
+                raise ValueError("Insufficient points for spline")
             Cp = cardinal_spline(P, self.tension, close)
             self.ctx.move_to(*Cp[0])
-            for i in range(0, len(Cp)-1, 3):
-                self.ctx.curve_to(*Cp[i+1], *Cp[i+2], *Cp[i+3])
+            for i in range(0, len(Cp) - 1, 3):
+                self.ctx.curve_to(*Cp[i + 1], *Cp[i + 2], *Cp[i + 3])
         else:
             cur = self.curve_segments[0].pop(0)
 
@@ -1252,15 +1270,15 @@ class Canvas:
             for seg, type in zip(self.curve_segments, self.curve_segment_types):
                 if not seg:
                     continue
-                if type=='C':
+                if type == "C":
                     P = [cur] + seg
                     Cp = cardinal_spline(P, self.tension, False)
-                    for i in range(0, len(Cp)-1, 3):
-                        self.ctx.curve_to(*Cp[i+1], *Cp[i+2], *Cp[i+3])
-                elif type=='B':
+                    for i in range(0, len(Cp) - 1, 3):
+                        self.ctx.curve_to(*Cp[i + 1], *Cp[i + 2], *Cp[i + 3])
+                elif type == "B":
                     # Cubic Bezier segment
                     for i in range(0, len(seg), 3):
-                        self.ctx.curve_to(*seg[i], *seg[i+1], *seg[i+2])
+                        self.ctx.curve_to(*seg[i], *seg[i + 1], *seg[i + 2])
                 else:
                     for p in seg:
                         self.ctx.line_to(*p)
@@ -1275,38 +1293,36 @@ class Canvas:
         self.curve_segment_types.append(type)
 
     def vertex(self, x, y=None):
-        ''' Add a vertex to current contour
+        """Add a vertex to current contour
 
         Input arguments can be in the following formats:
 
         - `[x, y]`
         - `x, y`
-        '''
+        """
         if y is None:
             x, y = x
-        if (not self.curve_segments or
-            self.curve_segment_types[-1] != 'L'):
-            self._add_curve_segment('L')
+        if not self.curve_segments or self.curve_segment_types[-1] != "L":
+            self._add_curve_segment("L")
 
         self.curve_segments[-1].append([x, y])
 
     def curve_vertex(self, x, y=None):
-        ''' Add a curved vertex to current contour
+        """Add a curved vertex to current contour
 
         Input arguments can be in the following formats:
 
         - `[x, y]`
         - `x, y`
-        '''
+        """
         if y is None:
             x, y = x
-        if (not self.curve_segments or
-            self.curve_segment_types[-1] != 'C'):
-            self._add_curve_segment('C')
-        self.curve_segments[-1].append([x,y])
+        if not self.curve_segments or self.curve_segment_types[-1] != "C":
+            self._add_curve_segment("C")
+        self.curve_segments[-1].append([x, y])
 
     def bezier_vertex(self, *args):
-        ''' Draw a cubic Bezier segment from the current point
+        """Draw a cubic Bezier segment from the current point
         requires a first control point to be already defined with `vertex`.
 
 
@@ -1314,7 +1330,7 @@ class Canvas:
 
         - `[x1, y1], [x2, y2], [x3, y3]`
         - `x1, y1, x2, y2, x3, y3`
-        '''
+        """
         if len(args) == 3:
             p1, p2, p3 = args
         else:
@@ -1322,26 +1338,25 @@ class Canvas:
             p2 = args[2:4]
             p3 = args[4:6]
         if not self.curve_segments:
-            raise ValueError('bezier_vertex requires an initial vertex to work')
-        if self.curve_segment_types[-1] != 'B':
-            self._add_curve_segment('B')
+            raise ValueError("bezier_vertex requires an initial vertex to work")
+        if self.curve_segment_types[-1] != "B":
+            self._add_curve_segment("B")
         self.curve_segments[-1].append(p1)
         self.curve_segments[-1].append(p2)
         self.curve_segments[-1].append(p3)
 
     def curve_tightness(self, val):
-        ''' Sets the 'tension' parameter for the curve used when using `curve_vertex`
-        '''
+        """Sets the 'tension' parameter for the curve used when using `curve_vertex`"""
         self.tension = val
 
     def cubic(self, *args):
-        ''' Draw a cubic bezier curve
+        """Draw a cubic bezier curve
 
         Input arguments can be in the following formats:
 
         - `[x1, y1], [x2, y2], [x3, y3]`
         - `x1, y1, x2, y2, x3, y3`
-        '''
+        """
         if len(args) == 4:
             p0, p1, p2, p3 = args
         else:
@@ -1354,13 +1369,13 @@ class Canvas:
         self._fillstroke()
 
     def quadratic(self, *args):
-        ''' Draw a quadratic bezier curve
+        """Draw a quadratic bezier curve
 
         Input arguments can be in the following formats:
 
         -    `[x1, y1], [x2, y2]`
         -    `x1, y1, x2, y2`
-        '''
+        """
         if len(args) == 3:
             (x0, y0), (x1, y1), (x2, y2) = args
         else:
@@ -1372,11 +1387,13 @@ class Canvas:
             (2 * y1 + y0) / 3,
             (2 * x1 + x2) / 3,
             (2 * y1 + y2) / 3,
-            x2, y2)
+            x2,
+            y2,
+        )
         self._fillstroke()
 
     def bezier(self, *args):
-        ''' Draws a bezier curve segment from current point
+        """Draws a bezier curve segment from current point
             The degree of the curve (2 or 3) depends on the input arguments
         Arguments:
         Input arguments can be in the following formats:
@@ -1384,17 +1401,17 @@ class Canvas:
             `x1, y1, x2, y2, x3, y3` is cubic
             `[x1, y1], [x2, y2]` is quadratic
             `x1, y1, x2, y2` is quadratic
-        '''
-        if len(args) == 4 or len(args)==8:
+        """
+        if len(args) == 4 or len(args) == 8:
             self.cubic(*args)
         else:
             self.quadratic(*args)
 
     def create_graphics(self, w, h):
-        ''' Create a new canvas with the specified width and height
-            E.g. `c = create_graphics(128, 128)` will put a new canvas into
-            the variable `c`. You can draw the contents of the canvas with the `image` function.
-        '''
+        """Create a new canvas with the specified width and height
+        E.g. `c = create_graphics(128, 128)` will put a new canvas into
+        the variable `c`. You can draw the contents of the canvas with the `image` function.
+        """
         return Canvas(w, h)
 
     def image(self, img, *args, opacity=1.0):
@@ -1425,17 +1442,17 @@ class Canvas:
         if len(args) == 0:
             pos = np.zeros(2)
             size = [img.get_width(), img.get_height()]
-        elif len(args) == 1: #[x, y]
+        elif len(args) == 1:  # [x, y]
             pos = args[0]
             size = [img.get_width(), img.get_height()]
-        elif len(args) == 2: 
-            if is_number(args[0]): # x, y
+        elif len(args) == 2:
+            if is_number(args[0]):  # x, y
                 pos = args
                 size = [img.get_width(), img.get_height()]
-            else: # [x, y], [w, h]
+            else:  # [x, y], [w, h]
                 pos, size = args
-        elif len(args) == 4: # x, y, w, h
-            pos = args[:2] 
+        elif len(args) == 4:  # x, y, w, h
+            pos = args[:2]
             size = args[2:]
         else:
             print("Unexpected number of arguments for image")
@@ -1454,8 +1471,8 @@ class Canvas:
         self.ctx.translate(pos[0], pos[1])
 
         if size is not None:
-            sx = size[0]/img.get_width()
-            sy = size[1]/img.get_height()
+            sx = size[0] / img.get_width()
+            sy = size[1] / img.get_height()
             self.ctx.scale(sx, sy)
 
         self.ctx.set_source_surface(img)
@@ -1463,9 +1480,9 @@ class Canvas:
         self.ctx.restore()
 
     def shape(self, poly_list, close=False):
-        '''Draw a shape represented as a list of polylines, see the `polyline`
+        """Draw a shape represented as a list of polylines, see the `polyline`
         method for the format of each polyline. Also accepts a single polyline as an input
-        '''
+        """
         if not is_compound(poly_list):
             poly_list = [poly_list]
         self.begin_shape()
@@ -1473,8 +1490,8 @@ class Canvas:
             self.polyline(P, close=close)
         self.end_shape()
 
-    def text(self, text, *args, align='', valign='', center=None, **kwargs):
-        ''' Draw text at a given position
+    def text(self, text, *args, align="", valign="", center=None, **kwargs):
+        """Draw text at a given position
 
         Arguments:
 
@@ -1483,7 +1500,7 @@ class Canvas:
             - `align`, horizontal alignment, etiher `'left'` (default), `'center'` or `'right'`
             - `valign`, vertical alignment, etiher `'bottom'` (default), `'center'` or `'top'`
             (Deprecated) if center=True the text will be horizontally centered
-        '''
+        """
 
         # Backwards compatibility since previous version has position first
         if type(text) not in [str, np.str_]:
@@ -1509,27 +1526,27 @@ class Canvas:
 
         if center is not None:
             if center:
-                align = 'center'
+                align = "center"
             else:
-                align = 'left'
+                align = "left"
 
         x, y = pos
 
         lines = text.splitlines()
 
-        if valign == 'center':
-            y -= (self._text_leading*(len(lines)-1))/2
-        elif valign == 'bottom':
-            y -= (self._text_leading*(len(lines)-1))
+        if valign == "center":
+            y -= (self._text_leading * (len(lines) - 1)) / 2
+        elif valign == "bottom":
+            y -= self._text_leading * (len(lines) - 1)
 
         for line in lines:
             ox, oy = self._text_offset(line, align, valign)
-            self.ctx.move_to(x+ox, y+oy)
+            self.ctx.move_to(x + ox, y + oy)
             self.ctx.text_path(line)
             self._fillstroke()
             y += self._text_leading
 
-    def text_shapes(self, text, *args, dist=1, align='', valign=''):
+    def text_shapes(self, text, *args, dist=1, align="", valign=""):
         if len(args) == 2:
             if is_number(args[0]):
                 pos = args
@@ -1557,10 +1574,10 @@ class Canvas:
 
         lines = text.splitlines()
 
-        if valign == 'center':
-            start_pos[1] -= (self._text_leading*(len(lines)-1))/2
-        elif valign == 'bottom':
-            start_pos[1] -= (self._text_leading*(len(lines)-1))
+        if valign == "center":
+            start_pos[1] -= (self._text_leading * (len(lines) - 1)) / 2
+        elif valign == "bottom":
+            start_pos[1] -= self._text_leading * (len(lines) - 1)
 
         all_shapes = []
 
@@ -1586,16 +1603,18 @@ class Canvas:
                     a = prev()
                     b = np.array(points)
                     s = np.linalg.norm(b - a)
-                    n = max(int(s / dist)+1, 2)
+                    n = max(int(s / dist) + 1, 2)
                     t = np.linspace(0, 1, n)[1:]
-                    res = a + (b - a)*t.reshape(-1, 1)
+                    res = a + (b - a) * t.reshape(-1, 1)
                     return res
 
                 def sample_cubic(points):
-                    b, c, d = [np.array(p) for p in [points[:2], points[2:4], points[4:6]]]
+                    b, c, d = [
+                        np.array(p) for p in [points[:2], points[2:4], points[4:6]]
+                    ]
                     a = prev()
                     s = approx_arc_length_cubic(a, b, c, d)
-                    n = max(int(s / dist)+1, 2)
+                    n = max(int(s / dist) + 1, 2)
                     t = np.linspace(0, 1, n)[1:]
                     P = np.array([a, b, c, d])
                     return eval_bezier(P, t)
@@ -1610,14 +1629,14 @@ class Canvas:
                     elif kind == cairo.PATH_CLOSE_PATH:
                         shape[-1].append(sample_line(shape[-1][0][0]))
 
-                res = [np.vstack(P)+pos for P in shape if len(P) > 1]
+                res = [np.vstack(P) + pos for P in shape if len(P) > 1]
                 all_shapes.append(res)
                 pos += [extents.x_advance, 0]
 
         return all_shapes  # List of lists: one list per glyph
 
-    def text_shape(self, text, *args, dist=1, align='', valign=''):
-        ''' Retrieves polylines for a given string of text in the current font
+    def text_shape(self, text, *args, dist=1, align="", valign=""):
+        """Retrieves polylines for a given string of text in the current font
 
         Arguments:
 
@@ -1626,12 +1645,13 @@ class Canvas:
         - `dist`, approximate distance between samples
         - `align`, horizontal alignment, etiher `'left'` (default), `'center'` or `'right'`
         - `valign`, vertical alignment, etiher `'bottom'` (default), `'center'` or `'top'`
-        '''
-        return sum(self.text_shapes(text, *args, dist=dist, align=align, valign=valign), [])
+        """
+        return sum(
+            self.text_shapes(text, *args, dist=dist, align=align, valign=valign), []
+        )
 
-
-    def text_points(self, text, *args, dist=1, align='', valign=''):
-        ''' Retrieves points for a given string of text in the current font
+    def text_points(self, text, *args, dist=1, align="", valign=""):
+        """Retrieves points for a given string of text in the current font
 
         Arguments:
 
@@ -1640,10 +1660,10 @@ class Canvas:
         - `dist`, approximate distance between samples
         - `align` (named), horizontal alignment, etiher `'left'` (default), `'center'` or `'right'`
         - `valign` (named), vertical alignment, etiher `'bottom'` (default), `'center'` or `'top'`
-        '''
-        return np.vstack(self.text_shape(text, *args,
-                                         dist=dist,
-                                         align=align, valign=valign))
+        """
+        return np.vstack(
+            self.text_shape(text, *args, dist=dist, align=align, valign=valign)
+        )
 
     def _text_offset(self, text, align, valign):
         (x_bearing, y_bearing, w, h, x_advance, y_advance) = self.ctx.text_extents(text)
@@ -1654,18 +1674,18 @@ class Canvas:
 
         ox = 0
         oy = 0
-        if align == 'center':
-            ox = -(w/2 + x_bearing)
-        elif align == 'right':
+        if align == "center":
+            ox = -(w / 2 + x_bearing)
+        elif align == "right":
             ox = -(w + x_bearing)
-        if valign == 'top':
+        if valign == "top":
             oy = -y_bearing
-        elif valign == 'center':
-            oy = -(h/2 + y_bearing)
+        elif valign == "center":
+            oy = -(h / 2 + y_bearing)
         return ox, oy
 
-    def text_bounds(self, text, *args, align='', valign=''):
-        ''' Returns the bounding box of a string of text at a given position'''
+    def text_bounds(self, text, *args, align="", valign=""):
+        """Returns the bounding box of a string of text at a given position"""
         if len(args) == 2:
             pos = np.array(args)
         elif len(args) == 1:
@@ -1679,32 +1699,39 @@ class Canvas:
             valign = self._text_valign
 
         lines = text.splitlines()
-        if valign == 'center':
-            pos[1] -= (self._text_leading*(len(lines)-1))/2
-        elif valign == 'bottom':
-            pos[1] -= (self._text_leading*(len(lines)-1))
+        if valign == "center":
+            pos[1] -= (self._text_leading * (len(lines) - 1)) / 2
+        elif valign == "bottom":
+            pos[1] -= self._text_leading * (len(lines) - 1)
 
         tl = []
         br = []
         for line in lines:
-            (x_bearing, y_bearing, w, h, x_advance, y_advance) = self.ctx.text_extents(line)
+            (x_bearing, y_bearing, w, h, x_advance, y_advance) = self.ctx.text_extents(
+                line
+            )
             ox, oy = self._text_offset(line, align, valign)
-            x, y = pos[0]+ox, pos[1]+oy-h
+            x, y = pos[0] + ox, pos[1] + oy - h
             tl.append((x, y))
-            br.append((x+w, y+h))
+            br.append((x + w, y + h))
             pos[1] += self._text_leading
 
         tl = np.min(tl, axis=0)
         br = np.max(br, axis=0)
         size = br - tl
-        return edict({'x':tl[0], 'y':tl[1],
-                      'pos':tl,
-                      'w':size[0], 'h':size[1],
-                      'size': size,
-                      })
+        return edict(
+            {
+                "x": tl[0],
+                "y": tl[1],
+                "pos": tl,
+                "w": size[0],
+                "h": size[1],
+                "size": size,
+            }
+        )
 
     def polygon(self, *args, close=True):
-        ''' Draw a polygon (closed by default).
+        """Draw a polygon (closed by default).
 
         The polyline is specified as either:
 
@@ -1713,11 +1740,11 @@ class Canvas:
         - two lists (or numpy array) of numbers, one for each coordinate
 
         To create an opne polygon set the named `close` argument to `False`, e.g. `c.polygon(points, close=False)`.
-        '''
+        """
         self.polyline(*args, close=close)
 
     def curve(self, *args, close=True):
-        ''' Draw a curve (open by default).
+        """Draw a curve (open by default).
 
         The polyline is specified as either:
 
@@ -1726,10 +1753,10 @@ class Canvas:
         - two lists (or numpy array) of numbers, one for each coordinate
 
         To close the curve set the named `close` argument to `True`, e.g. `c.curve(points, close=True)`.
-        '''
-        if len(args)==1:
+        """
+        if len(args) == 1:
             points = args[0]
-        elif len(args)==2:
+        elif len(args) == 2:
             points = np.vstack(args).T
         else:
             raise ValueError("Wrong number of arguments")
@@ -1740,7 +1767,7 @@ class Canvas:
         self.end_contour(close)
 
     def polyline(self, *args, close=False):
-        ''' Draw a polyline (open by default).
+        """Draw a polyline (open by default).
 
         The polyline is specified as either:
 
@@ -1749,12 +1776,12 @@ class Canvas:
         - two lists (or numpy array) of numbers, one for each coordinate
 
         To close the polyline set the named `close` argument to `True`, e.g. `c.polyline(points, close=True)`.
-        '''
+        """
         self.ctx.new_sub_path()
-        #self.ctx.new_path()
-        if len(args)==1:
+        # self.ctx.new_path()
+        if len(args) == 1:
             points = args[0]
-        elif len(args)==2:
+        elif len(args) == 2:
             points = np.vstack(args).T
         else:
             raise ValueError("Wrong number of arguments")
@@ -1767,15 +1794,15 @@ class Canvas:
         self._fillstroke()
 
     def identity(self):
-        ''' Resets the current matrix to the identity (no transformation)'''
+        """Resets the current matrix to the identity (no transformation)"""
         self.ctx.identity_matrix()
 
     def reset_matrix(self):
-        ''' Resets the current matrix to the identity (no transformation)'''
+        """Resets the current matrix to the identity (no transformation)"""
         self.ctx.identity_matrix()
 
     def copy(self, *args):
-        ''' The first parameter can optionally be an image, if an image is not specified the funtion will use
+        """The first parameter can optionally be an image, if an image is not specified the funtion will use
         the canvas image, .
         The next four parameters, sx, sy, sw, and sh determine the region to copy from the source image.
         (sx, sy) is the top-left corner of the region. sw and sh are the region's width and height.
@@ -1785,7 +1812,7 @@ class Canvas:
         `copy(src_image, sx, sy, sw, sh, dx, dy, dw, dh)`
         or
         `copy(sx, sy, sw, sh, dx, dy, dw, dh)`
-        '''
+        """
 
         if len(args) % 2 == 1:
             img = np.array(args[0])
@@ -1793,23 +1820,22 @@ class Canvas:
         else:
             img = self.get_image_array()
 
-        if len(args)==8:
+        if len(args) == 8:
             sx, sy, sw, sh, dx, dy, dw, dh = args
         else:
             ValueError("Unspported number of arguments for copy")
 
-        img = img[sy:sy+sh,
-                  sx:sx+sw]
+        img = img[sy : sy + sh, sx : sx + sw]
         self.image(img, dx, dy, dw, dh)
 
     def background(self, *args):
-        ''' Clear the canvas with a given color
-            Accepts either an array with the color components, or single color components (as in `fill`)
-        '''
+        """Clear the canvas with a given color
+        Accepts either an array with the color components, or single color components (as in `fill`)
+        """
         # self.clear_callback()
         # HACK Save background, this is needed for saving and no_loop in sketches
         # Since saving has to be done as a postprocess after the frame
-        if len(args)==1:
+        if len(args) == 1:
             self.last_background = args[0]
         else:
             self.last_background = args
@@ -1823,9 +1849,9 @@ class Canvas:
         # else:
         #     ctx = self.ctx.ctxs[0]
 
-        #self.push()
+        # self.push()
         ctx = self.ctx
-        rgba = np.array(self._apply_colormode(args)) 
+        rgba = np.array(self._apply_colormode(args))
         ctx.set_source_rgba(*rgba)
         if self._save_background:
             ctx.rectangle(0, 0, self.width, self.height)
@@ -1833,57 +1859,61 @@ class Canvas:
         else:
             ctx.paint()
 
-        #ctx.rectangle(0, 0, self.width, self.height)
-        #ctx.fill()
-        #self.pop()
+        # ctx.rectangle(0, 0, self.width, self.height)
+        # ctx.fill()
+        # self.pop()
 
     def get_buffer(self):
         return self.surf.get_data()
 
     def get_image_array(self):
-        ''' Get canvas image as a numpy array'''
-        img = np.ndarray (shape=(self.height, self.width, 4), dtype=np.uint8, buffer=self.surf.get_data())[:,:,:3].copy()
-        img = img[:,:,::-1]
+        """Get canvas image as a numpy array"""
+        img = np.ndarray(
+            shape=(self.height, self.width, 4),
+            dtype=np.uint8,
+            buffer=self.surf.get_data(),
+        )[:, :, :3].copy()
+        img = img[:, :, ::-1]
         return img
 
     def get_grayscale_array(self):
-        ''' Get grayscale image of canvas contents as float numpy array (0 to 1 range)'''
-        return np.mean(self.get_image_array()/255, axis=-1)
+        """Get grayscale image of canvas contents as float numpy array (0 to 1 range)"""
+        return np.mean(self.get_image_array() / 255, axis=-1)
 
     def get_image(self):
-        ''' Get canvas as a PIL image'''
+        """Get canvas as a PIL image"""
         return Image.fromarray(self.get_image_array())
         # img = np.ndarray (shape=(self.height, self.width, 4), dtype=np.uint8, buffer=self.surf.get_data())[:,:,:3].copy()
         # img = img[:,:,::-1]
         # return img
 
     def get_image_grayscale(self):
-        ''' Returns the canvas image as a grayscale numpy array (in 0-1 range)'''
-        return self.get_image().convert('L')
+        """Returns the canvas image as a grayscale numpy array (in 0-1 range)"""
+        return self.get_image().convert("L")
         # img = self.get_image()
         # img = np.sum(img, axis=-1)/3
         # return img/255
 
     def save_image(self, path):
-        ''' Save the canvas to an image
+        """Save the canvas to an image
 
         Arguments:
 
         - The path where to save
 
-        '''
+        """
         self.surf.write_to_png(path)
 
     def save_svg(self, path):
-        ''' Save the canvas to an svg file
+        """Save the canvas to an svg file
 
         Arguments:
 
         - The path where to save
 
-        '''
+        """
         if self.recording_surface is None:
-            raise ValueError('No recording surface in canvas')
+            raise ValueError("No recording surface in canvas")
         surf = cairo.SVGSurface(path, self.width, self.height)
         ctx = cairo.Context(surf)
         ctx.set_source_surface(self.recording_surface)
@@ -1892,23 +1922,23 @@ class Canvas:
         fix_clip_path(path, path)
 
     def save_pdf(self, path):
-        ''' Save the canvas to an svg file
+        """Save the canvas to an svg file
 
         Arguments:
 
         - The path where to save
 
-        '''
+        """
         if self.recording_surface is None:
-            raise ValueError('No recording surface in canvas')
+            raise ValueError("No recording surface in canvas")
         surf = cairo.PDFSurface(path, self.width, self.height)
         ctx = cairo.Context(surf)
         ctx.set_source_surface(self.recording_surface)
         ctx.paint()
         surf.finish()
-        
+
     def Image(self):
-        print('Image is deprected use `get_image()` instead')
+        print("Image is deprected use `get_image()` instead")
         return self.get_image()
 
     # def save(self):
@@ -1928,54 +1958,55 @@ class Canvas:
     #         self.surf.write_to_png(self.output_file)
 
     def save(self, path):
-        ''' Save the canvas into a given file path
-            The file format depends on the file extension
-        '''
-        if '.svg' in path:
+        """Save the canvas into a given file path
+        The file format depends on the file extension
+        """
+        if ".svg" in path:
             self.save_svg(path)
-        elif '.pdf' in path:
+        elif ".pdf" in path:
             self.save_pdf(path)
-        elif '.png' in path:
+        elif ".png" in path:
             # TODO use PIL
             self.save_image(path)
 
-
-    def show(self, size=None, resample='bicubic'):
-        ''' Display the canvas in a notebook'''
+    def show(self, size=None, resample="bicubic"):
+        """Display the canvas in a notebook"""
         if size is not None:
-            filter = {'bicubic': Image.BICUBIC,
-                      'nearest': Image.NEAREST,
-                      'bilinear': Image.BILINEAR,
-                      'lanczos': Image.LANCZOS}
-            display(self.get_image().resize(size, filter[resample] ))
+            filter = {
+                "bicubic": Image.BICUBIC,
+                "nearest": Image.NEAREST,
+                "bilinear": Image.BILINEAR,
+                "lanczos": Image.LANCZOS,
+            }
+            display(self.get_image().resize(size, filter[resample]))
             return
         display(self.get_image())
 
-
-    def show_plt(self, size=None, title='', axis=False):
-        ''' Show the canvas in a notebook with matplotlib
+    def show_plt(self, size=None, title="", axis=False):
+        """Show the canvas in a notebook with matplotlib
 
         Arguments:
 
         - `size` (tuple, optional): The size of the displayed image, by default this is the size of the canvas
         - `title` (string, optional): A title for the figure
         - `axis` (bool, optional): If `True` shows the coordinate axes
-        '''
+        """
         import matplotlib.pyplot as plt
+
         if size is not None:
-            plt.figure(figsize=(size[0]/100, size[1]/100))
+            plt.figure(figsize=(size[0] / 100, size[1] / 100))
         else:
-            plt.figure(figsize=(self.width/100, self.height/100))
+            plt.figure(figsize=(self.width / 100, self.height / 100))
         if title:
             plt.title(title)
         plt.imshow(self.get_image())
         if not axis:
-            plt.gca().axis('off')
+            plt.gca().axis("off")
         plt.show()
 
     def _convert_html_color(self, html_color):
         # Remove '#' if present
-        if html_color.startswith('#'):
+        if html_color.startswith("#"):
             html_color = html_color[1:]
 
         # Extract RGB or RGBA components
@@ -2006,87 +2037,106 @@ class Canvas:
     #             x[2]/self.color_scale[2])
 
     def _scale_color(self, x):
-        if len(x)==1:
-            if type(x[0])==str:
+        if len(x) == 1:
+            if type(x[0]) == str:
                 return self._convert_html_color(x[0])
-            elif not is_number(x[0]): # array like input
+            elif not is_number(x[0]):  # array like input
                 return self._scale_color(*x)
-                #return np.array(x[0])/self.color_scale[:len(x[0])]
+                # return np.array(x[0])/self.color_scale[:len(x[0])]
             if self._is_hsv():
                 # HSV sets value
-                return (0,
-                        0,
-                        x[0]/self.color_scale[2], 1.0)
+                return (0, 0, x[0] / self.color_scale[2], 1.0)
             else:
-                return (x[0]/self.color_scale[0],
-                        x[0]/self.color_scale[0],
-                        x[0]/self.color_scale[0], 1.0)
+                return (
+                    x[0] / self.color_scale[0],
+                    x[0] / self.color_scale[0],
+                    x[0] / self.color_scale[0],
+                    1.0,
+                )
         elif len(x) == 3:
-            return (x[0]/self.color_scale[0],
-                    x[1]/self.color_scale[1],
-                    x[2]/self.color_scale[2], 1.0)
+            return (
+                x[0] / self.color_scale[0],
+                x[1] / self.color_scale[1],
+                x[2] / self.color_scale[2],
+                1.0,
+            )
         elif len(x) == 2:
-            if type(x[0])==str:
+            if type(x[0]) == str:
                 clr = self._convert_html_color(x[0])
-                clr[-1] = x[1]/self.color_scale[-1]
+                clr[-1] = x[1] / self.color_scale[-1]
                 return clr
             if self._is_hsv():
-                return (0,
-                        0,
-                        x[0]/self.color_scale[2],
-                        x[1]/self.color_scale[3])
+                return (0, 0, x[0] / self.color_scale[2], x[1] / self.color_scale[3])
             else:
-                return (x[0]/self.color_scale[0],
-                        x[0]/self.color_scale[0],
-                        x[0]/self.color_scale[0],
-                        x[1]/self.color_scale[3])
-        return (x[0]/self.color_scale[0],
-                x[1]/self.color_scale[1],
-                x[2]/self.color_scale[2],
-                x[3]/self.color_scale[3])
+                return (
+                    x[0] / self.color_scale[0],
+                    x[0] / self.color_scale[0],
+                    x[0] / self.color_scale[0],
+                    x[1] / self.color_scale[3],
+                )
+        return (
+            x[0] / self.color_scale[0],
+            x[1] / self.color_scale[1],
+            x[2] / self.color_scale[2],
+            x[3] / self.color_scale[3],
+        )
+
 
 def radians(x):
-    ''' Get radians given an angle in degrees'''
-    return np.pi/180*x
+    """Get radians given an angle in degrees"""
+    return np.pi / 180 * x
+
 
 def degrees(x):
-    ''' Get degrees given an angle in radians'''
-    return x * (180.0/np.pi)
+    """Get degrees given an angle in radians"""
+    return x * (180.0 / np.pi)
+
 
 import numpy as np
 import cairo
 
 
 def numpy_to_surface(arr):
-    ''' Convert numpy array to a pycairo surface'''
+    """Convert numpy array to a pycairo surface"""
     # Get the shape and data type of the numpy array
     if len(arr.shape) == 2:
         if arr.dtype == np.uint8:
-            arr = np.dstack([arr, arr, arr, (np.ones(arr.shape)*255).astype(np.uint8)])/255
+            arr = (
+                np.dstack([arr, arr, arr, (np.ones(arr.shape) * 255).astype(np.uint8)])
+                / 255
+            )
         else:
             # rayscale 0-1 image
             arr = np.dstack([arr, arr, arr, np.ones(arr.shape)])
     else:
         if arr.shape[2] == 3:
             if arr.dtype == np.uint8:
-                arr = np.dstack([arr, np.ones(arr.shape[:2], dtype=np.uint8)*255])/255
+                arr = (
+                    np.dstack([arr, np.ones(arr.shape[:2], dtype=np.uint8) * 255]) / 255
+                )
             else:
                 arr = np.dstack([arr, np.ones(arr.shape[:2])])
         elif arr.shape[2] == 1:
             if arr.dtype == np.uint8:
-                arr = np.dstack([arr]*3 + [np.ones(arr.shape[:2], dtype=np.uint8)*255])/255
+                arr = (
+                    np.dstack(
+                        [arr] * 3 + [np.ones(arr.shape[:2], dtype=np.uint8) * 255]
+                    )
+                    / 255
+                )
             else:
-                arr = np.dstack([arr]*3 + [np.ones(arr.shape[:2])])
+                arr = np.dstack([arr] * 3 + [np.ones(arr.shape[:2])])
         else:
             if arr.dtype == np.uint8:
-                arr = arr/255
+                arr = arr / 255
 
-    arr[:,:,:3] *= arr[:,:,3:4] # premultiply alpha
-    arr = (arr * 255).astype(np.uint8) # convert to uint8
-    arr = arr.copy(order='C') # must be "C-contiguous"
-    arr[:, :, :3] = arr[:,:,:3][:,:,::-1] # Convert RGB to BGR
+    arr[:, :, :3] *= arr[:, :, 3:4]  # premultiply alpha
+    arr = (arr * 255).astype(np.uint8)  # convert to uint8
+    arr = arr.copy(order="C")  # must be "C-contiguous"
+    arr[:, :, :3] = arr[:, :, :3][:, :, ::-1]  # Convert RGB to BGR
     surf = cairo.ImageSurface.create_for_data(
-        arr, cairo.FORMAT_ARGB32, arr.shape[1], arr.shape[0])
+        arr, cairo.FORMAT_ARGB32, arr.shape[1], arr.shape[0]
+    )
 
     return surf
 
@@ -2100,8 +2150,8 @@ def create_font(name, size=None, style=None):
     # TODO fix API and redundancy here and in text_font
     if os.path.isfile(name):
         try:
-            #info = read_font_names(name)
-            #font = f"{info['family']} {info['subfamily']}"
+            # info = read_font_names(name)
+            # font = f"{info['family']} {info['subfamily']}"
             font = create_cairo_font_face_for_file(name)
         except Exception as e:
             print(f"Error: failed to load font {name}:")
@@ -2111,9 +2161,10 @@ def create_font(name, size=None, style=None):
     return Font(font, size, style)
 
 
-def show_image(im, size=None, title='', cmap='gray'):
-    ''' Display a (numpy) image'''
+def show_image(im, size=None, title="", cmap="gray"):
+    """Display a (numpy) image"""
     import matplotlib.pyplot as plt
+
     if size is not None:
         plt.figure(figsize=size)
     else:
@@ -2123,12 +2174,14 @@ def show_image(im, size=None, title='', cmap='gray'):
     plt.imshow(im, cmap)
     plt.show()
 
-def show_images(images, ncols, size=None, title='', cmap='gray'):
-    ''' Display multiple images in a grid'''
+
+def show_images(images, ncols, size=None, title="", cmap="gray"):
+    """Display multiple images in a grid"""
     import matplotlib.pyplot as plt
     from matplotlib.gridspec import GridSpec
+
     n = len(images)
-    nrows = int(np.ceil(n/ncols))
+    nrows = int(np.ceil(n / ncols))
     if size is not None:
         plt.figure(figsize=size)
     else:
@@ -2139,7 +2192,7 @@ def show_images(images, ncols, size=None, title='', cmap='gray'):
     for i, img in enumerate(images):
         ax = plt.subplot(gs[i])
         plt.imshow(img, cmap)
-        ax.axis('off')
+        ax.axis("off")
     plt.tight_layout()
     plt.show()
 
@@ -2173,7 +2226,7 @@ def hsv_to_rgb(hsva):
         else:
             r, g, b = v, p, q
 
-    return np.array([r,g,b,a])[:len(hsva)]
+    return np.array([r, g, b, a])[: len(hsva)]
 
 
 def hsv_to_rgb(hsva):
@@ -2205,11 +2258,11 @@ def hsv_to_rgb(hsva):
         else:
             r, g, b = v, p, q
 
-    return np.array([r,g,b,a])[:len(hsva)]
+    return np.array([r, g, b, a])[: len(hsva)]
 
 
 class VideoInput:
-    '''
+    """
     TODO move to sketch
     Video Input utility (requires OpenCV to be installed).
     Allows for reading frames from a video file or camera.
@@ -2221,10 +2274,14 @@ class VideoInput:
     - `resize_mode`: A string indicating the desired resize mode. Can be 'crop' or 'stretch'
     - `flipped`: Boolean indicating if the frame should be flipped horizontally. Defaults to None
     - `vertical_flipped`: Boolean indicating if the frame should be flipped vertically. Defaults to None
-    '''
-    def __init__(self, name=0, size=None, resize_mode='crop', flipped=None, vertical_flipped=None):
-        ''' Constructor'''
+    """
+
+    def __init__(
+        self, name=0, size=None, resize_mode="crop", flipped=None, vertical_flipped=None
+    ):
+        """Constructor"""
         import cv2
+
         # define a video capture object
         self.vid = cv2.VideoCapture(name)
         if size is not None:
@@ -2232,28 +2289,30 @@ class VideoInput:
         else:
             self.size = (
                 int(self.vid.get(cv2.CAP_PROP_FRAME_WIDTH)),
-                int(self.vid.get(cv2.CAP_PROP_FRAME_HEIGHT))
+                int(self.vid.get(cv2.CAP_PROP_FRAME_HEIGHT)),
             )
         self.resize_mode = resize_mode
         self.name = name
         self.flipped = flipped
         self.vertical_flipped = vertical_flipped
 
-
     def close(self):
         self.vid.release()
 
     def read(self, loop_flag=False, pil=True, grayscale=False):
         import cv2
+
         # Capture video frame by frame
         success, img = self.vid.read()
 
         if not success:
-            if type(self.name) == str and not loop_flag: # If a video loop automatically
+            if (
+                type(self.name) == str and not loop_flag
+            ):  # If a video loop automatically
                 self.vid.set(cv2.CAP_PROP_POS_FRAMES, 0)
                 return self.read(True)
             else:
-                print('No video')
+                print("No video")
                 if self.size is not None:
                     return np.zeros((self.size[1], self.size[0], 3)).astype(np.uint8)
                 else:
@@ -2263,63 +2322,63 @@ class VideoInput:
             src_w, src_h = img.shape[1], img.shape[0]
             dst_w, dst_h = self.size
 
-            if self.resize_mode == 'crop':
+            if self.resize_mode == "crop":
                 # Keep aspect ratio by cropping
                 aspect = dst_w / dst_h
 
                 # Check if aspect ratio match
-                asrc_w = int(aspect*src_h)
-                if asrc_w > src_w: # aspect ratio > 1
-                    asrc_h = int(src_h/aspect)
-                    d = (src_h - asrc_h)//2
-                    img = img[d:d+asrc_h, :, :]
-                elif asrc_w < src_w: # aspect ratio < 1
-                    d = (src_w - asrc_w)//2
-                    img = img[:, d:d+asrc_w, :]
+                asrc_w = int(aspect * src_h)
+                if asrc_w > src_w:  # aspect ratio > 1
+                    asrc_h = int(src_h / aspect)
+                    d = (src_h - asrc_h) // 2
+                    img = img[d : d + asrc_h, :, :]
+                elif asrc_w < src_w:  # aspect ratio < 1
+                    d = (src_w - asrc_w) // 2
+                    img = img[:, d : d + asrc_w, :]
 
             # Resize the image frames
             img = cv2.resize(img, self.size)
 
         if self.flipped:
-            img = img[:,::-1]
+            img = img[:, ::-1]
 
         if self.vertical_flipped:
             img = img[::-1]
 
-        img = img[:,:,::-1]
+        img = img[:, :, ::-1]
         if pil:
             if grayscale:
-                return Image.gromarray(img).convert('L')
+                return Image.gromarray(img).convert("L")
             return Image.fromarray(img)
         if grayscale:
-            return np.mean(img/255, axis=-1)
+            return np.mean(img / 255, axis=-1)
         return img
 
 
 def cardinal_spline(Q, c, closed=False):
-    ''' Returns a Bezier chain for a Cardinal spline interpolation for a sequence of values
+    """Returns a Bezier chain for a Cardinal spline interpolation for a sequence of values
     c is the tension parameter with 0.5 a Catmull-Rom spline
-    '''
+    """
     Q = np.array(Q)
     if closed:
         Q = np.vstack([Q, Q[0]])
     n = len(Q)
     D = []
-    for k in range(1, n-1):
+    for k in range(1, n - 1):
         # Note that we do not take parametrisation into account here
-        d = (1-c)*(Q[k+1] - Q[k-1])
+        d = (1 - c) * (Q[k + 1] - Q[k - 1])
         D.append(d)
     if closed:
-        d1 =  (1-c)*(Q[1] - Q[-2])
+        d1 = (1 - c) * (Q[1] - Q[-2])
         dn = d1
     else:
-        d1 = (1-c)*(Q[1] - Q[0])
-        dn = (1-c)*(Q[-1] - Q[-2])
+        d1 = (1 - c) * (Q[1] - Q[0])
+        dn = (1 - c) * (Q[-1] - Q[-2])
     D = [d1] + D + [dn]
     P = [Q[0]]
     for k in range(1, n):
-        p1 = Q[k-1] + D[k-1]/3
-        p2 = Q[k] - D[k]/3
+        p1 = Q[k - 1] + D[k - 1] / 3
+        p2 = Q[k] - D[k] / 3
         p3 = Q[k]
         P += [p1, p2, p3]
     return np.array(P)
@@ -2327,35 +2386,47 @@ def cardinal_spline(Q, c, closed=False):
 
 def bernstein(n, i):
     bi = comb(n, i)
-    return lambda t, bi=bi, n=n, i=i: bi * t**i * (1 - t)**(n - i)
+    return lambda t, bi=bi, n=n, i=i: bi * t**i * (1 - t) ** (n - i)
 
 
 def eval_bezier(P, t, d=0):
-    '''Bezier curve of degree len(P)-1. d is the derivative order (0 gives positions)'''
+    """Bezier curve of degree len(P)-1. d is the derivative order (0 gives positions)"""
     n = len(P) - 1
     if d > 0:
-        Q = np.diff(P, axis=0)*n
-        return eval_bezier(Q, t, d-1)
+        Q = np.diff(P, axis=0) * n
+        return eval_bezier(Q, t, d - 1)
     B = np.vstack([bernstein(n, i)(t) for i, p in enumerate(P)])
     return (P.T @ B).T
 
 
 def approx_arc_length_cubic(c0, c1, c2, c3):
-    ''' Approximate length of a cubic Bezier curve'''
-    v0 = np.linalg.norm(c1-c0)*0.15
-    v1 = np.linalg.norm(-0.558983582205757*c0 + 0.325650248872424*c1 + 0.208983582205757*c2 + 0.024349751127576*c3)
-    v2 = np.linalg.norm(c3-c0+c2-c1)*0.26666666666666666
-    v3 = np.linalg.norm(-0.024349751127576*c0 - 0.208983582205757*c1 - 0.325650248872424*c2 + 0.558983582205757*c3)
-    v4 = np.linalg.norm(c3-c2)*.15
+    """Approximate length of a cubic Bezier curve"""
+    v0 = np.linalg.norm(c1 - c0) * 0.15
+    v1 = np.linalg.norm(
+        -0.558983582205757 * c0
+        + 0.325650248872424 * c1
+        + 0.208983582205757 * c2
+        + 0.024349751127576 * c3
+    )
+    v2 = np.linalg.norm(c3 - c0 + c2 - c1) * 0.26666666666666666
+    v3 = np.linalg.norm(
+        -0.024349751127576 * c0
+        - 0.208983582205757 * c1
+        - 0.325650248872424 * c2
+        + 0.558983582205757 * c3
+    )
+    v4 = np.linalg.norm(c3 - c2) * 0.15
     return v0 + v1 + v2 + v3 + v4
 
-# Fix svg export clip path 
+
+# Fix svg export clip path
 # RecordingSurface adds a clip-path attribute that breaks Illustrator import
 def fix_namespace(xml_content):
-    #return xml_content
+    # return xml_content
     # Remove namespace prefixes from the XML content and replace ns1 with xlink (argh)
-    xml_content = xml_content.replace('ns0:', '').replace(':ns0', '')
-    return xml_content.replace('ns1:', 'xlink:').replace(':ns1', ':xlink')
+    xml_content = xml_content.replace("ns0:", "").replace(":ns0", "")
+    return xml_content.replace("ns1:", "xlink:").replace(":ns1", ":xlink")
+
 
 def fix_clip_path(file_path, out_path):
     import xml.etree.ElementTree as ET
@@ -2364,29 +2435,30 @@ def fix_clip_path(file_path, out_path):
     tree = ET.parse(file_path)
     root = tree.getroot()
     # Define the namespace
-    namespace = {'svg': 'http://www.w3.org/2000/svg'}
+    namespace = {"svg": "http://www.w3.org/2000/svg"}
 
     # Find the first <g> tag
-    g_tag = root.find('.//svg:g', namespace)
+    g_tag = root.find(".//svg:g", namespace)
 
     # Remove the 'clip-path' attribute if it exists
-    if 'clip-path' in g_tag.attrib:
-        del g_tag.attrib['clip-path']
-    res = ET.tostring(root, encoding='unicode')
+    if "clip-path" in g_tag.attrib:
+        del g_tag.attrib["clip-path"]
+    res = ET.tostring(root, encoding="unicode")
     # Save and then apply fixes
-    tree.write(out_path, encoding='UTF-8', xml_declaration=True, default_namespace='')
-    with open(out_path, 'r') as f:
+    tree.write(out_path, encoding="UTF-8", xml_declaration=True, default_namespace="")
+    with open(out_path, "r") as f:
         # Fix namepace
         txt = fix_namespace(f.read())
-    with open(out_path, 'w', encoding='utf-8') as f:
+    with open(out_path, "w", encoding="utf-8") as f:
         f.write(txt)
 
+
 def is_compound(S):
-    '''Returns True if S is a compound polyline,
-    a polyline is represented as a list of points, or a numpy array with as many rows as points'''
+    """Returns True if S is a compound polyline,
+    a polyline is represented as a list of points, or a numpy array with as many rows as points"""
     if type(S) != list:
         return False
-    if type(S) == list: #[0])==list:
+    if type(S) == list:  # [0])==list:
         if not S:
             return True
         for P in S:
@@ -2396,7 +2468,7 @@ def is_compound(S):
             except IndexError:
                 pass
         return True
-    if type(S[0])==np.ndarray and len(S[0].shape) > 1:
+    if type(S[0]) == np.ndarray and len(S[0].shape) > 1:
         return True
     return False
 
@@ -2408,8 +2480,7 @@ _noise_funcs = [rumore.value_noise, rumore.grad_noise]
 
 
 def noise_seed(seed):
-    """ Sets the seed for the noise generator
-    """
+    """Sets the seed for the noise generator"""
     rumore.cfg.seed = seed
 
 
@@ -2421,12 +2492,12 @@ def noise_func(*args):
         if not is_number(args[0]):
             for i in range(1, narg):
                 if is_number(args[i]):
-                    args[i] = np.ones_like(args[0])*args[i]
+                    args[i] = np.ones_like(args[0]) * args[i]
     return _noise_funcs[_noise_grad](*args, octaves=_noise_octaves)
 
 
 def noise_detail(octaves, falloff=0.5, lacunarity=2.0, gradient=True):
-    """ Adjusts the character and level of detail produced by the Perlin noise function.
+    """Adjusts the character and level of detail produced by the Perlin noise function.
 
     Arguments:
 
@@ -2434,7 +2505,7 @@ def noise_detail(octaves, falloff=0.5, lacunarity=2.0, gradient=True):
     - `falloff` (float, default 0.5): a number between 0 and 1 that multiplies the amplitude of each consectutive octave
     """
     global _noise_octaves, _noise_grad
-    # no < 1 octaves, thank you
+    # no < 1 octaves, thank you
     octaves = int(max(1, octaves))
     rumore.cfg.falloff = falloff
     rumore.cfg.lacunarity = lacunarity
@@ -2443,7 +2514,7 @@ def noise_detail(octaves, falloff=0.5, lacunarity=2.0, gradient=True):
 
 
 def noise(*args):
-    """ Returns noise (between 0 and 1) at a given coordinate or at multiple coordinates.
+    """Returns noise (between 0 and 1) at a given coordinate or at multiple coordinates.
     Noise is created by summing consecutive "octaves" with increasing level of detail.
     By default this function returns "gradient noise", a variant of noise similar to Ken Perlin's original version.
     Alternatively the function can return "value noise", which is a faster but more blocky version.
@@ -2455,12 +2526,12 @@ def noise(*args):
     - The arguments to this function can vary from 1 to 3, determining the "space" that is sampled to generate noise.
     The function also accepts numpy arrays for each coordinate but these must be of the same size.
     """
-    res = noise_func(*args) #_noise_funcs[_noise_grad](*args, octaves=_noise_octaves)
-    return res*0.5 + 0.5
+    res = noise_func(*args)  # _noise_funcs[_noise_grad](*args, octaves=_noise_octaves)
+    return res * 0.5 + 0.5
 
 
 def noise_grid(*args, **kwargs):
-    """ Returns a 2d array of noise values (between 0 and 1).
+    """Returns a 2d array of noise values (between 0 and 1).
     The array can be treated as a grayscale image and is defined by two input 1d array parameters, x and y.
     The number of elements in x and y define the number of columns and rows, respectively.
     Optionally a third `z` parameter can be specified and it defines the depth of a "slice" in a 3d noise volume.
@@ -2478,15 +2549,20 @@ def noise_grid(*args, **kwargs):
                      np.linspace(0, height, 100), 3.4)
     ```
     """
-    return rumore.noise_grid(*args, gradient=_noise_grad, octaves=_noise_octaves, **kwargs)*0.5+0.5
+    return (
+        rumore.noise_grid(*args, gradient=_noise_grad, octaves=_noise_octaves, **kwargs)
+        * 0.5
+        + 0.5
+    )
+
 
 # Code adapted from https://www.cairographics.org/cookbook/freetypepython/
 
 _ft_initialized = False
-def create_cairo_font_face_for_file (filename, faceindex=0, loadoptions=0):
-    "given the name of a font file, and optional faceindex to pass to FT_New_Face" \
-    " and loadoptions to pass to cairo_ft_font_face_create_for_ft_face, creates" \
-    " a cairo.FontFace object that may be used to render text with that font."
+
+
+def create_cairo_font_face_for_file(filename, faceindex=0, loadoptions=0):
+    "given the name of a font file, and optional faceindex to pass to FT_New_Face" " and loadoptions to pass to cairo_ft_font_face_create_for_ft_face, creates" " a cairo.FontFace object that may be used to render text with that font."
     global _ft_initialized
     global _freetype_so
     global _cairo_so
@@ -2512,59 +2588,73 @@ def create_cairo_font_face_for_file (filename, faceindex=0, loadoptions=0):
             lc_lib = "libcairo.so.2"
 
         try:
-            _freetype_so = ct.CDLL (ft_lib)
+            _freetype_so = ct.CDLL(ft_lib)
         except OSError as e:
             print(e)
             print("Freetype library missing")
             print("Possibly install with: mamba install freetype")
 
-        _cairo_so = ct.CDLL (lc_lib)
+        _cairo_so = ct.CDLL(lc_lib)
         _cairo_so.cairo_ft_font_face_create_for_ft_face.restype = ct.c_void_p
-        _cairo_so.cairo_ft_font_face_create_for_ft_face.argtypes = [ ct.c_void_p, ct.c_int ]
+        _cairo_so.cairo_ft_font_face_create_for_ft_face.argtypes = [
+            ct.c_void_p,
+            ct.c_int,
+        ]
         _cairo_so.cairo_font_face_get_user_data.restype = ct.c_void_p
         _cairo_so.cairo_font_face_get_user_data.argtypes = (ct.c_void_p, ct.c_void_p)
-        _cairo_so.cairo_font_face_set_user_data.argtypes = (ct.c_void_p, ct.c_void_p, ct.c_void_p, ct.c_void_p)
-        _cairo_so.cairo_set_font_face.argtypes = [ ct.c_void_p, ct.c_void_p ]
-        _cairo_so.cairo_font_face_status.argtypes = [ ct.c_void_p ]
+        _cairo_so.cairo_font_face_set_user_data.argtypes = (
+            ct.c_void_p,
+            ct.c_void_p,
+            ct.c_void_p,
+            ct.c_void_p,
+        )
+        _cairo_so.cairo_set_font_face.argtypes = [ct.c_void_p, ct.c_void_p]
+        _cairo_so.cairo_font_face_status.argtypes = [ct.c_void_p]
         _cairo_so.cairo_font_face_destroy.argtypes = (ct.c_void_p,)
-        _cairo_so.cairo_status.argtypes = [ ct.c_void_p ]
+        _cairo_so.cairo_status.argtypes = [ct.c_void_p]
         # initialize freetype
         _ft_lib = ct.c_void_p()
         status = _freetype_so.FT_Init_FreeType(ct.byref(_ft_lib))
-        if  status != FT_Err_Ok :
+        if status != FT_Err_Ok:
             raise RuntimeError("Error %d initializing FreeType library." % status)
-        #end if
+        # end if
 
         class PycairoContext(ct.Structure):
-            _fields_ = \
-                [
-                    ("PyObject_HEAD", ct.c_byte * object.__basicsize__),
-                    ("ctx", ct.c_void_p),
-                    ("base", ct.c_void_p),
-                ]
-        #end PycairoContext
+            _fields_ = [
+                ("PyObject_HEAD", ct.c_byte * object.__basicsize__),
+                ("ctx", ct.c_void_p),
+                ("base", ct.c_void_p),
+            ]
+
+        # end PycairoContext
         _PycairoContext = PycairoContext
 
         _surface = cairo.ImageSurface(cairo.FORMAT_A8, 0, 0)
-        _ft_destroy_key = ct.c_int() # dummy address
+        _ft_destroy_key = ct.c_int()  # dummy address
         _ft_initialized = True
-    #end if
+    # end if
 
     ft_face = ct.c_void_p()
     cr_face = None
-    try :
+    try:
         # load FreeType face
-        status = _freetype_so.FT_New_Face(_ft_lib, filename.encode("utf-8"), faceindex, ct.byref(ft_face))
-        if status != FT_Err_Ok :
-            raise RuntimeError("Error %d creating FreeType font face for %s" % (status, filename))
-        #end if
+        status = _freetype_so.FT_New_Face(
+            _ft_lib, filename.encode("utf-8"), faceindex, ct.byref(ft_face)
+        )
+        if status != FT_Err_Ok:
+            raise RuntimeError(
+                "Error %d creating FreeType font face for %s" % (status, filename)
+            )
+        # end if
 
         # create Cairo font face for freetype face
         cr_face = _cairo_so.cairo_ft_font_face_create_for_ft_face(ft_face, loadoptions)
         status = _cairo_so.cairo_font_face_status(cr_face)
-        if status != CAIRO_STATUS_SUCCESS :
-            raise RuntimeError("Error %d creating cairo font face for %s" % (status, filename))
-        #end if
+        if status != CAIRO_STATUS_SUCCESS:
+            raise RuntimeError(
+                "Error %d creating cairo font face for %s" % (status, filename)
+            )
+        # end if
         # Problem: Cairo doesn't know to call FT_Done_Face when its font_face object is
         # destroyed, so we have to do that for it, by attaching a cleanup callback to
         # the font_face. This only needs to be done once for each font face, while
@@ -2574,39 +2664,43 @@ def create_cairo_font_face_for_file (filename, faceindex=0, loadoptions=0):
         # actually unnecessary in our situation, because each call to FT_New_Face
         # will return a new FT Face, but we include it here to show how to handle the
         # general case.
-        if _cairo_so.cairo_font_face_get_user_data(cr_face, ct.byref(_ft_destroy_key)) == None :
-            status = _cairo_so.cairo_font_face_set_user_data \
-              (
-                cr_face,
-                ct.byref(_ft_destroy_key),
-                ft_face,
-                _freetype_so.FT_Done_Face
-              )
-            if status != CAIRO_STATUS_SUCCESS :
-                raise RuntimeError("Error %d doing user_data dance for %s" % (status, filename))
-            #end if
-            ft_face = None # Cairo has stolen my reference
-        #end if
+        if (
+            _cairo_so.cairo_font_face_get_user_data(cr_face, ct.byref(_ft_destroy_key))
+            == None
+        ):
+            status = _cairo_so.cairo_font_face_set_user_data(
+                cr_face, ct.byref(_ft_destroy_key), ft_face, _freetype_so.FT_Done_Face
+            )
+            if status != CAIRO_STATUS_SUCCESS:
+                raise RuntimeError(
+                    "Error %d doing user_data dance for %s" % (status, filename)
+                )
+            # end if
+            ft_face = None  # Cairo has stolen my reference
+        # end if
 
         # set Cairo font face into Cairo context
         cairo_ctx = cairo.Context(_surface)
         cairo_t = _PycairoContext.from_address(id(cairo_ctx)).ctx
         _cairo_so.cairo_set_font_face(cairo_t, cr_face)
         status = _cairo_so.cairo_font_face_status(cairo_t)
-        if status != CAIRO_STATUS_SUCCESS :
-            raise RuntimeError("Error %d creating cairo font face for %s" % (status, filename))
-        #end if
+        if status != CAIRO_STATUS_SUCCESS:
+            raise RuntimeError(
+                "Error %d creating cairo font face for %s" % (status, filename)
+            )
+        # end if
 
-    finally :
+    finally:
         _cairo_so.cairo_font_face_destroy(cr_face)
         _freetype_so.FT_Done_Face(ft_face)
-    #end try
+    # end try
 
     # get back Cairo font face as a Python object
     face = cairo_ctx.get_font_face()
     return face
 
-# Get font family name for file
+
+# Get font family name for file
 # https://chatgpt.com/share/68a9d497-6b9c-8005-bff1-61a45501b1d9
 
 # Preferred order for name records:
@@ -2616,10 +2710,11 @@ def create_cairo_font_face_for_file (filename, faceindex=0, loadoptions=0):
 # 4) Any other non-empty record
 PREFS = [
     (3, None, None, 0x0409),  # Win, any enc, English
-    (3, None, None, None),    # Win, any lang
-    (1, 0, None, 0),          # Mac Roman, English
+    (3, None, None, None),  # Win, any lang
+    (1, 0, None, 0),  # Mac Roman, English
     (None, None, None, None),
 ]
+
 
 def _pick_name(name_table, name_id):
     # Try preferred platform/encoding/lang combos first
@@ -2637,6 +2732,7 @@ def _pick_name(name_table, name_id):
                 return s
     return None
 
+
 def read_font_names(path):
     """Return a dict with family, subfamily, full_name, postscript_name."""
     with TTFont(path, lazy=True) as f:
@@ -2652,6 +2748,105 @@ def read_font_names(path):
     return {
         "family": family,
         "subfamily": subfamily,
-        "full_name": full_name or (f"{family} {subfamily}".strip() if family and subfamily else None),
+        "full_name": full_name
+        or (f"{family} {subfamily}".strip() if family and subfamily else None),
+        "postscript_name": postscript_name,
+    }
+        # end if
+        # Problem: Cairo doesn't know to call FT_Done_Face when its font_face object is
+        # destroyed, so we have to do that for it, by attaching a cleanup callback to
+        # the font_face. This only needs to be done once for each font face, while
+        # cairo_ft_font_face_create_for_ft_face will return the same font_face if called
+        # twice with the same FT Face.
+        # The following check for whether the cleanup has been attached or not is
+        # actually unnecessary in our situation, because each call to FT_New_Face
+        # will return a new FT Face, but we include it here to show how to handle the
+        # general case.
+        if (
+            _cairo_so.cairo_font_face_get_user_data(cr_face, ct.byref(_ft_destroy_key))
+            == None
+        ):
+            status = _cairo_so.cairo_font_face_set_user_data(
+                cr_face, ct.byref(_ft_destroy_key), ft_face, _freetype_so.FT_Done_Face
+            )
+            if status != CAIRO_STATUS_SUCCESS:
+                raise RuntimeError(
+                    "Error %d doing user_data dance for %s" % (status, filename)
+                )
+            # end if
+            ft_face = None  # Cairo has stolen my reference
+        # end if
+
+        # set Cairo font face into Cairo context
+        cairo_ctx = cairo.Context(_surface)
+        cairo_t = _PycairoContext.from_address(id(cairo_ctx)).ctx
+        _cairo_so.cairo_set_font_face(cairo_t, cr_face)
+        status = _cairo_so.cairo_font_face_status(cairo_t)
+        if status != CAIRO_STATUS_SUCCESS:
+            raise RuntimeError(
+                "Error %d creating cairo font face for %s" % (status, filename)
+            )
+        # end if
+
+    finally:
+        _cairo_so.cairo_font_face_destroy(cr_face)
+        _freetype_so.FT_Done_Face(ft_face)
+    # end try
+
+    # get back Cairo font face as a Python object
+    face = cairo_ctx.get_font_face()
+    return face
+
+
+# Get font family name for file
+# https://chatgpt.com/share/68a9d497-6b9c-8005-bff1-61a45501b1d9
+
+# Preferred order for name records:
+# 1) Windows/Unicode (platform 3) English (lang 0x0409) if available
+# 2) Any Windows/Unicode
+# 3) macOS Roman (platform 1) English (lang 0)
+# 4) Any other non-empty record
+PREFS = [
+    (3, None, None, 0x0409),  # Win, any enc, English
+    (3, None, None, None),  # Win, any lang
+    (1, 0, None, 0),  # Mac Roman, English
+    (None, None, None, None),
+]
+
+
+def _pick_name(name_table, name_id):
+    # Try preferred platform/encoding/lang combos first
+    for plat, enc, lang, lid in PREFS:
+        rec = name_table.getName(name_id, plat, enc, lid)
+        if rec:
+            s = rec.toUnicode().strip()
+            if s:
+                return s
+    # Last resort: first non-empty record of this nameID
+    for rec in name_table.names:
+        if rec.nameID == name_id:
+            s = rec.toUnicode().strip()
+            if s:
+                return s
+    return None
+
+
+def read_font_names(path):
+    """Return a dict with family, subfamily, full_name, postscript_name."""
+    with TTFont(path, lazy=True) as f:
+        name = f["name"]
+        # Family: prefer Typographic Family (16) then legacy Family (1)
+        family = _pick_name(name, 16) or _pick_name(name, 1)
+        # Subfamily/Style: prefer Typographic Subfamily (17) then legacy Subfamily (2)
+        subfamily = _pick_name(name, 17) or _pick_name(name, 2)
+        # Full name and PostScript name if present
+        full_name = _pick_name(name, 4)
+        postscript_name = _pick_name(name, 6)
+
+    return {
+        "family": family,
+        "subfamily": subfamily,
+        "full_name": full_name
+        or (f"{family} {subfamily}".strip() if family and subfamily else None),
         "postscript_name": postscript_name,
     }
