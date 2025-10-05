@@ -721,6 +721,7 @@ class Sketch:
         Arguments:
         - `path` (string), the directory where to save the images
         - `num_frames` (int), the number of frames to save
+        - `reload` (bool), whether to reload the sketch, default: True
         '''
         if '~' in path:
             path = os.path.expanduser(path)
@@ -740,7 +741,10 @@ class Sketch:
 
         Arguments:
         - `path` (string), the directory where to save the video
-        - `num_frames` (int), the number of frames to save
+        - `num_frames` (int), the number of frames to save, default: 0
+        - `framerate` (int), the framerate, default: 30
+        - `gamma` (float), the gamma correction, default: 1.0 (see the [OpenCV docs](https://docs.opencv.org/4.x/d3/dc1/tutorial_basic_linear_transform.html))
+        - `reload` (bool), whether to reload the sketch, default: True
         '''
         path = os.path.abspath(path)
         self.grabbing = path
