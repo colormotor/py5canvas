@@ -93,6 +93,7 @@ class CanvasState:
         self._text_size = 16
         self._text_leading = 16
         self._line_width = 1.0
+        self._angle_mode = 'radians'
 
     def set(self, prev=None):
         def should_set(prev, name):
@@ -145,6 +146,7 @@ class Font:
     "_text_size",
     "_line_width",
     "_text_leading",
+    "_angle_mode",
 )
 class Canvas:
     """
@@ -348,6 +350,22 @@ class Canvas:
             print("Rule ", rule, " is not valid")
             print('Use either "nonzero" or "evenodd"')
         self.ctx.set_fill_rule(rules[rule])
+
+    def angle_mode(self, mode='degrees'):
+        mode = mode.lower()
+        if not mode in ['degrees', 'radians']:
+            raise ValueError('invalid angle mode, use either RADIANS or DEGREES')
+        self._angle_mode = mode
+
+    def _to_radians(self, ang):
+        if self._angle_mode == 'radians':
+            return ang
+        return degrees(ang)
+
+    def _to_degrees(self, ang):
+        if self._angle_mode == 'degrees':
+            return ang
+        return radians(ang)
 
     def color_mode(self, mode, *args):
         """Set the color mode for the canvas
@@ -733,9 +751,9 @@ class Canvas:
             s = args
         self.ctx.scale(*s)
 
-    def rotate(self, theta):
-        """Rotate by `theta` radians"""
-        self.ctx.rotate(theta)
+    def rotate(self, angle):
+        """Rotate by `theta` radians (or degrees, depeending on the angle mode)"""
+        self.ctx.rotate(self._to_radians(angle))
 
     rotate_rad = rotate
 
@@ -1176,9 +1194,9 @@ class Canvas:
             x, y = args[0]
             w, h, start, stop = args[1:]
 
-        # self.push()
-        # self.translate(x, y)
-        # self.scale(w/2,h/2)
+        # Cairo expects degrees
+        start, stop = (self._to_degrees(start),
+                       self._to_degrees(stop))
 
         save_mat = self.ctx.get_matrix()
         self.ctx.translate(x, y)
@@ -1194,8 +1212,6 @@ class Canvas:
             self.ctx.fill()
 
         if self.cur_stroke is not None:
-            # lw = self.ctx.get_line_width()
-            # self.ctx.set_line_width(lw*(2.0/min(w, h)))
             self.ctx.set_source_rgba(*self.cur_stroke)
             self.ctx.new_sub_path()
             if mode == "pie":
@@ -1205,6 +1221,7 @@ class Canvas:
                 self.ctx.close_path()
 
         self.ctx.set_matrix(save_mat)
+        # Stroke after matrix set to avoid non-uniform scaling of stroke
         if self.cur_stroke is not None:
             self.ctx.stroke()
             # self.ctx.set_line_width(lw)
@@ -2752,50 +2769,50 @@ def read_font_names(path):
         or (f"{family} {subfamily}".strip() if family and subfamily else None),
         "postscript_name": postscript_name,
     }
-        # end if
-        # Problem: Cairo doesn't know to call FT_Done_Face when its font_face object is
-        # destroyed, so we have to do that for it, by attaching a cleanup callback to
-        # the font_face. This only needs to be done once for each font face, while
-        # cairo_ft_font_face_create_for_ft_face will return the same font_face if called
-        # twice with the same FT Face.
-        # The following check for whether the cleanup has been attached or not is
-        # actually unnecessary in our situation, because each call to FT_New_Face
-        # will return a new FT Face, but we include it here to show how to handle the
-        # general case.
-        if (
-            _cairo_so.cairo_font_face_get_user_data(cr_face, ct.byref(_ft_destroy_key))
-            == None
-        ):
-            status = _cairo_so.cairo_font_face_set_user_data(
-                cr_face, ct.byref(_ft_destroy_key), ft_face, _freetype_so.FT_Done_Face
-            )
-            if status != CAIRO_STATUS_SUCCESS:
-                raise RuntimeError(
-                    "Error %d doing user_data dance for %s" % (status, filename)
-                )
-            # end if
-            ft_face = None  # Cairo has stolen my reference
-        # end if
+    #     # end if
+    #     # Problem: Cairo doesn't know to call FT_Done_Face when its font_face object is
+    #     # destroyed, so we have to do that for it, by attaching a cleanup callback to
+    #     # the font_face. This only needs to be done once for each font face, while
+    #     # cairo_ft_font_face_create_for_ft_face will return the same font_face if called
+    #     # twice with the same FT Face.
+    #     # The following check for whether the cleanup has been attached or not is
+    #     # actually unnecessary in our situation, because each call to FT_New_Face
+    #     # will return a new FT Face, but we include it here to show how to handle the
+    #     # general case.
+    #     if (
+    #         _cairo_so.cairo_font_face_get_user_data(cr_face, ct.byref(_ft_destroy_key))
+    #         == None
+    #     ):
+    #         status = _cairo_so.cairo_font_face_set_user_data(
+    #             cr_face, ct.byref(_ft_destroy_key), ft_face, _freetype_so.FT_Done_Face
+    #         )
+    #         if status != CAIRO_STATUS_SUCCESS:
+    #             raise RuntimeError(
+    #                 "Error %d doing user_data dance for %s" % (status, filename)
+    #             )
+    #         # end if
+    #         ft_face = None  # Cairo has stolen my reference
+    #     # end if
 
-        # set Cairo font face into Cairo context
-        cairo_ctx = cairo.Context(_surface)
-        cairo_t = _PycairoContext.from_address(id(cairo_ctx)).ctx
-        _cairo_so.cairo_set_font_face(cairo_t, cr_face)
-        status = _cairo_so.cairo_font_face_status(cairo_t)
-        if status != CAIRO_STATUS_SUCCESS:
-            raise RuntimeError(
-                "Error %d creating cairo font face for %s" % (status, filename)
-            )
-        # end if
+    #     # set Cairo font face into Cairo context
+    #     cairo_ctx = cairo.Context(_surface)
+    #     cairo_t = _PycairoContext.from_address(id(cairo_ctx)).ctx
+    #     _cairo_so.cairo_set_font_face(cairo_t, cr_face)
+    #     status = _cairo_so.cairo_font_face_status(cairo_t)
+    #     if status != CAIRO_STATUS_SUCCESS:
+    #         raise RuntimeError(
+    #             "Error %d creating cairo font face for %s" % (status, filename)
+    #         )
+    #     # end if
 
-    finally:
-        _cairo_so.cairo_font_face_destroy(cr_face)
-        _freetype_so.FT_Done_Face(ft_face)
-    # end try
+    # finally:
+    #     _cairo_so.cairo_font_face_destroy(cr_face)
+    #     _freetype_so.FT_Done_Face(ft_face)
+    # # end try
 
-    # get back Cairo font face as a Python object
-    face = cairo_ctx.get_font_face()
-    return face
+    # # get back Cairo font face as a Python object
+    # face = cairo_ctx.get_font_face()
+    # return face
 
 
 # Get font family name for file
