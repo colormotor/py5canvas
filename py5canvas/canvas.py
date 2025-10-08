@@ -1301,12 +1301,13 @@ class Canvas:
             w, h, start, stop = args[1:]
 
         # Cairo expects degrees
-        start, stop = (self._to_degrees(start),
-                       self._to_degrees(stop))
+        start, stop = (self._to_radians(start),
+                       self._to_radians(stop))
 
         save_mat = self.ctx.get_matrix()
         self.ctx.translate(x, y)
         self.ctx.scale(w / 2, h / 2)
+
         # cairo_scale(cr, 0.5, 1);
 
         if self.cur_fill is not None:
