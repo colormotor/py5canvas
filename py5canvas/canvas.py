@@ -401,7 +401,7 @@ class Canvas:
         col = self._scale_color(clr)
         # If originally user provided a string return rgba
         if type(clr[0]) in [str, np.str_]:
-            print("Color is string")
+            # print("Color is string")
             return col
         # otherwise check if it needs HSV conversion
         if self._is_hsv():
