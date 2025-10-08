@@ -404,6 +404,40 @@ class Canvas:
             return hsv_to_rgb(col)
         return col
 
+    # Add docstrings to these methods
+
+    def red(self, *args):
+        rgba = self._apply_colormode(args)*self.color_scale
+        return rgba[0]
+
+    def red(self, *args):
+        rgba = self._apply_colormode(args)*self.color_scale
+        return rgba[1]
+
+    def red(self, *args):
+        rgba = self._apply_colormode(args)*self.color_scale
+        return rgba[2]
+
+    def hue(self, *args):
+        rgba = self._apply_colormode(args)
+        hsva = rgb_to_hsv(rgba)*self.color_scale
+        return hsva[0]
+
+    def saturation(self, *args):
+        rgba = self._apply_colormode(args)
+        hsva = rgb_to_hsv(rgba)*self.color_scale
+        return hsva[1]
+
+    def lightness(self, *args):
+        rgba = self._apply_colormode(args)
+        hsva = rgb_to_hsv(rgba)*self.color_scale
+        return hsva[2]
+
+    def brightness(self, *args):
+        rgba = self._apply_colormode(args)
+        hsva = rgb_to_hsv(rgba)*self.color_scale
+        return hsva[2]
+
     def fill(self, *args):
         """Set the color of the current fill
 
@@ -2244,6 +2278,29 @@ def hsv_to_rgb(hsva):
             r, g, b = v, p, q
 
     return np.array([r, g, b, a])[: len(hsva)]
+
+
+def rgb_to_hsv(rgba):
+    r, g, b = rgba[:3]
+    a = 1
+    if len(rgba) > 3:
+        a = rgba[-1]
+
+    K = 0
+    if g < b:
+        g, b = b, g
+        K = -1
+
+    if r < g:
+        r, g = g, r
+        K = -2 / 6 - K
+
+    chroma = r - g if g < b else r - b #r - (g < b ? g : b);
+    h = abs(K + (g - b) / (6 * chroma + 1e-20))
+    s = chroma / (r + 1e-20)
+    v = r
+
+    return np.array([h, s, v, a])[:len(rgba)]
 
 
 class VideoInput:
