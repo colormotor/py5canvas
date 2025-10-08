@@ -239,6 +239,8 @@ class Canvas:
         self.ROUND = "round"
         self.SQUARE = "square"
         self.PROJECT = "project"
+        self.DEGREES = "degrees"
+        self.RADIANS = "radians"
 
         # Utils
         self._cur_point = []
@@ -360,25 +362,27 @@ class Canvas:
     def _to_radians(self, ang):
         if self._angle_mode == 'radians':
             return ang
-        return degrees(ang)
+        return radians(ang)
 
     def _to_degrees(self, ang):
         if self._angle_mode == 'degrees':
             return ang
-        return radians(ang)
+        return degrees(ang)
 
     def color_mode(self, mode, *args):
         """Set the color mode for the canvas
-
-        Arguments:
-
         - `mode` (string): can be one of 'rgb', 'hsv' depending on the desired color mode
         - `scale` (float): the scale for the color values (e.g. 255 for 0...255 range, 1 for 0...1 range)
+        - `*args`: color values in the current color mode
 
         Examples:
 
         - `color_mode('rgb', 1.0)` will set the color mode to RGB in the 0-1 range.
-        """
+
+        Returns:
+
+        - (float): red component value in the current color scale
+         """
         self._color_mode = mode
         if len(args):
             if len(args) == 1:
@@ -404,36 +408,104 @@ class Canvas:
             return hsv_to_rgb(col)
         return col
 
-    # Add docstrings to these methods
-
     def red(self, *args):
+        """Return the red component of a color.
+
+        Arguments:
+
+        - `*args`: color values in the current color mode
+
+        Returns:
+
+        - (float): red component value in the current color scale
+        """
         rgba = self._apply_colormode(args)*self.color_scale
         return rgba[0]
 
-    def red(self, *args):
+    def green(self, *args):
+        """Return the green component of a color.
+
+        Arguments:
+
+        - `*args`: color values in the current color mode
+
+        Returns:
+
+        - (float): green component value in the current color scale
+        """
         rgba = self._apply_colormode(args)*self.color_scale
         return rgba[1]
 
-    def red(self, *args):
+    def blue(self, *args):
+        """Return the blue component of a color.
+
+        Arguments:
+
+        - `*args`: color values in the current color mode
+
+        Returns:
+
+        - (float): blue component value in the current color scale
+        """
         rgba = self._apply_colormode(args)*self.color_scale
         return rgba[2]
 
     def hue(self, *args):
+        """Return the hue component of a color.
+
+        Arguments:
+
+        - `*args`: color values in the current color mode
+
+        Returns:
+
+        - (float): hue component value in the current color scale
+        """
         rgba = self._apply_colormode(args)
         hsva = rgb_to_hsv(rgba)*self.color_scale
         return hsva[0]
 
     def saturation(self, *args):
+        """Return the saturation component of a color.
+
+        Arguments:
+
+        - `*args`: color values in the current color mode
+
+        Returns:
+
+        - (float): saturation component value in the current color scale
+        """
         rgba = self._apply_colormode(args)
         hsva = rgb_to_hsv(rgba)*self.color_scale
         return hsva[1]
 
     def lightness(self, *args):
+        """Return the lightness component of a color.
+
+        Arguments:
+
+        - `*args`: color values in the current color mode
+
+        Returns:
+
+        - (float): lightness component value in the current color scale
+        """
         rgba = self._apply_colormode(args)
         hsva = rgb_to_hsv(rgba)*self.color_scale
         return hsva[2]
 
     def brightness(self, *args):
+        """Return the brightness component of a color.
+
+        Arguments:
+
+        - `*args`: color values in the current color mode
+
+        Returns:
+
+        - (float): brightness component value in the current color scale
+        """
         rgba = self._apply_colormode(args)
         hsva = rgb_to_hsv(rgba)*self.color_scale
         return hsva[2]

@@ -33,6 +33,9 @@ BEVEL = 'bevel'
 ROUND = 'round'
 SQUARE = 'square'
 PROJECT = 'project'
+DEGREES = "degrees"
+RADIANS = "radians"
+
 # Blend modes
 BLEND = "over"
 REPLACE = "source"
