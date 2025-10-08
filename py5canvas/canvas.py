@@ -2246,38 +2246,6 @@ def hsv_to_rgb(hsva):
     return np.array([r, g, b, a])[: len(hsva)]
 
 
-def hsv_to_rgb(hsva):
-    h, s, v = hsva[:3]
-    a = 1
-    if len(hsva) > 3:
-        a = hsva[3]
-
-    if s == 0.0:
-        r = g = b = v
-    else:
-        h = fmod(h, 1) / (60.0 / 360.0)
-        i = int(h)
-        f = h - i
-        p = v * (1.0 - s)
-        q = v * (1.0 - s * f)
-        t = v * (1.0 - s * (1.0 - f))
-
-        if i == 0:
-            r, g, b = v, t, p
-        elif i == 1:
-            r, g, b = q, v, p
-        elif i == 2:
-            r, g, b = p, v, t
-        elif i == 3:
-            r, g, b = p, q, v
-        elif i == 4:
-            r, g, b = t, p, v
-        else:
-            r, g, b = v, p, q
-
-    return np.array([r, g, b, a])[: len(hsva)]
-
-
 class VideoInput:
     """
     TODO move to sketch
