@@ -1300,6 +1300,9 @@ class Canvas:
             x, y = args[0]
             w, h, start, stop = args[1:]
 
+        if w==0 or h==0:
+            return
+
         # Cairo expects degrees
         start, stop = (self._to_radians(start),
                        self._to_radians(stop))
