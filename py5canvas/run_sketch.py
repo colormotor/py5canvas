@@ -1501,7 +1501,8 @@ def main(path='', fps=0, inject=True, show_toolbar=False):
     sketch._fps = fps
 
     def canvas_pos(x, y):
-        return np.array([x, sketch.window_height-y-sketch.toolbar_height])
+        #return np.array([x, sketch.window_height-y-sketch.toolbar_height])
+        return np.array([x, y-sketch.toolbar_height])
 
     def check_callback(name):
         if not name in sketch.var_context:
@@ -1739,7 +1740,7 @@ def main(path='', fps=0, inject=True, show_toolbar=False):
             # Updates input and calls draw in the sketch
             # Poll for and process events
             glfw.poll_events()
-            sketch._mouse_pos = np.array(glfw.get_cursor_pos(sketch.window))
+            sketch._mouse_pos = canvas_pos(*glfw.get_cursor_pos(sketch.window))
 
             do_frame = False
             delta_t = time.perf_counter() - prev_t

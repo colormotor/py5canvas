@@ -9,6 +9,10 @@ cfg.hover = None
 cfg.draw_list = []
 cfg.sketch = None
 
+def dprint(*args):
+    return
+    print('gfxui:', *args)
+
 def point_in_rect(p, pos, size):
     p, pos, size = np.array(p), np.array(pos), np.array(size)
     p = p-pos
@@ -43,15 +47,16 @@ def dragger(id, pos):
 
     if hover and cfg.active is None:
         cfg.hover = id
-    if cfg.sketch._clicked and hover and cfg.active is None:
-        #print("Setting active", id, pos, cfg.sketch.dragging)
+        dprint('hover')
+    if cfg.sketch.clicked and hover and cfg.active is None:
+        dprint("Setting active", id, pos, cfg.sketch.dragging)
         cfg.active = id
     if not cfg.sketch.dragging and cfg.active == id:
         cfg.active = None
-        #print("Deactivating", id, pos)
+        dprint("Deactivating", id, pos)
 
     if cfg.sketch.dragging and cfg.active == id:
-        #print('Dragging', id, pos, cfg.sketch.mouse_delta)
+        dprint('Dragging', id, pos, cfg.sketch.mouse_delta)
         pos = cfg.sketch.mouse_pos.copy() #np.array(pos) + cfg.sketch.mouse_delta
     add_to_drawlist(id, lambda :(
         c.stroke(0),
