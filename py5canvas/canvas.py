@@ -133,6 +133,52 @@ class Font:
     size: int = None
     style: str = None
 
+class Gradient:
+    def __init__(self, kind, **kw):
+        extend_modes = {
+            'none': cairo.EXTEND_NONE,
+            'pad': cairo.EXTEND_PAD,
+            'repeat': cairo.EXTEND_REPEAT,
+            'reflect': cairo.EXTEND_REFLECT,
+        }
+
+        stops = kw.pop('stops', [])
+        extend = extend_modes.get(kw.pop('extend', 'pad'), cairo.EXTEND_PAD)
+
+        if kind == 'linear':
+            start = kw.get('start', (0, 0))
+            end   = kw.get('end', (1, 0))
+            grad = cairo.LinearGradient(*start, *end)
+
+        elif kind == 'radial':
+            inner = kw.get('inner', (0, 0, 0))
+            outer = kw.get('outer', (0, 0, 1))
+            grad = cairo.RadialGradient(*inner, *outer)
+
+        else:
+            raise ValueError("kind must be 'linear' or 'radial'")
+
+        grad.set_extend(extend)
+
+        for stop in stops:
+            if len(stop) == 4:
+                grad.add_color_stop_rgb(*stop)
+            elif len(stop) == 5:
+                grad.add_color_stop_rgba(*stop)
+            else:
+                raise ValueError("stops must be (offset,r,g,b) or (offset,r,g,b,a)")
+
+        self.gradient = grad
+
+    @classmethod
+    def linear(cls, start, end, stops, extend='pad'):
+        return cls('linear', start=start, end=end, stops=stops, extend=extend)
+
+    @classmethod
+    def radial(cls, inner, outer, stops, extend='pad'):
+        return cls('radial', inner=inner, outer=outer, stops=stops, extend=extend)
+
+
 
 @draw_states_properties(
     "cur_fill",
@@ -522,8 +568,121 @@ class Canvas:
         """
         if args[0] is None:
             self.cur_fill = None
+        elif isinstance(args[0], Gradient):
+            self.cur_fill = args[0]
         else:
             self.cur_fill = self._apply_colormode(args)
+
+    def linear_gradient(self, *args, extend='pad'):
+        """Create a linear gradient fill.
+
+        Can be called in two ways:
+            `linear_gradient(x1, y1, x2, y2, stop1, stop2, ...)`
+            `linear_gradient((x1, y1), (x2, y2), stop1, stop2, ...)`
+
+        Each stop is a tuple:
+           `(offset, color)`
+        where:
+            - offset is between 0 and 1
+            - color is a tuple (r, g, b[, a]) in current color mode
+
+        Example:
+        ```
+            fill(linear_gradient(0, 0, 200, 0,
+                                (0, (1, 0, 0)),
+                                (1, (0, 0, 1))))
+        ```
+        """
+        if is_number(args[0]):
+            x1, y1, x2, y2 = args[:4]
+            args = args[4:]
+        else:
+
+            (x1, y1), (x2, y2) = args[:2]
+            args = args[2:]
+
+        if len(args) < 2:
+            raise ValueError("You must provide at least 2 stops for creating a gradient")
+
+        stops = [np.concatenate([[c[0]], self._apply_colormode(c[1])]) for c in args]
+
+        return Gradient.linear(
+            (x1, y1),
+            (x2, y2),
+            stops,
+            extend=extend
+        )
+
+    def radial_gradient(self, *args, extend='pad'):
+        """Create a radial gradient fill.
+
+        Can be called in two ways:
+            `radial_gradient(cx0, cy0, r0, cx1, cy1, r1, stop1, stop2, ...)`
+            `radial_gradient((cx0, cy0, r0), (cx1, cy1, r1), stop1, stop2, ...)`
+
+        - (cx0, cy0, r0): center and radius of the inner circle
+        - (cx1, cy1, r1): center and radius of the outer circle
+
+        Each stop is a tuple:
+            (offset, color)
+        where:
+            - offset is between 0 and 1
+            - color is a tuple (r, g, b[, a]) in current color mode
+
+        Example:
+        ```
+            fill(radial_gradient((100, 100, 0), (100, 100, 80),
+                                (0, (1, 1, 1)),
+                                (1, (0, 0, 0))))
+        ```
+        """
+        if is_number(args[0]):
+            cx0, cy0, r0, cx1, cy1, r1 = args[:6]
+            args = args[6:]
+        else:
+            (cx0, cy0, r0), (cx1, cy1, r1) = args[:2]
+            args = args[2:]
+
+        if len(args) < 2:
+            raise ValueError("You must provide at least 2 stops for creating a gradient")
+
+        stops = [np.concatenate([[c[0]], self._apply_colormode(c[1])]) for c in args]
+
+        return Gradient.radial(
+            (cx0, cy0, r0),
+            (cx1, cy1, r1),
+            stops,
+            extend=extend
+        )
+
+    def linear_gradient(self, *args, extend='pad'):
+        if is_number(args[0]):
+            x1, y1, x2, y2 = args[:4]
+            args = args[4:]
+        else:
+            (x1, y1), (x2, y2) = args[:2]
+            args = args[2:]
+        if len(args) < 2:
+            raise ValueError("You must provide at least 2 stops for creating a gradient")
+        stops = [np.concatenate([[c[0]], self._apply_colormode(c[1])]) for c in args]
+        return Gradient.linear((x1, y1),
+                               (x2, y2), stops,
+                               extend=extend)
+
+    def radial_gradient(self, *args, extend='pad'):
+        if is_number(args[0]):
+            cx0, cy0, r0, cx1, cy1, r1 = args[:6]
+            args = args[6:]
+        else:
+            (cx0, cy0, r0), (cx1, cy1, r1) = args[:2]
+            args = args[2:]
+        if len(args) < 2:
+            raise ValueError("You must provide at least 2 stops for creating a gradient")
+        stops = [np.concatenate([[c[0]], self._apply_colormode(c[1])]) for c in args]
+        return Gradient.radial((cx0, cy0, r0),
+                            (cx1, cy1, r1),
+                            stops,
+                            extend=extend)
 
     def stroke(self, *args):
         """Set the color of the current stroke
@@ -888,12 +1047,18 @@ class Canvas:
         else:
             return rgb_to_hsv(np.array(args[0])) * self.color_scale
 
+    def _setfill(self):
+        if isinstance(self.cur_fill, Gradient):
+            self.ctx.set_source(self.cur_fill.gradient)
+        else:
+            self.ctx.set_source_rgba(*self.cur_fill)
+
     def _fillstroke(self):
         if self.no_draw:  # we are in a begin_shape end_shape pair
             return
 
         if self.cur_fill is not None:
-            self.ctx.set_source_rgba(*self.cur_fill)
+            self._setfill()
             if self.cur_stroke is not None:
                 self.ctx.fill_preserve()
             else:
@@ -1257,7 +1422,7 @@ class Canvas:
         self.ctx.new_sub_path()
         self.ctx.arc(0, 0, 1, 0, np.pi * 2.0)
         if self.cur_fill is not None:
-            self.ctx.set_source_rgba(*self.cur_fill)
+            self._setfill()
             if self.cur_stroke is not None:
                 self.ctx.fill_preserve()
             else:
@@ -1314,7 +1479,7 @@ class Canvas:
         # cairo_scale(cr, 0.5, 1);
 
         if self.cur_fill is not None:
-            self.ctx.set_source_rgba(*self.cur_fill)
+            self._setfill() #self.ctx.set_source_rgba(*self.cur_fill)
             self.ctx.new_sub_path()
             if mode != "chord":
                 self.ctx.move_to(0, 0)
@@ -1644,7 +1809,8 @@ class Canvas:
             raise ValueError("text: wrong number of args")
 
         if self.cur_fill is not None:
-            self.ctx.set_source_rgba(*self.cur_fill)
+            self._setfill()
+            #self.ctx.set_source_rgba(*self.cur_fill)
 
         if not align:
             align = self._text_halign
