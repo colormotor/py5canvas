@@ -1029,6 +1029,12 @@ class Canvas:
         )
         self.ctx.transform(matrix)
 
+    def get_origin(self):
+        """Get the origin in canvas coordinates for the current transformation.
+        Returns a 2d numpy array"""
+        return np.array([self.ctx.get_matrix().x0,
+                         self.ctx.get_matrix().y0])
+
     def rotate_deg(self, deg):
         """Rotate using degrees"""
         self.ctx.rotate(radians(deg))
