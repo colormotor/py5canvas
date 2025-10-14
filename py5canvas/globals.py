@@ -56,6 +56,7 @@ SUBTRACT = "difference"  # Using difference as closest approximation
 
 
 random = np.random.uniform
+rand = np.random.uniform
 random_uniform = np.random.uniform
 random_choice = np.random.choice
 random_int = np.random.randint
