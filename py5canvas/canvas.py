@@ -2364,6 +2364,15 @@ class Canvas:
                 clr = self._convert_html_color(x[0])
                 clr[-1] = x[1] / self.color_scale[-1]
                 return clr
+            elif not is_number(x[0]):
+                # (r, g, b), alpha case
+                if len(x[0]) != 3:
+                    raise ValueError("Need 3 components for color")
+                clr = x[0]
+                return (clr[0] / self.color_scale[0],
+                        clr[1] / self.color_scale[1],
+                        clr[2] / self.color_scale[2],
+                        x[1] / self.color_scale[3])
             if self._is_hsv():
                 return (0, 0, x[0] / self.color_scale[2], x[1] / self.color_scale[3])
             else:
