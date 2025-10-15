@@ -1135,8 +1135,8 @@ class Sketch:
         if self.saving_to_file:
             self.done_saving = True
             draw_frame = True
-            if self.no_loop:
-                self.canvas.background(self.canvas.last_background)
+            # if self.no_loop:
+            #     self.canvas.background(self.canvas.last_background)
 
         # Optional imGUI init and visualization
         if imgui is not None and self._gui_visible:
@@ -1256,8 +1256,9 @@ class Sketch:
                 else:
                     surf = self.canvas.surf
                 ctx = cairo.Context(surf)
-                #ctx.set_source_surface(self.setup_surface)
-                #ctx.paint()
+
+                # ctx.set_source_surface(self.setup_surface)
+                # ctx.paint()
                 ctx.set_source_surface(self.recording_surface)
                 ctx.paint()
                 surf.finish()
