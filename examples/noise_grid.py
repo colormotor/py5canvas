@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 from py5canvas import *
 import numpy as np
-import imgui
 
 def parameters():
     return {
