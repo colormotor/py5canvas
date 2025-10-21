@@ -155,9 +155,9 @@ def create_vector(*args):
 def range_between(a, b, num, endpoint=True):
     ''' Returns a list of numbers that goes from a and b in a specified number of steps.
 
-        E.g. ~range_between(0, 1, 5)~ will give the list ~[0.0, 0.25, 0.5, 0.75, 1.0]~
+        E.g. `range_between(0, 1, 5)` will give the list `[0.0, 0.25, 0.5, 0.75, 1.0]`
 
-        Similar to ~np.linspace~
+        Similar to `np.linspace`
     '''
     return list(np.linspace(a, b, num, endpoint))
 
@@ -165,9 +165,9 @@ def range_between(a, b, num, endpoint=True):
 def linspace(a, b, num, endpoint=True):
     ''' Returns a list of numbers that goes from a and b in a specified number of steps.
 
-        E.g. ~linspace(0, 1, 5)~ will give the list ~[0.0, 0.25, 0.5, 0.75, 1.0]~
+        E.g. `linspace(0, 1, 5)` will give the list `[0.0, 0.25, 0.5, 0.75, 1.0]`
 
-        Similar to ~np.linspace~
+        Similar to `np.linspace`
     '''
     return np.linspace(a, b, num, endpoint)
 
@@ -175,9 +175,9 @@ def linspace(a, b, num, endpoint=True):
 def arange(a, b, step):
     ''' Returns a list of numbers that goes from a and b with equal steps
 
-        E.g. ~arange(0, 1, 0.25)~ will give the list ~[0.0, 0.25, 0.5, 0.75, 1.0]~
+        E.g. `arange(0, 1, 0.25)` will give the list `[0.0, 0.25, 0.5, 0.75, 1.0]`
 
-        Similar to ~np.linspace~
+        Similar to `np.linspace`
     '''
     return np.arange(a, b, step)
 
@@ -203,7 +203,7 @@ def angle_between(*args):
 
 def rotate_vector(*args):
     """Rotate a 2D vector (x, y) by a given angle in radians.
-       Input can be two numbers ~x, y~ or a tuple/array, followed by the angle in radians
+       Input can be two numbers `x, y` or a tuple/array, followed by the angle in radians
     """
     numpy = False
     if len(args) == 2:
@@ -318,7 +318,7 @@ def bezier_point(*args):
 
     Arguments:
     - Four points, specified either as a list of points, a sequence of four points, or a sequence of coordiantes
-    - ~t~ the parameter at which to sample the curve. This can also be an array, in which case the result will be a list of tangents
+    - `t` the parameter at which to sample the curve. This can also be an array, in which case the result will be a list of tangents
     '''
     if len(args) == 5:
         P, t = args[:4], args[-1]
@@ -340,7 +340,7 @@ def bezier_tangent(*args):
 
     Arguments:
     - Four points, specified either as a list of points, a sequence of four points, or a sequence of coordiantes
-    - ~t~ the parameter at which to sample the curve. This can also be an array, in which case the result will be a list of tangents
+    - `t` the parameter at which to sample the curve. This can also be an array, in which case the result will be a list of tangents
     '''
     if len(args) == 5:
         P, t = args[:4], args[-1]
