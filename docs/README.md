@@ -49,19 +49,97 @@ Do not stroke subsequent shapes
 ### `fill_rule(...)`
 Sets the fill rule
 
-        
-
 ### `color_mode(...)`
 Set the color mode for the canvas
-
-Arguments:
-
 - `mode` (string): can be one of 'rgb', 'hsv' depending on the desired color mode
 - `scale` (float): the scale for the color values (e.g. 255 for 0...255 range, 1 for 0...1 range)
+- `*args`: color values in the current color mode
 
 Examples:
 
 - `color_mode('rgb', 1.0)` will set the color mode to RGB in the 0-1 range.
+
+Returns:
+
+- (float): red component value in the current color scale
+ 
+
+### `red(...)`
+Return the red component of a color.
+
+Arguments:
+
+- `*args`: color values in the current color mode
+
+Returns:
+
+- (float): red component value in the current color scale
+
+### `green(...)`
+Return the green component of a color.
+
+Arguments:
+
+- `*args`: color values in the current color mode
+
+Returns:
+
+- (float): green component value in the current color scale
+
+### `blue(...)`
+Return the blue component of a color.
+
+Arguments:
+
+- `*args`: color values in the current color mode
+
+Returns:
+
+- (float): blue component value in the current color scale
+
+### `hue(...)`
+Return the hue component of a color.
+
+Arguments:
+
+- `*args`: color values in the current color mode
+
+Returns:
+
+- (float): hue component value in the current color scale
+
+### `saturation(...)`
+Return the saturation component of a color.
+
+Arguments:
+
+- `*args`: color values in the current color mode
+
+Returns:
+
+- (float): saturation component value in the current color scale
+
+### `lightness(...)`
+Return the lightness component of a color.
+
+Arguments:
+
+- `*args`: color values in the current color mode
+
+Returns:
+
+- (float): lightness component value in the current color scale
+
+### `brightness(...)`
+Return the brightness component of a color.
+
+Arguments:
+
+- `*args`: color values in the current color mode
+
+Returns:
+
+- (float): brightness component value in the current color scale
 
 ### `fill(...)`
 Set the color of the current fill
@@ -72,6 +150,49 @@ Arguments:
 - Two arguments specify grayscale with opacity, e.g. `fill(255, 128)` will fill with transparent white.
 - Three arguments specify a color depending on the color mode (rgb or hsv)
 - Four arguments specify a color with opacity
+
+### `linear_gradient(...)`
+Create a linear gradient fill.
+
+Can be called in two ways:
+    `linear_gradient(x1, y1, x2, y2, stop1, stop2, ...)`
+    `linear_gradient((x1, y1), (x2, y2), stop1, stop2, ...)`
+
+Each stop is a tuple:
+   `(offset, color)`
+where:
+    - offset is between 0 and 1
+    - color is a tuple (r, g, b[, a]) in current color mode
+
+Example:
+```
+    fill(linear_gradient(0, 0, 200, 0,
+                        (0, (1, 0, 0)),
+                        (1, (0, 0, 1))))
+```
+
+### `radial_gradient(...)`
+Create a radial gradient fill.
+
+Can be called in two ways:
+    `radial_gradient(cx0, cy0, r0, cx1, cy1, r1, stop1, stop2, ...)`
+    `radial_gradient((cx0, cy0, r0), (cx1, cy1, r1), stop1, stop2, ...)`
+
+- (cx0, cy0, r0): center and radius of the inner circle
+- (cx1, cy1, r1): center and radius of the outer circle
+
+Each stop is a tuple:
+    (offset, color)
+where:
+    - offset is between 0 and 1
+    - color is a tuple (r, g, b[, a]) in current color mode
+
+Example:
+```
+    fill(radial_gradient((100, 100, 0), (100, 100, 80),
+                        (0, (1, 1, 1)),
+                        (1, (0, 0, 0))))
+```
 
 ### `stroke(...)`
 Set the color of the current stroke
@@ -88,7 +209,7 @@ Set the line width
 Arguments:
 - The width in pixel of the stroke
 
-### `line_join(...)`
+### `stroke_join(...)`
 Specify the 'join' mode for polylines.
 
 Arguments:
@@ -100,11 +221,27 @@ Specify the blending mode
 
 Arguments:
 
-- `mode` (string) can be one of: "clear", "source", "over", "in", "out", "atop",
+- `mode` (string) can be a one of the blend mode constants:
+    - `BLEND = "over"` (default) - Source overwrites canvas
+    - `REPLACE = "source"` - Source completely replaces canvas
+    - `ADD = "add"` - Source colors added to canvas
+    - `MULTIPLY = "multiply"` - Colors multiplied (always darker)
+    - `SCREEN = "screen"` - Colors inverted, multiplied, then inverted (always lighter)
+    - `OVERLAY = "overlay"` - MULTIPLY for dark areas, SCREEN for light areas
+    - `DARKEST = "darken"` - Keeps the darker color value
+    - `LIGHTEST = "lighten"` - Keeps the lighter color value
+    - `DIFFERENCE = "difference"` - Canvas minus source (absolute value)
+    - `EXCLUSION = "exclusion"` - Similar to DIFFERENCE but lower contrast
+    - `HARD_LIGHT = "hard_light"` - Like OVERLAY but based on source brightness
+    - `SOFT_LIGHT = "soft_light"` - Softer version of HARD_LIGHT
+    - `DODGE = "color_dodge"` - Lightens and increases contrast
+    - `BURN = "color_burn"` - Darkens and increases contrast
+    - `REMOVE = "clear"` - Overlapping pixels become transparent
+  or a string of of: "clear", "source", "over", "in", "out", "atop",
   "dest", "dest_over", "dest_in", "dest_out", "dest_atop", "xor", "add", "saturate", "multiply", "screen", "overlay", "darken", "lighten", "color_dodge", "color_burn", "hard_light", "soft_light", "difference", "exclusion", "hsl_hue", "hsl_saturation", "hsl_color", "hsl_luminosity"
   See [Cairo Graphics Operators](https://www.cairographics.org/operators/) for a discussion on the different operators.
 
-### `line_cap(...)`
+### `stroke_cap(...)`
 Specify the 'cap' for lines.
 
 Arguments:
@@ -116,14 +253,21 @@ Specify the text alignment
 
 Arguments:
 - `halign` (string): Horizontal alignment. One of "left", "center" or "right"
-- `valign` (string): Horizontal alignment. One of "bottom" (default), "top" or "center"
+- `valign` (string): Horizontal alignment. One of "baseline" (default), "top", "bottom", or "center"
 
 ### `text_size(...)`
 Specify the text size
-
+N.B. this will also reset the text leading
 Arguments:
 
 - `size` (int): the text size
+
+### `text_leading(...)`
+Specify the space between consecutive lines of text
+if no arguments are specified, returns the text leading values
+Arguments:
+
+- `leading` (int, optional): the text leading
 
 ### `text_font(...)`
 Specify the font to use for text rendering
@@ -175,10 +319,14 @@ Arguments:
 or as single arguments (e.g. `scale(x, y)`)'''
 
 ### `rotate(...)`
-Rotate by `theta` radians
+Rotate by `theta` radians (or degrees, depeending on the angle mode)
 
 ### `apply_matrix(...)`
 Apply an affine (3x3) transformation matrix
+
+### `get_origin()`
+Get the origin in canvas coordinates for the current transformation.
+Returns a 2d numpy array
 
 ### `rotate_deg(...)`
 Rotate using degrees
@@ -207,10 +355,14 @@ The first sequence of arguments is one of
  - `x, y, width, height`
  - `[[topleft_x, topleft_y], [bottomright_x, bottomright_y]]`
 
-The last option will ignore the rect mode since it explictly defines the corners of the rect
+Followed by an optional radius parameter that can be used to create rounded rectangles
 
-The interpretation of `x` and `y` depends on the current rect mode. These indicate the
-center of the rectangle if the rect mode is `"center"` and the top left corner otherwise.
+An optional named `mode` argument allows to ignore the current rect mode since it explictly defines the
+corners of the rect
+
+The interpretation of `x` and `y` depends on the current rect mode.
+These indicate the center of the rectangle if the rect mode is
+`"center"` or `"radius"` and the top-left corner otherwise.
 
 ### `square(...)`
 Draw a square.
@@ -291,12 +443,16 @@ Input arguments can be in the following formats:
 - `[center_x, center_y], [width, height]`,
 - `[center_x, center_y], width, height`,
 - `center_x, center_y, width, height`
+- `[center_x, center_y], width`,
+- `center_x, center_y, width`,
 
 ### `arc(...)`
-Draw an arc given the center of the ellipse `x, y`
+Draw an ellpitical arc, given the center of the ellipse `x, y`
 the size of the ellipse `w, h` and the initial and final angles
 in radians  `start, stop`.
-NB. this differs from Processing/P5js as it always draws
+A last optional `mode` argument determines the arc's fill style.
+The fill modes are a semi-circle (`OPEN`), a closed semi-circle (`CHORD`),
+or a closed pie segment (`PIE`).
 
 Input arguments can be in the following formats:
 
@@ -348,7 +504,6 @@ Requires three points. Input arguments can be in the following formats:
 
 ### `curve_tightness(...)`
 Sets the 'tension' parameter for the curve used when using `curve_vertex`
-        
 
 ### `cubic(...)`
 Draw a cubic bezier curve
@@ -469,6 +624,12 @@ The polyline is specified as either:
 
 To close the polyline set the named `close` argument to `True`, e.g. `c.polyline(points, close=True)`.
 
+### `identity()`
+Resets the current matrix to the identity (no transformation)
+
+### `reset_matrix()`
+Resets the current matrix to the identity (no transformation)
+
 ### `copy(...)`
 The first parameter can optionally be an image, if an image is not specified the funtion will use
 the canvas image, .
@@ -563,12 +724,16 @@ The current position of the mouse as an array
 
 ## Methods
 
-### `open_file_dialog(...)`
-Opens a dialog to select a file to be opened,
-the first argument is the extension or the file to be opened,
-e.g. `'png'` or a list of extensions, e.g. `['png', 'jpg']`
+### `millis()`
+The number of milliseconds since the script has loaded
 
-The function returns the path of the file if it is selected or an empty string othewise.
+### `seconds()`
+The number of seconds since the script has loaded
+
+### `open_file_dialog(...)`
+Opens a dialog to select a file.
+exts: 'png' or ['png', 'jpg'] (extensions without dots)
+Returns the selected path (str) or '' if cancelled.
 
 ### `save_file_dialog(...)`
 Opens a dialog to select a file to be saved,
@@ -608,6 +773,7 @@ By default this will reload the current script.
 Arguments:
 - `path` (string), the directory where to save the images
 - `num_frames` (int), the number of frames to save
+- `reload` (bool), whether to reload the sketch, default: True
 
 ### `grab_movie(...)`
 Saves a mp4 movie from a number of frames to a specified path.
@@ -615,7 +781,13 @@ By default this will reload the current script.
 
 Arguments:
 - `path` (string), the directory where to save the video
-- `num_frames` (int), the number of frames to save
+- `num_frames` (int), the number of frames to save, default: 0
+- `framerate` (int), the framerate, default: 30
+- `gamma` (float), the gamma correction, default: 1.0 (see the [OpenCV docs](https://docs.opencv.org/4.x/d3/dc1/tutorial_basic_linear_transform.html))
+- `reload` (bool), whether to reload the sketch, default: True
+
+### `update_globals()`
+Inject globals that are not updated automatically
 
 ### `title(...)`
 Sets the title of the sketch window

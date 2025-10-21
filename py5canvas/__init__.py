@@ -1,7 +1,7 @@
 import inspect
 import numpy as np
 import os
-from .canvas import Canvas, VideoInput
+from .canvas import Canvas
 import pdb
 
 # Tricks the linter into knowing the symbols we inject

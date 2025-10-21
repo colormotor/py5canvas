@@ -975,7 +975,7 @@ class Sketch:
             sys.modules[name] = mod
 
             # Exposes classes before load because these might be used outside of functions
-            var_context['VideoInput'] = canvas.VideoInput
+            # var_context['VideoInput'] = canvas.VideoInput
             var_context['__loaded_py5sketch__'] = True
 
             # And also expose canvas as 'c' since the functions in the canvas are quite common names and

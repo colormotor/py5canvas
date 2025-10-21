@@ -44,22 +44,110 @@ def no_stroke():
     pass  # Dummy method for linter
 
 def fill_rule(*args):
-    """Sets the fill rule
+    """Sets the fill rule """
+    pass  # Dummy method for linter
 
-         """
+def angle_mode(*args):
     pass  # Dummy method for linter
 
 def color_mode(*args):
     """Set the color mode for the canvas
-
-Arguments:
-
 - `mode` (string): can be one of 'rgb', 'hsv' depending on the desired color mode
 - `scale` (float): the scale for the color values (e.g. 255 for 0...255 range, 1 for 0...1 range)
+- `*args`: color values in the current color mode
 
 Examples:
 
-- `color_mode('rgb', 1.0)` will set the color mode to RGB in the 0-1 range. """
+- `color_mode('rgb', 1.0)` will set the color mode to RGB in the 0-1 range.
+
+Returns:
+
+- (float): red component value in the current color scale
+  """
+    pass  # Dummy method for linter
+
+def red(*args):
+    """Return the red component of a color.
+
+Arguments:
+
+- `*args`: color values in the current color mode
+
+Returns:
+
+- (float): red component value in the current color scale """
+    pass  # Dummy method for linter
+
+def green(*args):
+    """Return the green component of a color.
+
+Arguments:
+
+- `*args`: color values in the current color mode
+
+Returns:
+
+- (float): green component value in the current color scale """
+    pass  # Dummy method for linter
+
+def blue(*args):
+    """Return the blue component of a color.
+
+Arguments:
+
+- `*args`: color values in the current color mode
+
+Returns:
+
+- (float): blue component value in the current color scale """
+    pass  # Dummy method for linter
+
+def hue(*args):
+    """Return the hue component of a color.
+
+Arguments:
+
+- `*args`: color values in the current color mode
+
+Returns:
+
+- (float): hue component value in the current color scale """
+    pass  # Dummy method for linter
+
+def saturation(*args):
+    """Return the saturation component of a color.
+
+Arguments:
+
+- `*args`: color values in the current color mode
+
+Returns:
+
+- (float): saturation component value in the current color scale """
+    pass  # Dummy method for linter
+
+def lightness(*args):
+    """Return the lightness component of a color.
+
+Arguments:
+
+- `*args`: color values in the current color mode
+
+Returns:
+
+- (float): lightness component value in the current color scale """
+    pass  # Dummy method for linter
+
+def brightness(*args):
+    """Return the brightness component of a color.
+
+Arguments:
+
+- `*args`: color values in the current color mode
+
+Returns:
+
+- (float): brightness component value in the current color scale """
     pass  # Dummy method for linter
 
 def fill(*args):
@@ -71,6 +159,57 @@ Arguments:
 - Two arguments specify grayscale with opacity, e.g. `fill(255, 128)` will fill with transparent white.
 - Three arguments specify a color depending on the color mode (rgb or hsv)
 - Four arguments specify a color with opacity """
+    pass  # Dummy method for linter
+
+def linear_gradient(*args):
+    """Create a linear gradient fill.
+
+Can be called in two ways:
+    `linear_gradient(x1, y1, x2, y2, stop1, stop2, ...)`
+    `linear_gradient((x1, y1), (x2, y2), stop1, stop2, ...)`
+
+Each stop is a tuple:
+   `(offset, color)`
+where:
+    - offset is between 0 and 1
+    - color is a tuple (r, g, b[, a]) in current color mode
+
+Example:
+```
+    fill(linear_gradient(0, 0, 200, 0,
+                        (0, (1, 0, 0)),
+                        (1, (0, 0, 1))))
+``` """
+    pass  # Dummy method for linter
+
+def radial_gradient(*args):
+    """Create a radial gradient fill.
+
+Can be called in two ways:
+    `radial_gradient(cx0, cy0, r0, cx1, cy1, r1, stop1, stop2, ...)`
+    `radial_gradient((cx0, cy0, r0), (cx1, cy1, r1), stop1, stop2, ...)`
+
+- (cx0, cy0, r0): center and radius of the inner circle
+- (cx1, cy1, r1): center and radius of the outer circle
+
+Each stop is a tuple:
+    (offset, color)
+where:
+    - offset is between 0 and 1
+    - color is a tuple (r, g, b[, a]) in current color mode
+
+Example:
+```
+    fill(radial_gradient((100, 100, 0), (100, 100, 80),
+                        (0, (1, 1, 1)),
+                        (1, (0, 0, 0))))
+``` """
+    pass  # Dummy method for linter
+
+def linear_gradient(*args):
+    pass  # Dummy method for linter
+
+def radial_gradient(*args):
     pass  # Dummy method for linter
 
 def stroke(*args):
@@ -90,7 +229,7 @@ Arguments:
 - The width in pixel of the stroke """
     pass  # Dummy method for linter
 
-def line_join(*args):
+def stroke_join(*args):
     """Specify the 'join' mode for polylines.
 
 Arguments:
@@ -103,12 +242,28 @@ def blend_mode(*args):
 
 Arguments:
 
-- `mode` (string) can be one of: "clear", "source", "over", "in", "out", "atop",
+- `mode` (string) can be a one of the blend mode constants:
+    - `BLEND = "over"` (default) - Source overwrites canvas
+    - `REPLACE = "source"` - Source completely replaces canvas
+    - `ADD = "add"` - Source colors added to canvas
+    - `MULTIPLY = "multiply"` - Colors multiplied (always darker)
+    - `SCREEN = "screen"` - Colors inverted, multiplied, then inverted (always lighter)
+    - `OVERLAY = "overlay"` - MULTIPLY for dark areas, SCREEN for light areas
+    - `DARKEST = "darken"` - Keeps the darker color value
+    - `LIGHTEST = "lighten"` - Keeps the lighter color value
+    - `DIFFERENCE = "difference"` - Canvas minus source (absolute value)
+    - `EXCLUSION = "exclusion"` - Similar to DIFFERENCE but lower contrast
+    - `HARD_LIGHT = "hard_light"` - Like OVERLAY but based on source brightness
+    - `SOFT_LIGHT = "soft_light"` - Softer version of HARD_LIGHT
+    - `DODGE = "color_dodge"` - Lightens and increases contrast
+    - `BURN = "color_burn"` - Darkens and increases contrast
+    - `REMOVE = "clear"` - Overlapping pixels become transparent
+  or a string of of: "clear", "source", "over", "in", "out", "atop",
   "dest", "dest_over", "dest_in", "dest_out", "dest_atop", "xor", "add", "saturate", "multiply", "screen", "overlay", "darken", "lighten", "color_dodge", "color_burn", "hard_light", "soft_light", "difference", "exclusion", "hsl_hue", "hsl_saturation", "hsl_color", "hsl_luminosity"
   See [Cairo Graphics Operators](https://www.cairographics.org/operators/) for a discussion on the different operators. """
     pass  # Dummy method for linter
 
-def line_cap(*args):
+def stroke_cap(*args):
     """Specify the 'cap' for lines.
 
 Arguments:
@@ -121,15 +276,23 @@ def text_align(*args):
 
 Arguments:
 - `halign` (string): Horizontal alignment. One of "left", "center" or "right"
-- `valign` (string): Horizontal alignment. One of "bottom" (default), "top" or "center" """
+- `valign` (string): Horizontal alignment. One of "baseline" (default), "top", "bottom", or "center" """
     pass  # Dummy method for linter
 
 def text_size(*args):
     """Specify the text size
-
+N.B. this will also reset the text leading
 Arguments:
 
 - `size` (int): the text size """
+    pass  # Dummy method for linter
+
+def text_leading(*args):
+    """Specify the space between consecutive lines of text
+if no arguments are specified, returns the text leading values
+Arguments:
+
+- `leading` (int, optional): the text leading """
     pass  # Dummy method for linter
 
 def text_font(*args):
@@ -198,11 +361,16 @@ or as single arguments (e.g. `scale(x, y)`)''' """
     pass  # Dummy method for linter
 
 def rotate(*args):
-    """Rotate by `theta` radians """
+    """Rotate by `theta` radians (or degrees, depeending on the angle mode) """
     pass  # Dummy method for linter
 
 def apply_matrix(*args):
     """Apply an affine (3x3) transformation matrix """
+    pass  # Dummy method for linter
+
+def get_origin():
+    """Get the origin in canvas coordinates for the current transformation.
+Returns a 2d numpy array """
     pass  # Dummy method for linter
 
 def rotate_deg(*args):
@@ -210,6 +378,9 @@ def rotate_deg(*args):
     pass  # Dummy method for linter
 
 def hsv(*args):
+    pass  # Dummy method for linter
+
+def rgb(*args):
     pass  # Dummy method for linter
 
 def rect_mode(*args):
@@ -238,7 +409,9 @@ The first sequence of arguments is one of
  - `x, y, width, height`
  - `[[topleft_x, topleft_y], [bottomright_x, bottomright_y]]`
 
-The last option will ignore the rect mode since it explictly defines the
+Followed by an optional radius parameter that can be used to create rounded rectangles
+
+An optional named `mode` argument allows to ignore the current rect mode since it explictly defines the
 corners of the rect
 
 The interpretation of `x` and `y` depends on the current rect mode.
@@ -332,14 +505,18 @@ Input arguments can be in the following formats:
 
 - `[center_x, center_y], [width, height]`,
 - `[center_x, center_y], width, height`,
-- `center_x, center_y, width, height` """
+- `center_x, center_y, width, height`
+- `[center_x, center_y], width`,
+- `center_x, center_y, width`, """
     pass  # Dummy method for linter
 
 def arc(*args):
-    """Draw an arc given the center of the ellipse `x, y`
+    """Draw an ellpitical arc, given the center of the ellipse `x, y`
 the size of the ellipse `w, h` and the initial and final angles
 in radians  `start, stop`.
-NB. this differs from Processing/P5js as it always draws
+A last optional `mode` argument determines the arc's fill style.
+The fill modes are a semi-circle (`OPEN`), a closed semi-circle (`CHORD`),
+or a closed pie segment (`PIE`).
 
 Input arguments can be in the following formats:
 
@@ -401,8 +578,7 @@ Requires three points. Input arguments can be in the following formats:
     pass  # Dummy method for linter
 
 def curve_tightness(*args):
-    """Sets the 'tension' parameter for the curve used when using `curve_vertex`
-         """
+    """Sets the 'tension' parameter for the curve used when using `curve_vertex` """
     pass  # Dummy method for linter
 
 def cubic(*args):
@@ -541,6 +717,11 @@ To close the polyline set the named `close` argument to `True`, e.g. `c.polyline
     pass  # Dummy method for linter
 
 def identity():
+    """Resets the current matrix to the identity (no transformation) """
+    pass  # Dummy method for linter
+
+def reset_matrix():
+    """Resets the current matrix to the identity (no transformation) """
     pass  # Dummy method for linter
 
 def copy(*args):
@@ -635,9 +816,13 @@ mouse_y = 'The vertical coordinate of the mouse position'
 
 frame_count = 'The number of frames since the script has loaded'
 
-millis = 'The number of milliseconds since the script has loaded'
+def millis():
+    """The number of milliseconds since the script has loaded """
+    pass  # Dummy method for linter
 
-seconds = 'The number of seconds since the script has loaded'
+def seconds():
+    """The number of seconds since the script has loaded """
+    pass  # Dummy method for linter
 
 clicked = 'Returns `True` if mouse was clicked'
 
@@ -651,11 +836,9 @@ def has_error():
     pass  # Dummy method for linter
 
 def open_file_dialog(*args):
-    """Opens a dialog to select a file to be opened,
-the first argument is the extension or the file to be opened,
-e.g. `'png'` or a list of extensions, e.g. `['png', 'jpg']`
-
-The function returns the path of the file if it is selected or an empty string othewise. """
+    """Opens a dialog to select a file.
+exts: 'png' or ['png', 'jpg'] (extensions without dots)
+Returns the selected path (str) or '' if cancelled. """
     pass  # Dummy method for linter
 
 def save_file_dialog(*args):
@@ -733,7 +916,8 @@ By default this will reload the current script.
 
 Arguments:
 - `path` (string), the directory where to save the images
-- `num_frames` (int), the number of frames to save """
+- `num_frames` (int), the number of frames to save
+- `reload` (bool), whether to reload the sketch, default: True """
     pass  # Dummy method for linter
 
 def grab_movie(*args):
@@ -742,7 +926,10 @@ By default this will reload the current script.
 
 Arguments:
 - `path` (string), the directory where to save the video
-- `num_frames` (int), the number of frames to save """
+- `num_frames` (int), the number of frames to save, default: 0
+- `framerate` (int), the framerate, default: 30
+- `gamma` (float), the gamma correction, default: 1.0 (see the [OpenCV docs](https://docs.opencv.org/4.x/d3/dc1/tutorial_basic_linear_transform.html))
+- `reload` (bool), whether to reload the sketch, default: True """
     pass  # Dummy method for linter
 
 def stop_grabbing():

@@ -5,6 +5,7 @@ from math import hypot, comb
 import os
 from PIL import Image, ImageChops, ImageFilter, ImageOps
 import numbers
+import rumore
 
 # Keywords/functions made available to the sketch
 TWO_PI = 2*np.pi
@@ -65,10 +66,10 @@ random_seed = np.random.seed
 randomseed = np.random.seed
 radians = canvas.radians
 degrees = canvas.degrees
-noise = canvas.noise
-noise_detail = canvas.noise_detail
-noise_grid = canvas.noise_grid
-noise_seed = canvas.noise_seed
+# noise = canvas.noise
+# noise_detail = canvas.noise_detail
+# noise_grid = canvas.noise_grid
+# noise_seed = canvas.noise_seed
 constrain = np.clip
 
 create_font = canvas.create_font
@@ -343,3 +344,183 @@ def bezier_tangent(*args):
         return canvas.eval_bezier(P, np.ones(1)*t, 1)[0]
     return canvas.eval_bezier(P, np.ones(1)*t, 1)
 
+
+# Optional perlin noise init
+_noise_octaves = 4
+_noise_grad = True
+_noise_funcs = [rumore.value_noise, rumore.grad_noise]
+
+
+def noise_seed(seed):
+    """Sets the seed for the noise generator"""
+    rumore.cfg.seed = seed
+
+
+def noise_func(*args):
+    args = list(args)
+    narg = len(args)
+    # Make sure all elements are arrays if the first one is
+    if narg > 1:
+        if not is_number(args[0]):
+            for i in range(1, narg):
+                if is_number(args[i]):
+                    args[i] = np.ones_like(args[0]) * args[i]
+    return _noise_funcs[_noise_grad](*args, octaves=_noise_octaves)
+
+
+def noise_detail(octaves, falloff=0.5, lacunarity=2.0, gradient=True):
+    """Adjusts the character and level of detail produced by the Perlin noise function.
+
+    Arguments:
+
+    - `octaves` (int): the number of noise 'octaves'. Each octave has double the frequency of the previous.
+    - `falloff` (float, default 0.5): a number between 0 and 1 that multiplies the amplitude of each consectutive octave
+    - `lacunarity` (float, default 2.0): number that multiplies the frequency of each consectutive octave
+    - `gradient` (bool, default True): If true (default) `noise` uses gradient noise, otherwise it use value noise
+    """
+    global _noise_octaves, _noise_grad
+    # no < 1 octaves, thank you
+    octaves = int(max(1, octaves))
+    rumore.cfg.falloff = falloff
+    rumore.cfg.lacunarity = lacunarity
+    _noise_octaves = octaves
+    _noise_grad = int(gradient)
+
+
+def noise(*args):
+    """Returns noise (between 0 and 1) at a given coordinate or at multiple coordinates.
+    Noise is created by summing consecutive "octaves" with increasing level of detail.
+    By default this function returns "gradient noise", a variant of noise similar to Ken Perlin's original version.
+    Alternatively the function can return "value noise", which is a faster but more blocky version.
+    By default each octave has double the frequency (lacunarity) of the previous and an amplitude falls off for each octave. By default the falloff is 0.5.
+    The default number of octaves is `4`.
+
+    Use `noise_detail` to set the number of octaves and optionally falloff, lacunarity and whether to use gradient or value noise.
+
+    Arguments:
+
+    - The arguments to this function can vary from 1 to 3, determining the "space" that is sampled to generate noise.
+    The function also accepts numpy arrays for each coordinate but these must be of the same size.
+    """
+    res = noise_func(*args)  # _noise_funcs[_noise_grad](*args, octaves=_noise_octaves)
+    return res * 0.5 + 0.5
+
+
+def noise_grid(*args, **kwargs):
+    """Returns a 2d array of noise values (between 0 and 1).
+    The array can be treated as a grayscale image and is defined by two input 1d array parameters, x and y.
+    The number of elements in x and y define the number of columns and rows, respectively.
+    Optionally a third `z` parameter can be specified and it defines the depth of a "slice" in a 3d noise volume.
+
+    Arguments:
+
+    - The arguments to this function can be either two arrays, say
+    ```python
+    img = noise_grid(np.linspace(0, width, 100),
+                     np.linspace(0, height, 100))
+    ```
+    or three, where the third parameter can be a scalar
+    ```python
+    img = noise_grid(np.linspace(0, width, 100),
+                     np.linspace(0, height, 100), 3.4)
+    ```
+    """
+    return (
+        rumore.noise_grid(*args, gradient=_noise_grad, octaves=_noise_octaves, **kwargs)
+        * 0.5
+        + 0.5
+    )
+
+
+
+class VideoInput:
+    """
+    Video Input utility (requires OpenCV to be installed).
+    Allows for reading frames from a video file or camera.
+
+    Arguments:
+
+    - `name`: Either an integer indicating the device number, or a string indicating the path of a video file
+    - `size`: A tuple indicating the desired size of the video frames (width, height)
+    - `resize_mode`: A string indicating the desired resize mode. Can be 'crop' or 'stretch'
+    - `flipped`: Boolean indicating if the frame should be flipped horizontally. Defaults to None
+    - `vertical_flipped`: Boolean indicating if the frame should be flipped vertically. Defaults to None
+    """
+
+    def __init__(
+        self, name=0, size=None, resize_mode="crop", flipped=None, vertical_flipped=None
+    ):
+        """Constructor"""
+        import cv2
+
+        # define a video capture object
+        self.vid = cv2.VideoCapture(name)
+        if size is not None:
+            self.size = size
+        else:
+            self.size = (
+                int(self.vid.get(cv2.CAP_PROP_FRAME_WIDTH)),
+                int(self.vid.get(cv2.CAP_PROP_FRAME_HEIGHT)),
+            )
+        self.resize_mode = resize_mode
+        self.name = name
+        self.flipped = flipped
+        self.vertical_flipped = vertical_flipped
+
+    def close(self):
+        self.vid.release()
+
+    def read(self, loop_flag=False, pil=True, grayscale=False):
+        import cv2
+
+        # Capture video frame by frame
+        success, img = self.vid.read()
+
+        if not success:
+            if (
+                type(self.name) == str and not loop_flag
+            ):  # If a video loop automatically
+                self.vid.set(cv2.CAP_PROP_POS_FRAMES, 0)
+                return self.read(True)
+            else:
+                print("No video")
+                if self.size is not None:
+                    return np.zeros((self.size[1], self.size[0], 3)).astype(np.uint8)
+                else:
+                    return np.zeros((16, 16, 3)).astype(np.uint8)
+
+        if self.size is not None:
+            src_w, src_h = img.shape[1], img.shape[0]
+            dst_w, dst_h = self.size
+
+            if self.resize_mode == "crop":
+                # Keep aspect ratio by cropping
+                aspect = dst_w / dst_h
+
+                # Check if aspect ratio match
+                asrc_w = int(aspect * src_h)
+                if asrc_w > src_w:  # aspect ratio > 1
+                    asrc_h = int(src_h / aspect)
+                    d = (src_h - asrc_h) // 2
+                    img = img[d : d + asrc_h, :, :]
+                elif asrc_w < src_w:  # aspect ratio < 1
+                    d = (src_w - asrc_w) // 2
+                    img = img[:, d : d + asrc_w, :]
+
+            # Resize the image frames
+            img = cv2.resize(img, self.size)
+
+        if self.flipped:
+            img = img[:, ::-1]
+
+        if self.vertical_flipped:
+            img = img[::-1]
+
+        img = img[:, :, ::-1]
+        if pil:
+            if grayscale:
+                return Image.gromarray(img).convert("L")
+            return Image.fromarray(img)
+        if grayscale:
+            return np.mean(img / 255, axis=-1)
+        return img
