@@ -2134,6 +2134,9 @@ class Canvas:
         # self.clear_callback()
         # HACK Save background, this is needed for saving and no_loop in sketches
         # Since saving has to be done as a postprocess after the frame
+        if not len(args):
+            raise ValueError("background requires at least one argument")
+
         if len(args) == 1:
             self.last_background = args[0]
         else:

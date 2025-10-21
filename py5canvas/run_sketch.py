@@ -360,6 +360,9 @@ class Sketch:
 
         self.blit_scale_factor = (1.0, 1.0)
 
+        # Flag to block mouse inputs while open/save dialogs are active
+        self.dialog_active = False
+
         # HACK (disabled in background) trying to get background to work async
         # Works better without
         self._background_args = None
@@ -379,7 +382,11 @@ class Sketch:
             self.oscclient = None
             self.server_thread = None
             self.osc_enabled = True
-            self.start_osc()
+            try:
+                self.start_osc()
+            except OSError as e:
+                print(e)
+                print("Could not start OSC server!")
         else:
             print('pythonosc not installed')
             self.osc_enabled = False
@@ -443,19 +450,64 @@ class Sketch:
     def has_error(self):
         return self.startup_error or self.runtime_error
 
-    def open_file_dialog(self, exts, title='Open file...'):
-        ''' Opens a dialog to select a file to be opened,
-        the first argument is the extension or the file to be opened,
-        e.g. `'png'` or a list of extensions, e.g. `['png', 'jpg']`
+    def open_file_dialog(self, exts, title='Open file…'):
+        """
+        Opens a dialog to select a file.
+        exts: 'png' or ['png', 'jpg'] (extensions without dots)
+        Returns the selected path (str) or '' if cancelled.
+        """
+        if self.dialog_active:
+            return ''
 
-        The function returns the path of the file if it is selected or an empty string othewise.
-        '''
-        # See https://github.com/xMGZx/xdialog
         import xdialog
-        if np.isscalar(exts):
+
+        # Normalize extensions to a list
+        if isinstance(exts, (str, bytes)):
             exts = [exts]
-        filetypes = [(ext + ' files', "*." + ext) for ext in exts]
-        return xdialog.open_file(title, filetypes=filetypes, multiple=False)
+
+        # Build case-insensitive patterns and a friendly label
+        patterns = []
+        filetypes = []
+        for ext in exts:
+            ext = ext.lstrip('.')
+            # add both lower and upper just in case some backends are case sensitive
+            patterns.append(f"*.{ext.lower()}")
+            patterns.append(f"*.{ext.upper()}")
+            filetypes.append((f"{ext.upper()} files", f"*.{ext.lower()}"))
+
+        # Add a catch-all so users can still navigate if platform filtering is quirky
+        filetypes.append(("All files", "*.*"))
+
+        self.dialog_active = True
+        try:
+            res = xdialog.open_file(title, filetypes=filetypes, multiple=False)
+            return res or ''
+        finally:
+            # Always release the guard, even if dialog throws/cancels
+            self.dialog_active = False
+
+
+    # def open_file_dialog(self, exts, title='Open file...'):
+    #     ''' Opens a dialog to select a file to be opened,
+    #     the first argument is the extension or the file to be opened,
+    #     e.g. `'png'` or a list of extensions, e.g. `['png', 'jpg']`
+
+    #     The function returns the path of the file if it is selected or an empty string othewise.
+    #     '''
+    #     if self.dialog_active:
+    #         return ''
+    #     # See https://github.com/xMGZx/xdialog
+    #     import xdialog
+    #     if np.isscalar(exts):
+    #         exts = [exts]
+    #     filetypes = [(ext + ' files', "*." + ext) for ext in exts]
+
+    #     self.dialog_active = True
+    #     res = xdialog.open_file(title, filetypes=filetypes, multiple=False)
+    #     # self.dialog_active = False
+    #     print('End dialog')
+
+    #     return res
 
     def save_file_dialog(self, exts, title='Open file...', filename='untitled'):
         ''' Opens a dialog to select a file to be saved,
@@ -464,9 +516,14 @@ class Sketch:
 
         The function returns the path of the file if it is selected or an empty string othewise.
         '''
+        if self.dialog_active:
+            return ''
+
         import xdialog
         if np.isscalar(exts):
             exts = [exts]
+        self.dialog_active = True
+
         filetypes = [(filename, "*." + ext) for ext in exts]
         file_path = xdialog.save_file(title, filetypes=filetypes)
         root, ext = os.path.splitext(file_path)
@@ -474,6 +531,7 @@ class Sketch:
         if ext.lower() not in [f".{e.lower()}" for e in exts]:
             # If not, append the first extension from the list
             file_path = f"{file_path}.{exts[0].lstrip('.')}"
+
         return file_path
 
     def open_folder_dialog(self, title='Open folder...'):
@@ -482,7 +540,10 @@ class Sketch:
         The function returns the path of the directory if it is selected or an empty string othewise.
         '''
         import xdialog
-        return xdialog.directory(title)
+        self.dialog_active = True
+        res = xdialog.directory(title)
+        #print('End dialog')
+        return res
 
     def _create_canvas(self, w, h, canvas_size=None, fullscreen=False, screen=None, save_background=True):
         self.is_fullscreen = fullscreen
@@ -1100,6 +1161,8 @@ class Sketch:
 
     # internal update
     def frame(self, draw_frame):
+        self.dialog_active = False
+
         if self.first_load:
             # Do stuff on first load
             self.first_load = False
@@ -1327,7 +1390,7 @@ class Sketch:
             self.settings['osc']['send_addr'] = '127.0.0.1'
         # if self.client_address == 'localhost':
         #     self.client_address = '127.0.0.1'
-        print(self.settings['osc'])
+        #print(self.settings['osc'])
 
         self.dispatcher = Dispatcher()
         self.dispatcher.set_default_handler(self._handle_osc)
@@ -1629,8 +1692,16 @@ def main(path='', fps=0, inject=True, show_toolbar=False):
                 sketch.var_context['mouse_moved']()
 
     def mouse_button_callback(window, button, action, mods):
+        if sketch.dialog_active:
+            return
+
         sketch.modifiers = mods
         pos = sketch._mouse_pos
+
+        if imgui is not None:
+            # print("Mouse event", button, action, mods)
+            sketch.impl.mouse_button_callback(window, button, action, mods)
+
         if action == glfw.PRESS:
 
             # print('Mouse button pressed')
@@ -1659,6 +1730,9 @@ def main(path='', fps=0, inject=True, show_toolbar=False):
                 sig = signature(sketch.var_context['mouse_released'])
                 sketch.var_context['mouse_released'](*params[:len(sig.parameters)])
 
+            #sketch.impl._update_mod_keys(window)
+            #sketch.impl.io.add_mouse_button_event(button, action != 0)
+
     def window_content_scale_callback(window, xscale, yscale):
         #print("Content scale", xscale, yscale)
         pass
@@ -1683,7 +1757,8 @@ def main(path='', fps=0, inject=True, show_toolbar=False):
         sketch.impl._prev_key_callback = key_callback
         sketch.impl._prev_char_callback = char_callback
         sketch.impl._prev_cursor_pos_callback = cursor_position_callback
-        sketch.impl._prev_mouse_button_callback = mouse_button_callback
+        glfw.set_mouse_button_callback(sketch.window, mouse_button_callback)
+        #sketch.impl._prev_mouse_button_callback = None # mouse_button_callback
     else:
         # otherwise explicitly set glfw cb's
         glfw.set_key_callback(sketch.window, key_callback)
