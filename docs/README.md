@@ -816,3 +816,449 @@ Set the number of frames to export when saving a video
 ### `send_osc(...)`
 Send an OSC message
 
+
+# Globals and constants
+
+## Functions
+### `random_gaussian(mean,std_dev,size)`
+Draw random samples from a normal (Gaussian) distribution.
+The probability density function of the normal distribution, first
+derived by De Moivre and 200 years later by both Gauss and Laplace
+independently [2]_, is often called the bell curve because of
+its characteristic shape (see the example below).
+
+### `random(low=0.0, high=1.0, size=None)`
+Draw samples from a uniform distribution.
+Samples are uniformly distributed over the half-open interval
+``[low, high)`` (includes low, but excludes high).  In other words,
+any value within the given interval is equally likely to be drawn
+by `uniform`.
+
+
+### `rand(low=0.0, high=1.0, size=None)`
+Draw samples from a uniform distribution.
+Samples are uniformly distributed over the half-open interval
+``[low, high)`` (includes low, but excludes high).  In other words,
+any value within the given interval is equally likely to be drawn
+by `uniform`.
+
+
+### `random_uniform(low=0.0, high=1.0, size=None)`
+Draw samples from a uniform distribution.
+Samples are uniformly distributed over the half-open interval
+``[low, high)`` (includes low, but excludes high).  In other words,
+any value within the given interval is equally likely to be drawn
+by `uniform`.
+
+
+### `random_choice(a, size=None, replace=True, p=None)`
+Generates a random sample from a given 1-D array
+.. versionadded:: 1.7.0
+
+
+### `random_int(low, high=None, size=None, dtype=int)`
+Return random integers from `low` (inclusive) to `high` (exclusive).
+Return random integers from the "discrete uniform" distribution of
+the specified dtype in the "half-open" interval [`low`, `high`). If
+`high` is None (the default), then results are from [0, `low`).
+
+
+### `random_normal(loc=0.0, scale=1.0, size=None)`
+Draw random samples from a normal (Gaussian) distribution.
+The probability density function of the normal distribution, first
+derived by De Moivre and 200 years later by both Gauss and Laplace
+independently [2]_, is often called the bell curve because of
+its characteristic shape (see the example below).
+
+
+### `random_seed(seed=None)`
+Reseed the singleton RandomState instance.
+Notes
+-----
+This is a convenience, legacy function that exists to support
+older code that uses the singleton RandomState. Best practice
+is to use a dedicated ``Generator`` instance rather than
+the random variate generation methods exposed directly in
+the random module.
+
+
+### `randomseed(seed=None)`
+Reseed the singleton RandomState instance.
+Notes
+-----
+This is a convenience, legacy function that exists to support
+older code that uses the singleton RandomState. Best practice
+is to use a dedicated ``Generator`` instance rather than
+the random variate generation methods exposed directly in
+the random module.
+
+
+### `radians(x)`
+Get radians given an angle in degrees
+
+### `degrees(x)`
+Get degrees given an angle in radians
+
+### `constrain(a, a_min, a_max, out=None, **kwargs)`
+Given an interval, values outside the interval are clipped to
+the interval edges.  For example, if an interval of ``[0, 1]``
+is specified, values smaller than 0 become 0, and values larger
+than 1 become 1.
+Equivalent to but faster than ``np.minimum(a_max, np.maximum(a, a_min))``.
+
+
+### `create_font(name, size=None, style=None)`
+Create a font from a file or from system fonts
+Arguments:
+
+- `font` (string or object): Either a string describing the font file path or system font name
+
+### `sin(x)`
+Trigonometric sine, element-wise.
+
+
+### `cos(x)`
+Cosine element-wise.
+
+
+### `tan(x)`
+Compute tangent element-wise.
+Equivalent to ``np.sin(x)/np.cos(x)`` element-wise.
+
+
+### `atan2(x1, x2)`
+Element-wise arc tangent of ``x1/x2`` choosing the quadrant correctly.
+The quadrant (i.e., branch) is chosen so that ``arctan2(x1, x2)`` is
+the signed angle in radians between the ray ending at the origin and
+passing through the point (1,0), and the ray ending at the origin and
+passing through the point (`x2`, `x1`).  (Note the role reversal: the
+"`y`-coordinate" is the first function parameter, the "`x`-coordinate"
+is the second.)  By IEEE convention, this function is defined for
+`x2` = +/-0 and for either or both of `x1` and `x2` = +/-inf (see
+Notes for specific values).
+
+
+### `dot(a, b, out=None)`
+Dot product of two arrays. Specifically,
+- If both `a` and `b` are 1-D arrays, it is inner product of vectors
+  (without complex conjugation).
+
+
+### `exp(x)`
+Calculate the exponential of all elements in the input array.
+
+
+### `log(x)`
+Natural logarithm, element-wise.
+The natural logarithm `log` is the inverse of the exponential function,
+so that `log(exp(x)) = x`. The natural logarithm is logarithm in base
+`e`.
+
+
+### `floor(x)`
+Return the floor (int) of the input, element-wise.
+
+### `ceil(x)`
+Return the ceiling (int) of the input, element-wise.
+
+### `round(x,decimals)`
+Evenly round to the given number of decimals. Returns integers with `decimals=0` (default)
+
+### `abs(x)`
+Calculate the absolute value element-wise.
+``np.abs`` is a shorthand for this function.
+
+
+### `is_number(x)`
+
+
+### `color(...)`
+Create a cector with components specified as comma-separated values.
+:returns: A NumPy array representing the specified color components.
+This returns either a 3d (RGB) array if 3 or 1 (luminosity) components are specified,
+or a 4d (RGBA) array if 4 or 2 components are specified.
+
+### `Color(*args)`
+Create a cector with components specified as comma-separated values.
+:returns: A NumPy array representing the specified color components.
+This returns either a 3d (RGB) array if 3 or 1 (luminosity) components are specified,
+or a 4d (RGBA) array if 4 or 2 components are specified.
+
+### `vector(...)`
+Create a vector with components specified as comma-separated values
+:returns: A NumPy array with the specified components
+
+### `Vector(*args)`
+Create a vector with components specified as comma-separated values
+:returns: A NumPy array with the specified components
+
+### `create_vector(...)`
+Create a vector with components specified as comma-separated values
+:returns: A NumPy array with the specified components
+
+### `range_between(a,b,num,endpoint)`
+Returns a list of numbers that goes from a and b in a specified number of steps.
+
+E.g. ~range_between(0, 1, 5)~ will give the list ~[0.0, 0.25, 0.5, 0.75, 1.0]~
+
+Similar to ~np.linspace~
+
+### `linspace(a,b,num,endpoint)`
+Returns a list of numbers that goes from a and b in a specified number of steps.
+
+E.g. ~linspace(0, 1, 5)~ will give the list ~[0.0, 0.25, 0.5, 0.75, 1.0]~
+
+Similar to ~np.linspace~
+
+### `arange(a,b,step)`
+Returns a list of numbers that goes from a and b with equal steps
+
+E.g. ~arange(0, 1, 0.25)~ will give the list ~[0.0, 0.25, 0.5, 0.75, 1.0]~
+
+Similar to ~np.linspace~
+
+### `grid_points(x,y)`
+Given two 1d arrays/lists of numbers representing the x and y axes,
+return a sequence of points on a grid represented as a numpy array.
+It can be useful to accelerate noise computations in vectorized form
+
+### `angle_between(...)`
+Angle between two vectors (2d) [-pi,pi]
+
+### `rotate_vector(...)`
+Rotate a 2D vector (x, y) by a given angle in radians.
+Input can be two numbers ~x, y~ or a tuple/array, followed by the angle in radians
+
+### `dist(...)`
+Computes the (Euclidean) distance between two points
+
+### `mag(...)`
+Returns the magnitude (length) of a vector.
+Accepts one vector as an argument or a sequenc of coordinates for each component of the vector
+
+### `heading(...)`
+Returns the heading (orientation) in radians of a 2d vector
+    
+
+### `direction(angle)`
+Returns a vector with magnitude 1 and oriented according to an angle specified in radians
+
+### `lerp(a,b,t)`
+Linear interpolation between two values
+
+### `remap(value,...)`
+Re-maps a number from one range to another. 
+
+### `to_array(v)`
+
+
+### `to_image(ar)`
+
+
+### `load_image(path)`
+Load an image from disk. Actually returns a PIL image
+
+### `bezier_point(...)`
+Get a point along a bezier curve (cubic) given a parameter value
+
+Arguments:
+- Four points, specified either as a list of points, a sequence of four points, or a sequence of coordiantes
+- ~t~ the parameter at which to sample the curve. This can also be an array, in which case the result will be a list of tangents
+
+### `bezier_tangent(...)`
+Get the tangent to a bezier curve (cubic) given a parameter value
+
+Arguments:
+- Four points, specified either as a list of points, a sequence of four points, or a sequence of coordiantes
+- ~t~ the parameter at which to sample the curve. This can also be an array, in which case the result will be a list of tangents
+
+### `noise_seed(seed)`
+Sets the seed for the noise generator
+
+### `noise_detail(octaves,falloff,lacunarity,gradient)`
+Adjusts the character and level of detail produced by the Perlin noise function.
+
+Arguments:
+
+- `octaves` (int): the number of noise 'octaves'. Each octave has double the frequency of the previous.
+- `falloff` (float, default 0.5): a number between 0 and 1 that multiplies the amplitude of each consectutive octave
+- `lacunarity` (float, default 2.0): number that multiplies the frequency of each consectutive octave
+- `gradient` (bool, default True): If true (default) `noise` uses gradient noise, otherwise it use value noise
+
+### `noise(...)`
+Returns noise (between 0 and 1) at a given coordinate or at multiple coordinates.
+Noise is created by summing consecutive "octaves" with increasing level of detail.
+By default this function returns "gradient noise", a variant of noise similar to Ken Perlin's original version.
+Alternatively the function can return "value noise", which is a faster but more blocky version.
+By default each octave has double the frequency (lacunarity) of the previous and an amplitude falls off for each octave. By default the falloff is 0.5.
+The default number of octaves is `4`.
+
+Use `noise_detail` to set the number of octaves and optionally falloff, lacunarity and whether to use gradient or value noise.
+
+Arguments:
+
+- The arguments to this function can vary from 1 to 3, determining the "space" that is sampled to generate noise.
+The function also accepts numpy arrays for each coordinate but these must be of the same size.
+
+### `noise_grid(...)`
+Returns a 2d array of noise values (between 0 and 1).
+The array can be treated as a grayscale image and is defined by two input 1d array parameters, x and y.
+The number of elements in x and y define the number of columns and rows, respectively.
+Optionally a third `z` parameter can be specified and it defines the depth of a "slice" in a 3d noise volume.
+
+Arguments:
+
+- The arguments to this function can be either two arrays, say
+```python
+img = noise_grid(np.linspace(0, width, 100),
+                 np.linspace(0, height, 100))
+```
+or three, where the third parameter can be a scalar
+```python
+img = noise_grid(np.linspace(0, width, 100),
+                 np.linspace(0, height, 100), 3.4)
+```
+
+
+## Constants
+### `PI`
+`3.141592653589793`
+
+### `TWO_PI`
+`6.283185307179586`
+
+### `HALF_PI`
+`1.5707963267948966`
+
+### `QUARTER_PI`
+`0.7853981633974483`
+
+### `TAU`
+`6.283185307179586`
+
+### `RGB`
+`'rgb'`
+
+### `HSB`
+`'hsv'`
+
+### `HSV`
+`'hsv'`
+
+### `CENTER`
+`'center'`
+
+### `LEFT`
+`'left'`
+
+### `RIGHT`
+`'right'`
+
+### `CORNER`
+`'corner'`
+
+### `TOP`
+`'top'`
+
+### `BOTTOM`
+`'bottom'`
+
+### `BASELINE`
+`'baseline'`
+
+### `RADIUS`
+`'radius'`
+
+### `CLOSE`
+`'close'`
+
+### `OPEN`
+`'OPEN'`
+
+### `CHORD`
+`'chord'`
+
+### `PIE`
+`'pie'`
+
+### `MITER`
+`'miter'`
+
+### `BEVEL`
+`'bevel'`
+
+### `ROUND`
+`'round'`
+
+### `SQUARE`
+`'square'`
+
+### `PROJECT`
+`'project'`
+
+### `DEGREES`
+`'degrees'`
+
+### `RADIANS`
+`'radians'`
+
+### `BLEND`
+`'over'`
+
+### `REPLACE`
+`'source'`
+
+### `ADD`
+`'add'`
+
+### `MULTIPLY`
+`'multiply'`
+
+### `SCREEN`
+`'screen'`
+
+### `OVERLAY`
+`'overlay'`
+
+### `DARKEST`
+`'darken'`
+
+### `LIGHTEST`
+`'lighten'`
+
+### `DIFFERENCE`
+`'difference'`
+
+### `EXCLUSION`
+`'exclusion'`
+
+### `HARD_LIGHT`
+`'hard_light'`
+
+### `SOFT_LIGHT`
+`'soft_light'`
+
+### `DODGE`
+`'color_dodge'`
+
+### `BURN`
+`'color_burn'`
+
+### `REMOVE`
+`'clear'`
+
+### `SUBTRACT`
+`'difference'`
+
+### `dragging`
+`None`
+
+### `mouse_is_pressed`
+`None`
+
+### `mouse_button`
+`None`
+
+### `params`
+`None`
+

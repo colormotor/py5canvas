@@ -8,11 +8,11 @@ import numbers
 import rumore
 
 # Keywords/functions made available to the sketch
+PI = np.pi
 TWO_PI = 2*np.pi
 HALF_PI = np.pi/2
 QUARTER_PI = np.pi/4
 TAU = 2*np.pi
-PI = np.pi
 RGB = 'rgb'
 HSB = 'hsv'
 HSV = 'hsv'
@@ -56,6 +56,15 @@ REMOVE = "clear"
 SUBTRACT = "difference"  # Using difference as closest approximation
 
 
+def random_gaussian(mean=0.0, std_dev=1.0, size=None):
+    """Draw random samples from a normal (Gaussian) distribution.
+    The probability density function of the normal distribution, first
+    derived by De Moivre and 200 years later by both Gauss and Laplace
+    independently [2]_, is often called the bell curve because of
+    its characteristic shape (see the example below)."""
+    return np.random.normal(mean, std_dev, size)
+
+
 random = np.random.uniform
 rand = np.random.uniform
 random_uniform = np.random.uniform
@@ -66,10 +75,6 @@ random_seed = np.random.seed
 randomseed = np.random.seed
 radians = canvas.radians
 degrees = canvas.degrees
-# noise = canvas.noise
-# noise_detail = canvas.noise_detail
-# noise_grid = canvas.noise_grid
-# noise_seed = canvas.noise_seed
 constrain = np.clip
 
 create_font = canvas.create_font
@@ -77,9 +82,7 @@ create_font = canvas.create_font
 dragging = None
 mouse_is_pressed = None
 mouse_button = None
-
-def random_gaussian(mean=0.0, std_dev=1.0, size=None):
-    return np.random.normal(mean, std_dev, size)
+params = None
 
 
 sin   = np.sin
@@ -90,12 +93,21 @@ dot = np.dot
 exp = np.exp
 log = np.log
 
-floor = np.floor #lambda x: np.floor(x).astype(int)
-ceil  = np.ceil #lambda x: np.ceil(x).astype(int)
-round = np.round #lambda x: np.round(x).astype(int)
-abs = np.abs
+def floor(x):
+    """Return the floor (int) of the input, element-wise."""
+    return np.floor(x).astype(int)
 
-params = None
+def ceil(x):
+    """Return the ceiling (int) of the input, element-wise."""
+    return np.ceil(x).astype(int)
+
+def round(x, decimals=0):
+    """Evenly round to the given number of decimals. Returns integers with `decimals=0` (default)"""
+    if decimals == 0:
+        return np.round(x).astype(int)
+    return np.round(x)
+
+abs = np.abs
 
 def is_number(x):
     return isinstance(x, numbers.Number)
@@ -143,7 +155,7 @@ def create_vector(*args):
 def range_between(a, b, num, endpoint=True):
     ''' Returns a list of numbers that goes from a and b in a specified number of steps.
 
-        E.g. ~range_betwee(0, 1, 5)~ will give the list ~[0.0, 0.25, 0.5, 0.75, 1.0]~
+        E.g. ~range_between(0, 1, 5)~ will give the list ~[0.0, 0.25, 0.5, 0.75, 1.0]~
 
         Similar to ~np.linspace~
     '''
@@ -356,7 +368,7 @@ def noise_seed(seed):
     rumore.cfg.seed = seed
 
 
-def noise_func(*args):
+def _noise_func(*args):
     args = list(args)
     narg = len(args)
     # Make sure all elements are arrays if the first one is
@@ -402,7 +414,7 @@ def noise(*args):
     - The arguments to this function can vary from 1 to 3, determining the "space" that is sampled to generate noise.
     The function also accepts numpy arrays for each coordinate but these must be of the same size.
     """
-    res = noise_func(*args)  # _noise_funcs[_noise_grad](*args, octaves=_noise_octaves)
+    res = _noise_func(*args)  # _noise_funcs[_noise_grad](*args, octaves=_noise_octaves)
     return res * 0.5 + 0.5
 
 
