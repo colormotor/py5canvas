@@ -750,8 +750,9 @@ class Canvas:
             - `DODGE = "color_dodge"` - Lightens and increases contrast
             - `BURN = "color_burn"` - Darkens and increases contrast
             - `REMOVE = "clear"` - Overlapping pixels become transparent
-          or a string of of: "clear", "source", "over", "in", "out", "atop",
-          "dest", "dest_over", "dest_in", "dest_out", "dest_atop", "xor", "add", "saturate", "multiply", "screen", "overlay", "darken", "lighten", "color_dodge", "color_burn", "hard_light", "soft_light", "difference", "exclusion", "hsl_hue", "hsl_saturation", "hsl_color", "hsl_luminosity"
+
+          or a string, one of: "clear", "source", "over", "in", "out", "atop",
+          "dest", "dest_over", "dest_in", "dest_out", "dest_atop", "xor", "add", "saturate", "multiply", "screen", "overlay", "darken", "lighten", "color_dodge", "color_burn", "hard_light", "soft_light", "difference", "exclusion", "hsl_hue", "hsl_saturation", "hsl_color", "hsl_luminosity".
           See [Cairo Graphics Operators](https://www.cairographics.org/operators/) for a discussion on the different operators.
         """
         blend_modes = {
@@ -817,7 +818,7 @@ class Canvas:
     line_cap = stroke_cap
 
     def text_align(self, halign, valign="bottom"):
-        """Specify the text alignment
+        """Specify the text alignment.
 
         Arguments:
         - `halign` (string): Horizontal alignment. One of "left", "center" or "right"
@@ -828,7 +829,9 @@ class Canvas:
 
     def text_size(self, size):
         """Specify the text size
+
         N.B. this will also reset the text leading
+
         Arguments:
 
         - `size` (int): the text size
@@ -839,7 +842,8 @@ class Canvas:
 
     def text_leading(self, *args):
         """Specify the space between consecutive lines of text
-        if no arguments are specified, returns the text leading values
+        if no arguments are specified, returns the text leading values.
+
         Arguments:
 
         - `leading` (int, optional): the text leading
@@ -849,7 +853,8 @@ class Canvas:
         self._text_leading = args[0]
 
     def text_font(self, font):
-        """Specify the font to use for text rendering
+        """Specify the font to use for text rendering.
+
         Arguments:
 
         - `font` (string or object): Either a string describing the font file path or system font name, or a font object (created with `create_font`)
@@ -883,7 +888,8 @@ class Canvas:
 
     def text_style(self, style):
         """Specify the style (normal, italic, bold, bolditalic) to use for text
-        rendering
+        rendering.
+
         Arguments:
         - `style` (string): the name of a style ("normal", "italic", "bold",
         "bolditalic")
@@ -1039,15 +1045,17 @@ class Canvas:
         """Rotate using degrees"""
         self.ctx.rotate(radians(deg))
 
-    def hsv(self, *args):
+    def hsb(self, *args):
+        """ Return RGB components for a color defined as HSB"""
         if len(args) > 1:
             return hsv_to_rgb(np.array(args)) * self.color_scale
         else:
             return hsv_to_rgb(np.array(args[0])) * self.color_scale
 
-    hsb = hsv
+    hsv = hsb
 
     def rgb(self, *args):
+        """Return HSV components for a color defined as RGB"""
         if len(args) > 1:
             return rgb_to_hsv(np.array(args)) * self.color_scale
         else:

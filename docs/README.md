@@ -237,8 +237,9 @@ Arguments:
     - `DODGE = "color_dodge"` - Lightens and increases contrast
     - `BURN = "color_burn"` - Darkens and increases contrast
     - `REMOVE = "clear"` - Overlapping pixels become transparent
-  or a string of of: "clear", "source", "over", "in", "out", "atop",
-  "dest", "dest_over", "dest_in", "dest_out", "dest_atop", "xor", "add", "saturate", "multiply", "screen", "overlay", "darken", "lighten", "color_dodge", "color_burn", "hard_light", "soft_light", "difference", "exclusion", "hsl_hue", "hsl_saturation", "hsl_color", "hsl_luminosity"
+
+  or a string, one of: "clear", "source", "over", "in", "out", "atop",
+  "dest", "dest_over", "dest_in", "dest_out", "dest_atop", "xor", "add", "saturate", "multiply", "screen", "overlay", "darken", "lighten", "color_dodge", "color_burn", "hard_light", "soft_light", "difference", "exclusion", "hsl_hue", "hsl_saturation", "hsl_color", "hsl_luminosity".
   See [Cairo Graphics Operators](https://www.cairographics.org/operators/) for a discussion on the different operators.
 
 ### `stroke_cap(...)`
@@ -249,7 +250,7 @@ Arguments:
 - `cap` (string): can be one of "butt", "round" or "square"
 
 ### `text_align(...)`
-Specify the text alignment
+Specify the text alignment.
 
 Arguments:
 - `halign` (string): Horizontal alignment. One of "left", "center" or "right"
@@ -257,27 +258,32 @@ Arguments:
 
 ### `text_size(...)`
 Specify the text size
+
 N.B. this will also reset the text leading
+
 Arguments:
 
 - `size` (int): the text size
 
 ### `text_leading(...)`
 Specify the space between consecutive lines of text
-if no arguments are specified, returns the text leading values
+if no arguments are specified, returns the text leading values.
+
 Arguments:
 
 - `leading` (int, optional): the text leading
 
 ### `text_font(...)`
-Specify the font to use for text rendering
+Specify the font to use for text rendering.
+
 Arguments:
 
 - `font` (string or object): Either a string describing the font file path or system font name, or a font object (created with `create_font`)
 
 ### `text_style(...)`
 Specify the style (normal, italic, bold, bolditalic) to use for text
-rendering
+rendering.
+
 Arguments:
 - `style` (string): the name of a style ("normal", "italic", "bold",
 "bolditalic")
@@ -330,6 +336,12 @@ Returns a 2d numpy array
 
 ### `rotate_deg(...)`
 Rotate using degrees
+
+### `hsb(...)`
+Return RGB components for a color defined as HSB
+
+### `rgb(...)`
+Return HSV components for a color defined as RGB
 
 ### `rect_mode(...)`
 Set the "mode" for drawing rectangles.
