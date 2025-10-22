@@ -130,3 +130,9 @@ dmypy.json
 
 # imgui
 **/*.ini
+
+# ctags
+tags
+
+# mediapipe models
+examples/*.task
