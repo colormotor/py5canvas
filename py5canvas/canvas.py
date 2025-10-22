@@ -1485,7 +1485,8 @@ class Canvas:
         # Cairo expects degrees
         start, stop = (self._to_radians(start),
                        self._to_radians(stop))
-
+        start = mod2pi(start)
+        stop = mod2pi(stop)
         save_mat = self.ctx.get_matrix()
         self.ctx.translate(x, y)
         self.ctx.scale(w / 2, h / 2)
@@ -1712,6 +1713,23 @@ class Canvas:
             self.cubic(*args)
         else:
             self.quadratic(*args)
+
+    def create_turtle(self, *args, autodraw=True):
+        """Create a turtle object at a given position (default is the origin)
+
+        Arguments:
+        - Optional, a pair of initial coordinates (either two values or a tuple/vector). The default is (0, 0)
+        - `autodraw` (`bool`, default `True`): if `True` automatically draws the turtle path if the pen is down
+        """
+        from . import turtle
+        if len(args)==1:
+            pos = args[0]
+        elif len(args)==2:
+            pos = args
+        else:
+            pos = (0, 0)
+        print("You created a turtle for the current canvas, it will not be valid if you create a new canvas!")
+        return turtle.Turtle(pos, self, autodraw)
 
     def create_graphics(self, w, h):
         """Create a new canvas with the specified width and height
@@ -2984,3 +3002,6 @@ def read_font_names(path):
         or (f"{family} {subfamily}".strip() if family and subfamily else None),
         "postscript_name": postscript_name,
     }
+
+def mod2pi(theta):
+    return theta - 2.0 * np.pi * np.floor(theta / 2.0 / np.pi)

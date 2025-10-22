@@ -1,6 +1,6 @@
 '''
 © Daniel Berio (@colormotor) 2021 - ...
-turtle - 2d turtle implementation (crudely adapted from Fogelman's axi module)
+turtle - 2d turtle implementation (crudely adapted from Fogelman's axi module) and adapted to
 '''
 
 import numpy as np
@@ -19,20 +19,26 @@ def degrees( x ):
 
 
 class Turtle(object):
-    def __init__(self):
-        self.reset()
+    def __init__(self, pos=(0,0), canvas=None, autodraw=True):
+        self.reset(pos)
+        self.canvas = canvas
+        self._autodraw = autodraw
 
-    def reset(self):
-        self.x = 0
-        self.y = 0
+    def reset(self, pos=(0,0)):
+        self.x = pos[0]
+        self.y = pos[1]
         self.h = 0
         self.pen = True
-        self._path = [vec(0,0)]
+        self._path = [vec(*pos)] #0,0)]
         self._paths = []
 
     def clear(self):
         self._path = [vec(self.x, self.y)]
         self._paths = []
+
+    @property
+    def autodraw(self):
+        return self.canvas is not None and self._autodraw
 
     @property
     def paths(self):
@@ -63,6 +69,9 @@ class Turtle(object):
             x, y = x
         if self.pen:
             self._path.append(vec(x, y))
+            if self.autodraw:
+                self.canvas.line(self._path[-1], self._path[-2])
+
         self.x = x
         self.y = y
     setpos = setposition = goto
@@ -76,6 +85,7 @@ class Turtle(object):
     def seth(self, heading):
         self.h = heading
     setheading = seth
+    angle = seth
 
     def home(self):
         self.goto(0, 0)
@@ -96,6 +106,7 @@ class Turtle(object):
     def rt(self, angle):
         self.seth(self.h + angle)
     right = rt
+    rotate = rt
 
     def lt(self, angle):
         self.seth(self.h - angle)
@@ -149,3 +160,28 @@ class Turtle(object):
         if y is None:
             x, y = x
         return np.hypot(x - self.x, y - self.y)
+
+    def draw(self):
+        if self.canvas is None:
+            print("No canvas set for turtle")
+            return
+        c = self.canvas
+        c.shape(self.paths)
+
+    def draw_turtle(self, size=10):
+        if self.canvas is None:
+            print("No canvas set for turtle")
+            return
+        c = self.canvas
+        c.push()
+        c.stroke(0)
+        c.stroke_weight(2/size)
+        c.fill(1)
+        c.translate(self.x, self.y)
+        c.rotate_deg(self.h)
+        c.scale(size)
+        c.polygon([[-0.3, -0.5],
+                  [0.7, 0.0],
+                   [-0.3, 0.5],
+                   [0.0, 0.0]])
+        c.pop()
