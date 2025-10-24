@@ -105,7 +105,7 @@ def round(x, decimals=0):
     """Evenly round to the given number of decimals. Returns integers with `decimals=0` (default)"""
     if decimals == 0:
         return np.round(x).astype(int)
-    return np.round(x)
+    return np.round(x, decimals)
 
 abs = np.abs
 
