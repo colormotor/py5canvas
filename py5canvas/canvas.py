@@ -573,6 +573,45 @@ class Canvas:
         else:
             self.cur_fill = self._apply_colormode(args)
 
+    def linear_gradient_angle(self, *args, extend='pad'):
+        """Create a linear gradient fill.
+
+        Can be called in two ways:
+            `linear_gradient(x1, y1, angle, length, stop1, stop2, ...)`
+            `linear_gradient((x1, y1), angle, length, stop1, stop2, ...)`
+
+        Each stop is a tuple:
+           `(offset, color)`
+        where:
+            - offset is between 0 and 1
+            - color is a tuple (r, g, b[, a]) in current color mode
+
+
+        """
+        if is_number(args[0]):
+            x1, y1 = args[:2]
+            angle, length = args[2:4]
+            args = args[4:]
+        else:
+            x1, y1 = args[0]
+            angle, length = args[1:3]
+            args = args[3:]
+
+        theta = self._to_radians(angle)
+        x2, y2 = x1+np.cos(theta)*length, x2+np.sin(theta)*length
+
+        if len(args) < 2:
+            raise ValueError("You must provide at least 2 stops for creating a gradient")
+
+        stops = [np.concatenate([[c[0]], self._apply_colormode(c[1])]) for c in args]
+
+        return Gradient.linear(
+            (x1, y1),
+            (x2, y2),
+            stops,
+            extend=extend
+        )
+
     def linear_gradient(self, *args, extend='pad'):
         """Create a linear gradient fill.
 
@@ -655,34 +694,6 @@ class Canvas:
             extend=extend
         )
 
-    def linear_gradient(self, *args, extend='pad'):
-        if is_number(args[0]):
-            x1, y1, x2, y2 = args[:4]
-            args = args[4:]
-        else:
-            (x1, y1), (x2, y2) = args[:2]
-            args = args[2:]
-        if len(args) < 2:
-            raise ValueError("You must provide at least 2 stops for creating a gradient")
-        stops = [np.concatenate([[c[0]], self._apply_colormode(c[1])]) for c in args]
-        return Gradient.linear((x1, y1),
-                               (x2, y2), stops,
-                               extend=extend)
-
-    def radial_gradient(self, *args, extend='pad'):
-        if is_number(args[0]):
-            cx0, cy0, r0, cx1, cy1, r1 = args[:6]
-            args = args[6:]
-        else:
-            (cx0, cy0, r0), (cx1, cy1, r1) = args[:2]
-            args = args[2:]
-        if len(args) < 2:
-            raise ValueError("You must provide at least 2 stops for creating a gradient")
-        stops = [np.concatenate([[c[0]], self._apply_colormode(c[1])]) for c in args]
-        return Gradient.radial((cx0, cy0, r0),
-                            (cx1, cy1, r1),
-                            stops,
-                            extend=extend)
 
     def stroke(self, *args):
         """Set the color of the current stroke
@@ -1572,7 +1583,6 @@ class Canvas:
                 self.ctx.curve_to(*Cp[i + 1], *Cp[i + 2], *Cp[i + 3])
         else:
             cur = self.curve_segments[0].pop(0)
-
             self.ctx.move_to(*cur)
             for seg, type in zip(self.curve_segments, self.curve_segment_types):
                 if not seg:
