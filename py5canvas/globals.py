@@ -92,6 +92,7 @@ atan2 = np.arctan2
 dot = np.dot
 exp = np.exp
 log = np.log
+sqrt = np.sqrt
 
 def floor(x):
     """Return the floor (int) of the input, element-wise."""
