@@ -1302,7 +1302,7 @@ class Canvas:
             else:
                 print("point: No color is set")
         if len(args) == 1:
-            self.polyline(args[0], args[0])
+            self.polyline([args[0], args[0]])
         elif len(args) == 2:
             self.polyline([[args[0], args[1]], [args[0], args[1]]])
         else:
@@ -2113,7 +2113,7 @@ class Canvas:
         To close the polyline set the named `close` argument to `True`, e.g. `c.polyline(points, close=True)`.
         """
         self.ctx.new_sub_path()
-        # self.ctx.new_path()
+        #self.ctx.new_path()
         if len(args) == 1:
             points = args[0]
         elif len(args) == 2:
