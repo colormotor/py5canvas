@@ -1773,9 +1773,9 @@ class Canvas:
             if not isinstance(img, np.ndarray):
                 # This should take care of tensors and PIL Images
                 if img.mode == 'P':
-                    print("You are visualizing a quantized image, consider either converting it to 'L' or 'RGB' or using the indices")
-                    print("Converting it to grayscale.")
-                    img = img.convert('L')
+                    print("You are visualizing a quantized image, consider either converting it to 'L' or 'RGB' or 'RGBA' or using the indices")
+                    print("Converting it to RGBA.")
+                    img = img.convert('RGBA')
                 img = np.array(img)
             img = numpy_to_surface(img)
         self.ctx.save()
