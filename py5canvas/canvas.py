@@ -194,6 +194,7 @@ class Gradient:
     "_text_leading",
     "_angle_mode",
 )
+
 class Canvas:
     """
     Defines a drawing canvas (pyCairo) that behaves similarly to p5js
@@ -249,6 +250,7 @@ class Canvas:
         ctx.paint()  # rectangle(0, 0, width, height)
         # ctx.fill()
         self.last_background = background
+        self._first_background = True
 
         # Keep track of draw states
         self.draw_states = [CanvasState(self)]
@@ -1770,6 +1772,10 @@ class Canvas:
         else:
             if not isinstance(img, np.ndarray):
                 # This should take care of tensors and PIL Images
+                if img.mode == 'P':
+                    print("You are visualizing a quantized image, consider either converting it to 'L' or 'RGB' or using the indices")
+                    print("Converting it to grayscale.")
+                    img = img.convert('L')
                 img = np.array(img)
             img = numpy_to_surface(img)
         self.ctx.save()
@@ -2187,6 +2193,12 @@ class Canvas:
         # else:
         #     ctx = self.ctx.ctxs[0]
 
+        # For the first clear, we use OPERATOR_SOURCE
+        # Otherwise the background will not actually be transparent
+        if self._first_background:
+            cur_op = self.ctx.get_operator()
+            self.ctx.set_operator(cairo.OPERATOR_SOURCE)
+
         # self.push()
         ctx = self.ctx
         rgba = np.array(self._apply_colormode(args))
@@ -2196,6 +2208,10 @@ class Canvas:
             ctx.fill()
         else:
             ctx.paint()
+
+        if self._first_background:
+            self.ctx.set_operator(cur_op)
+        self._first_background = False
 
         # ctx.rectangle(0, 0, self.width, self.height)
         # ctx.fill()
