@@ -16,7 +16,7 @@ def setup():
     
 def draw():
     global a, b # we are modifying these
-    background(0, 50)
+    background(0, 10)
     translate(width/2, height/2)
     # Every cycle update points
     if frame_count%frame_interval == 0:
@@ -25,7 +25,7 @@ def draw():
     # interpolation step
     t = (frame_count%frame_interval)/frame_interval
     points = a + (b - a)*t
-    stroke(255, 0, 0)
+    stroke(255)
     no_fill()
     polyline(points)
 

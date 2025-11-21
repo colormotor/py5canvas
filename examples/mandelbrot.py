@@ -18,10 +18,11 @@ def draw():
     # global function would not work anymore
     background(0)
 
-    iterations = 200
-
+    iterations = 300
     w, h = width//2, height//2
-    a, b = np.meshgrid(np.linspace(-w/scale, w/scale, w)-1.402, np.linspace(-h/scale, h/scale, h)-0.00003)
+    target = complex(1.402015885, 0.0000289991)
+    a, b = np.meshgrid(np.linspace(-w/scale, w/scale, w)-target.real, 
+                       np.linspace(-h/scale, h/scale, h)-target.imag)
     C = (a + 1j*b)
     z = 0
     img = np.zeros((h, w))

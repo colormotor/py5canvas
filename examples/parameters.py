@@ -1,13 +1,11 @@
 from py5canvas import *
 
-import numpy as np
-
 def parameters():
     # This will expose a 'params' variable
-    return {'Width': (100.0, {'min': 10, 'max': 200}),
-            'Height': (100.0, {'min': 10, 'max': 200}),
+    return {'Width': (100, 10, 200),
+            'Height': (100, 10, 200),
             'Color': ([255, 0, 0], {'type':'color'}),
-            'Hue': (0.0, {'min': 0, 'max': 1}),
+            'Hue': (0.0, 0.0, 1.0),
             'Show' : True,
             'Other': { # Unused parameters for demo purposes
                 'A text' : ('Hello World', {'multiline': True, 'buf_length': 2024}),
@@ -23,19 +21,18 @@ def setup():
 
 def draw():
     background(0)
-    # Once processed and by default, parameters are accessed with the labels
-    # converted to lowercase and spaces replaced by underscores.
-    # Center of screen
     translate(width/2, height/2)
     if params.show:
         fill(params.color)
-        rectangle(-params.width/2 + np.sin(frame_count/20)*200, -params.height/2, params.width, params.height)
+        rect(-params.width/2 + 
+             np.sin(frame_count/20)*200, 
+             -params.height/2, 
+             params.width, params.height)
     # Check if text changed. We use the dot notation,
     # as a string to check for a subparameter.
-    if 'other.a_text' in sketch.gui.changed:
+    if param_changed('other.a_text'):
         print('Text changed')
-    if 'hue' in sketch.gui.changed:
-        sketch.set_gui_theme(params.hue)
+    if param_changed('hue'):
         print('Hue changed')
 
 run()
