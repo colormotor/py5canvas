@@ -39,6 +39,7 @@ import glfw
 import moderngl as mgl
 import pdb
 from pathlib import Path
+import shutil, subprocess
 
 if importlib.util.find_spec('platformdirs'):
     from platformdirs import PlatformDirs
@@ -80,12 +81,29 @@ else:
 
 app_path = os.path.dirname(os.path.realpath(__file__))
 
+
 def print_traceback():
     if IPython_loader is not None:
         # https://stackoverflow.com/questions/14775916/coloring-exceptions-from-python-on-a-terminal
         print(''.join(ColorTB().structured_traceback(*sys.exc_info())))
     else:
         traceback.print_exc()
+
+
+def create_dir(name):
+    path = Path(name)
+    path.mkdir(parents=True, exist_ok=True)
+    print(f"Created dir: {path.resolve()}")
+
+
+def delete_dir(name):
+    path = Path(name)
+    if path.exists() and path.is_dir():
+        shutil.rmtree(path)
+        print(f"Directory {name} deleted")
+    else:
+        print(f"Directory {name} does not exist")
+
 
 class perf_timer:
     def __init__(self, name='', verbose=False): # Set verbose to true for debugging
@@ -229,7 +247,10 @@ class Sketch:
                 'recv_port': 9999,
                 'send_addr': '127.0.0.1',
                 'send_port': 9998
-                }
+                },
+            'gif': {
+                'colors': 128
+            }
         }
 
         if os.path.isfile(settings_path):
@@ -321,6 +342,7 @@ class Sketch:
         self.video_writer = None
         self.video_fps = 30
         self.video_gamma = 1.0
+        self._grab_frames = []
 
         # SVG/PDF saving
         self.saving_to_file = ''
@@ -796,6 +818,16 @@ class Sketch:
         self.must_reload=reload
         self.settings['num_movie_frames'] = num_frames
 
+    def grab_gif(self, path, num_frames=0, framerate=30, gamma=1.0, reload=True):
+        path = os.path.abspath(path)
+        self.grabbing = path
+        self.must_reload = reload
+        if num_frames > 0:
+            self.settings['num_movie_frames'] = num_frames
+        self.video_gamma = gamma
+        self.video_fps = framerate
+        print('Saving video to ' + path)
+
     def grab_movie(self, path, num_frames=0, framerate=30, gamma=1.0, reload=True):
         ''' Saves a mp4 movie from a number of frames to a specified path.
         By default this will reload the current script.
@@ -804,6 +836,7 @@ class Sketch:
         - `path` (string), the directory where to save the video
         - `num_frames` (int), the number of frames to save, default: 0
         - `framerate` (int), the framerate, default: 30
+
         - `gamma` (float), the gamma correction, default: 1.0 (see the [OpenCV docs](https://docs.opencv.org/4.x/d3/dc1/tutorial_basic_linear_transform.html))
         - `reload` (bool), whether to reload the sketch, default: True
         '''
@@ -818,39 +851,6 @@ class Sketch:
 
     def stop_grabbing(self):
         self.settings['num_movie_frames'] = self.current_grab_frame
-
-    def finalize_grab(self):
-        if not self.grabbing:
-            return
-        self.cur_grab_frame = 0
-        if self.video_writer is not None:
-            print('Writing video')
-            self.video_writer.release()
-            self.video_writer = None
-
-    def save_copy(self, path):
-        import shutil
-        path = os.path.splitext(path)[0]
-        shutil.copy(self.path, path + '.py')
-        json_path = self.path.replace('.py', '.json')
-        if os.path.isfile(json_path):
-            shutil.copy(json_path, path + '.json')
-
-    def read_fb(self, fb, **kwargs):
-        data = fb.read(**kwargs)
-        err = self.glctx.error
-        if err != "GL_NO_ERROR":
-            print(err)
-        else:
-            pass #print('OK!')
-        return data
-
-    def _background(self, *args):
-        ''' Sets backgroud color args internally, it will get exposed in '''
-        if True: #not self._async_background: # Disabled
-            self.canvas.background(*args)
-        else:
-            self._background_args = args
 
     def grab(self):
         if not self.grabbing:
@@ -889,6 +889,10 @@ class Sketch:
             #img = lin2srgb(img[:,:,::-1])
 
             self.video_writer.write(img)
+        elif 'gif' in self.grabbing:
+            img = self.canvas.get_image()
+            #img = adjust_gamma(img[::-1,:,::-1], self.video_gamma)
+            self._grab_frames.append(img)
         else:
             # Grab png frame
             path = self.grabbing
@@ -903,6 +907,60 @@ class Sketch:
             # if self.video_writer is not None:
             #     self.video_writer.release()
             #     self.video_writer = None
+
+    def finalize_grab(self):
+        if not self.grabbing:
+            return
+        self.cur_grab_frame = 0
+        if '.gif' in self.grabbing:
+            if len(self._grab_frames) < 2:
+                print("Insufficient frames to save as gif!")
+            else:
+                print("Saving GIF", self.grabbing)
+                delay_ms = 20 # Only 20 seems to work! (for smooth anim)
+                self._grab_frames[0].save(
+                    self.grabbing,
+                    format="GIF",
+                    append_images=self._grab_frames[1:],
+                    save_all=True,
+                    duration=delay_ms,
+                    loop=True
+                )
+                # Gif saving
+                if shutil.which("gifsicle") is not None:
+                    run_gifsicle(self, self.grabbing, self.video_fps, True)
+                else:
+                    print("Gifsicle does not appear to be installed")
+                self._grab_frames = []
+
+        if self.video_writer is not None:
+            print('Writing video')
+            self.video_writer.release()
+            self.video_writer = None
+
+    def save_copy(self, path):
+        import shutil
+        path = os.path.splitext(path)[0]
+        shutil.copy(self.path, path + '.py')
+        json_path = self.path.replace('.py', '.json')
+        if os.path.isfile(json_path):
+            shutil.copy(json_path, path + '.json')
+
+    def read_fb(self, fb, **kwargs):
+        data = fb.read(**kwargs)
+        err = self.glctx.error
+        if err != "GL_NO_ERROR":
+            print(err)
+        else:
+            pass #print('OK!')
+        return data
+
+    def _background(self, *args):
+        ''' Sets backgroud color args internally, it will get exposed in '''
+        if True: #not self._async_background: # Disabled
+            self.canvas.background(*args)
+        else:
+            self._background_args = args
 
 
     def _reload(self, var_context):
@@ -1923,6 +1981,36 @@ def main(path='', fps=0, inject=True, show_toolbar=False):
 
     close()
     glfw.terminate()
+
+
+def run_gifsicle(sketch, filename, framerate, optimize=False):
+    gif = Path(filename)
+    print("Running gifsicle, patience")
+    #delay = str(int(100 / framerate))  # gifsicle uses 1/100ths sec
+    delay = 2 # Only 2 seems to work?
+    if not gif.exists() or not gif.is_file():
+        raise FileNotFoundError("GIF not found: " + filename)
+    # create temp output file in same directory
+    tmp_out = str(gif.parent / (gif.stem + "_gifsicle_tmp.gif"))
+    colors=sketch.settings['gif']['colors']
+    cmd = ["gifsicle", f"--delay={delay}", "--loop", "--dither", "--colors", str(colors), filename, "-o", tmp_out]
+    if optimize:
+        cmd.insert(1, "--optimize=3")
+    #print('running', ' '.join(cmd))
+    # run and wait
+    try:
+        subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    except FileNotFoundError:
+        print("gifsicle is not installed", file=sys.stderr)
+        sys.exit(1)
+    except subprocess.CalledProcessError as e:
+        print("gifsicle failed:", e.stderr.decode(), file=sys.stderr)
+        raise RuntimeError("gifsicle processing error")
+
+    # overwrite original
+    shutil.move(tmp_out, filename)
+    print("Replaced original:", filename)
+
 
 quad_vertex_shader = """
 #version 330

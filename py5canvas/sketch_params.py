@@ -485,7 +485,13 @@ if imgui is not None:
                 if imgui.menu_item('Mp4...')[0]:
                     path = sketch.save_file_dialog('mp4', filename=name) #['pdf', 'svg', 'png'], filename=name)
                     if path:
-                        sketch.grab_movie(path)
+                        fps = sketch._fps
+                        sketch.grab_movie(path, framerate=fps if fps else 30)
+                elif imgui.menu_item('Gif...')[0]:
+                    path = sketch.save_file_dialog('gif', filename=name)
+                    if path:
+                        fps = sketch._fps
+                        sketch.grab_gif(path, framerate=fps if fps else 30)
                 imgui.end_popup()
             imgui.same_line()
             if imgui.button('Settings...'):
@@ -511,6 +517,11 @@ if imgui is not None:
                     imgui.text(f'{np.round(dur, 1)} seconds for {fps} fps')
                 else:
                     imgui.text('No framerate set')
+                nk = sketch.settings['gif']['colors']
+                changed, nk = imgui.input_int('GIF colors', nk)
+                nk = min(max(2, nk), 256)
+                if changed:
+                    sketch.settings['gif']['colors'] = nk
 
                 if sketch.osc_enabled:
                     imgui.separator_text('OSC')
