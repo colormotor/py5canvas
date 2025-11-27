@@ -2469,7 +2469,7 @@ def numpy_to_surface(arr):
                 / 255
             )
         else:
-            # rayscale 0-1 image
+            # grayscale 0-1 image
             arr = np.dstack([arr, arr, arr, np.ones(arr.shape)])
     else:
         if arr.shape[2] == 3:
