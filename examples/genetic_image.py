@@ -6,15 +6,14 @@ from py5canvas import *
 import numpy as np
 
 population = []
-population_size = 15
+population_size = 10
 tournament_size = 5
 num_rects = 200
 num_parameters = 6
 fitness = []
-target_size = (128, 128) #512, 512)
+target_size = (128, 128) 
 
 def setup():
-    print('setup')
     global population, fitness, img
 
     # Load a target image, convert to grayscale and resize
@@ -77,8 +76,8 @@ def calc_phenotype(dna):
         rects.append( {
             'x': dna[j+0] * width,
             'y': dna[j+1] * height,
-            'width': dna[j+2] * height*0.4,
-            'height': dna[j+3] * width*0.4,
+            'width': dna[j+2] * height*0.3,
+            'height': dna[j+3] * width*0.3,
             'rotation': dna[j+4] * np.pi * 2,
             'opacity': dna[j+5]*255
             })
@@ -90,13 +89,14 @@ def calc_phenotype(dna):
 # draws an individual
 def draw_phenotype(dna):
     phenotype = calc_phenotype(dna)
+    rect_mode(CENTER)
     for r in phenotype:
         no_stroke()
         fill(0, r['opacity']*0.5)
         push()
         translate(r['x'], r['y'])
         rotate(r['rotation'])
-        rect(r['width']*0.5, r['height']*0.5, r['width'], r['height'])
+        rect(0, 0, r['width'], r['height'])
         pop()
 
 
