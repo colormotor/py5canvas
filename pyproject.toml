@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "py5canvas"
-version = "1.0.8"
+version = "1.0.9"
 description = "Drawings and animations with a p5.js / Processing-like API."
 readme = { file = "README.md", content-type = "text/markdown" }
 license = { text = "MIT" }
