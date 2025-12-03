@@ -25,7 +25,7 @@ import numpy as np
 import os, sys, time
 from py5canvas import canvas, sketch_params
 from py5canvas.sketch_params import load_json, save_json
-
+from PIL import Image
 from py5canvas import globals as glob
 import traceback
 import importlib, inspect, types
@@ -315,6 +315,9 @@ class Sketch:
         self.gui = None
         self.gui_callback = None
         self.gui_focus = False
+        self._key = None
+        self._keys = set()
+
         if not show_toolbar:
             self.toolbar_height = 0
         else:
@@ -458,6 +461,15 @@ class Sketch:
     def mouse_is_pressed(self):
         ''' Returns `True` if mouse is pressed'''
         return self._dragging
+
+    @property
+    def key(self):
+        ''' Returns last key pressed'''
+        return self._key
+
+    def key_is_down(self, k):
+        ''' Returns True if the key `k` is pressed'''
+        return k in self._keys
 
     @property
     def delta_time(self):
@@ -890,7 +902,7 @@ class Sketch:
 
             self.video_writer.write(img)
         elif 'gif' in self.grabbing:
-            img = self.canvas.get_image()
+            img = self.canvas.get_image().convert("P", palette=Image.ADAPTIVE, colors=self.settings['gif']['colors'], dither=Image.FLOYDSTEINBERG)
             #img = adjust_gamma(img[::-1,:,::-1], self.video_gamma)
             self._grab_frames.append(img)
         else:
@@ -924,13 +936,14 @@ class Sketch:
                     append_images=self._grab_frames[1:],
                     save_all=True,
                     duration=delay_ms,
+                    optimize=True,
                     loop=True
                 )
                 # Gif saving
-                if shutil.which("gifsicle") is not None:
-                    run_gifsicle(self, self.grabbing, self.video_fps, True)
-                else:
-                    print("Gifsicle does not appear to be installed")
+                # if shutil.which("gifsicle") is not None:
+                #     run_gifsicle(self, self.grabbing, self.video_fps, True)
+                # else:
+                #     print("Gifsicle does not appear to be installed")
                 self._grab_frames = []
 
         if self.video_writer is not None:
@@ -1198,9 +1211,11 @@ class Sketch:
         self.var_context['mouse_pos'] = self.mouse_pos
         self.var_context['mouse_x'] = self.mouse_x
         self.var_context['mouse_y'] = self.mouse_y
+        self.var_context['key_is_down'] = self.key_is_down
+        self.var_context['key'] = self.key
 
 
-    def _update(self, dt):
+    def _fpdate(self, dt):
         # Almost a dummy function.
         # Scheduling this should force window redraw every frame
         # So we can sync update and drawing by calling frame() in the @draw callback
@@ -1702,16 +1717,32 @@ def main(path='', fps=0, inject=True, show_toolbar=False):
     # See https://www.glfw.org/docs/latest/input_guide.html
     def key_callback(window, key, scancode, action, mods):
         sketch.modifiers = mods
+        char = glfw.get_key_name(key, scancode)
+        # If char is not none we will consider this a char and let `char_callback` take control
+        use_char_cb = True
+        if char is None:
+            if key in glfw_keymap:
+                char = glfw_keymap[key]
+                use_char_cb = False
+
+        sketch._key = char
         if action == glfw.PRESS:
-            if imgui_focus():
-                return
-            if check_callback('key_pressed'):
-                name = glfw.get_key_name(key, scancode)
-                if name is None: # If name is not none consider this a char
-                    if key in glfw_keymap:
-                        params = [glfw_keymap[key], mods]
-                        sig = signature(sketch.var_context['key_pressed'])
-                        sketch.var_context['key_pressed'](*params[:len(sig.parameters)])
+            sketch._keys.add(char)
+        elif action == glfw.RELEASE:
+            if char in sketch._keys:
+                sketch._keys.remove(char)
+
+        if use_char_cb:
+            return
+
+        if check_callback('key_pressed'):
+            if action == glfw.PRESS:
+                if imgui_focus():
+                    return
+
+                params = [char, mods]
+                sig = signature(sketch.var_context['key_pressed'])
+                sketch.var_context['key_pressed'](*params[:len(sig.parameters)])
 
 
     def char_callback(window, char):
