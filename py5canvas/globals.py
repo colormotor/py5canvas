@@ -461,13 +461,31 @@ class VideoInput:
     """
 
     def __init__(
-        self, name=0, size=None, resize_mode="crop", flipped=None, vertical_flipped=None
+        self, name=None, size=None, resize_mode="crop", flipped=None, vertical_flipped=None
     ):
         """Constructor"""
-        import cv2
+        import cv2, platform
+
+        if platform.system().lower() == 'darwin':
+            Cam = lambda ind: cv2.VideoCapture(name, cv2.CAP_AVFOUNDATION)
+        else:
+            Cam = lambda ind: cv2.VideoCapture(name)
+
+        # Search for first active camera if name is None
+        if name is None:
+            name = 1
+            for i in range(0, 10):
+                vid = Cam(i)
+                success, _ = vid.read()
+                vid.release()
+                if success:
+                    name = i
+                    break
+        print("Loading video stream", name)
 
         # define a video capture object
-        self.vid = cv2.VideoCapture(name)
+        self.vid = Cam(name)
+
         if size is not None:
             self.size = size
         else:
@@ -532,7 +550,7 @@ class VideoInput:
         img = img[:, :, ::-1]
         if pil:
             if grayscale:
-                return Image.gromarray(img).convert("L")
+                return Image.fromarray(img).convert("L")
             return Image.fromarray(img)
         if grayscale:
             return np.mean(img / 255, axis=-1)
