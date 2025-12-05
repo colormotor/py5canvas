@@ -461,15 +461,28 @@ class VideoInput:
     """
 
     def __init__(
-        self, name=None, size=None, resize_mode="crop", flipped=None, vertical_flipped=None
+        self, name=0, size=None, resize_mode="crop", flipped=None, vertical_flipped=None
     ):
         """Constructor"""
         import cv2, platform
 
-        if platform.system().lower() == 'darwin':
-            Cam = lambda ind: cv2.VideoCapture(name, cv2.CAP_AVFOUNDATION)
+        system = platform.system().lower()
+        print("Detected system:", system)
+        if system == 'darwin':
+            def Cam(ind):
+                return cv2.VideoCapture(ind, cv2.CAP_AVFOUNDATION)
+        elif system == 'windows':
+            # Force DirectShow instead of MSMF
+            def Cam(ind):
+                return cv2.VideoCapture(ind, cv2.CAP_DSHOW)
         else:
-            Cam = lambda ind: cv2.VideoCapture(name)
+            def Cam(ind):
+                return cv2.VideoCapture(ind)
+
+        # if platform.system().lower() == 'darwin':
+        #     Cam = lambda ind: cv2.VideoCapture(name, cv2.CAP_AVFOUNDATION)
+        # else:
+        #     Cam = lambda ind: cv2.VideoCapture(name)
 
         # Search for first active camera if name is None
         if name is None:
