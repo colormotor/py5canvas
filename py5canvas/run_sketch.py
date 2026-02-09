@@ -185,6 +185,9 @@ class Sketch:
 
         # OpenGL context, shader and vao for rendering canvas
         self.glctx = mgl.create_context()
+        fb_w, fb_h = glfw.get_framebuffer_size(self.window)
+        self.glctx.viewport = (0, 0, fb_w, fb_h)
+
         #self.glctx.enable(mgl.FRAMEBUFFER_SRGB) #
         # self.frame_grabber = FrameGrabber(self.glctx)
 
@@ -607,6 +610,11 @@ class Sketch:
                 x, y = self.last_window_pos
             glfw.set_window_monitor(self.window, None, x, y, w, h, glfw.DONT_CARE)
             #self.create_glcontext()
+
+        # Resize also context
+        fb_w, fb_h = glfw.get_framebuffer_size(self.window)
+        glfw.make_context_current(self.window)
+        self.glctx.viewport = (0, 0, fb_w, fb_h)
 
         # Note, the canvas size may be different from the sketch size
         # for example when automatically creating a UI...

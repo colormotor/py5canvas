@@ -82,7 +82,7 @@ class CanvasState:
 
         self.cur_fill = c._scale_color([255.0])
         self.cur_stroke = c._scale_color([0.0])
-
+        self.cur_tint = c._scale_color([255.0])
         self._stroke_cap = "round"
         self._stroke_join = "miter"
         self._text_halign = "left"
@@ -183,6 +183,7 @@ class Gradient:
 @draw_states_properties(
     "cur_fill",
     "cur_stroke",
+    "cur_tint",
     "_stroke_join",
     "_text_halign",
     "_text_valign",
@@ -388,6 +389,10 @@ class Canvas:
     def no_stroke(self):
         """Do not stroke subsequent shapes"""
         self.stroke(None)
+
+    def no_tint(self):
+        """Do not tint images"""
+        self.tint(None)
 
     def fill_rule(self, rule):
         """Sets the fill rule"""
@@ -696,6 +701,20 @@ class Canvas:
             extend=extend
         )
 
+    def tint(self, *args):
+        """Set the tint color for images
+
+        Arguments:
+        - A single argument specifies a grayscale value, e.g. `stroke(255)` will set the stroke to white.
+        - Two arguments specify grayscale with opacity, e.g. `stroke(0, 128)` will set the stroke to black with 50% opacity.
+        - Three arguments specify a color depending on the color mode (rgb or hsv), e.g. `stroke(255, 0, 0)` will set the stroke to red, when the color mode is RGB
+        - Four arguments specify a color with opacity
+        """
+
+        if args[0] is None:
+            self.cur_tint = None
+        else:
+            self.cur_tint = self._apply_colormode(args)
 
     def stroke(self, *args):
         """Set the color of the current stroke
@@ -753,7 +772,15 @@ class Canvas:
             - `ADD = "add"` - Source colors added to canvas
             - `MULTIPLY = "multiply"` - Colors multiplied (always darker)
             - `SCREEN = "screen"` - Colors inverted, multiplied, then inverted (always lighter)
-            - `OVERLAY = "overlay"` - MULTIPLY for dark areas, SCREEN for light areas
+            - `OVERLAY = "overlay"` - MULTIPLY for dark areas, SCREEN f
+    n = 300
+    delta = TWO_PI / 4
+    a, b = 1.0, 4.0
+
+    for i in range(n):
+        t = remap(i, 0, n, 0, TWO_PI) + seconds()*0.1
+        x = sin(t * a + delta)*width*0.5
+        y = sin(t * b)*height*0.5or light areas
             - `DARKEST = "darken"` - Keeps the darker color value
             - `LIGHTEST = "lighten"` - Keeps the lighter color value
             - `DIFFERENCE = "difference"` - Canvas minus source (absolute value)
@@ -1554,9 +1581,9 @@ class Canvas:
 
     def begin_contour(self):
         """Begin drawing a contour"""
+        #if not self.no_draw:
         self.clear_segments()
         self.ctx.new_sub_path()
-        self._first_point = True
 
     def end_contour(self, close=False):
         """End drawing a contour
@@ -1584,8 +1611,10 @@ class Canvas:
             for i in range(0, len(Cp) - 1, 3):
                 self.ctx.curve_to(*Cp[i + 1], *Cp[i + 2], *Cp[i + 3])
         else:
-            cur = self.curve_segments[0].pop(0)
-            self.ctx.move_to(*cur)
+            #curve_segments = self.curve_segments
+            if len(self.curve_segments[0])==1:
+                cur = self.curve_segments[0].pop(0)
+                self.ctx.move_to(*cur)
             for seg, type in zip(self.curve_segments, self.curve_segment_types):
                 if not seg:
                     continue
@@ -1597,6 +1626,7 @@ class Canvas:
                 elif type == "B":
                     # Cubic Bezier segment
                     for i in range(0, len(seg), 3):
+                        #self.ctx.line_to(*seg[i+2])
                         self.ctx.curve_to(*seg[i], *seg[i + 1], *seg[i + 2])
                 else:
                     for p in seg:
@@ -1605,7 +1635,10 @@ class Canvas:
 
         if close:
             self.ctx.close_path()
-        self._fillstroke()
+
+        #if not self.no_draw:
+        if not self.no_draw:
+            self._fillstroke()
 
     def _add_curve_segment(self, type):
         self.curve_segments.append([])
@@ -1814,6 +1847,21 @@ class Canvas:
             sx = size[0] / img.get_width()
             sy = size[1] / img.get_height()
             self.ctx.scale(sx, sy)
+
+        # if self.cur_tint is None:
+        #     # No tint: draw the original image with opacity
+        #     self.ctx.set_source_surface(img)
+        #     self.ctx.paint_with_alpha(opacity)
+        # else:
+        #     # Tint is stored as (r, g, b, a) in [0, 1]
+        #     r, g, b, a = self.cur_tint
+        #     # Combine global opacity with tint alpha
+        #     effective_alpha = a * opacity
+        #     # Use the image as an alpha mask and paint with a solid tint color
+        #     self.ctx.set_source_rgba(r, g, b, effective_alpha)
+        #     self.ctx.mask_surface(img)
+
+        # self.ctx.restore()
 
         self.ctx.set_source_surface(img)
         self.ctx.paint_with_alpha(opacity)
@@ -2106,6 +2154,38 @@ class Canvas:
         for p in points:
             self.curve_vertex(p)
         self.end_contour(close)
+
+
+
+    def multibezier(self, *args, close=False):
+        """Draw a polyline (open by default).
+
+        The polyline is specified as either:
+
+        - a list of `[x,y]` pairs (e.g. `[[0, 100], [200, 100], [200, 200]]`)
+        - a numpy array with shape `(n, 2)`, representing `n` points (a point for each row and a coordinate for each column)
+        - two lists (or numpy array) of numbers, one for each coordinate
+
+        To close the polyline set the named `close` argument to `True`, e.g. `c.polyline(points, close=True)`.
+        """
+        self.ctx.new_sub_path()
+        #self.ctx.new_path()
+        if len(args) == 1:
+            points = args[0]
+        elif len(args) == 2:
+            points = np.vstack(args).T
+        else:
+            raise ValueError("Wrong number of arguments")
+        self.ctx.move_to(*points[0])
+
+        for i in range(0, len(points) - 1, 3):
+            self.ctx.curve_to(*points[i + 1], *points[i + 2], *points[i + 3])
+
+        if close:
+            self.ctx.close_path()
+
+        self._fillstroke()
+
 
     def polyline(self, *args, close=False):
         """Draw a polyline (open by default).
