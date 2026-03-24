@@ -279,7 +279,7 @@ def remap(value, *args, within_bounds=False):
 
     t = ((value - start1) / (stop1 - start1))
     if within_bounds:
-        t = max(0.0, min(t, 1.0))
+        t = np.clip(t, 0.0, 1.0)
     return start2 + (stop2 - start2) * t
 
 
