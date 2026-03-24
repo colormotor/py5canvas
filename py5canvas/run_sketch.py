@@ -977,7 +977,12 @@ class Sketch:
         return data
 
     def _background(self, *args):
-        ''' Sets backgroud color args internally, it will get exposed in '''
+        ''' Hook on canvas background to take care of recording context and other '''
+        self.recording_surface = cairo.RecordingSurface(cairo.CONTENT_COLOR_ALPHA, None)
+        self.recording_context = cairo.Context(self.recording_surface)
+        if len(self.canvas.ctx.ctxs) > 1: # assumes with 2 ctxs second is recording
+            self.canvas.ctx.ctxs[1] = self.recording_context
+
         if True: #not self._async_background: # Disabled
             self.canvas.background(*args)
         else:
