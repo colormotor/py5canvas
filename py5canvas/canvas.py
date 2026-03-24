@@ -2539,49 +2539,124 @@ import numpy as np
 import cairo
 
 
+# def numpy_to_surface(arr):
+#     """Convert numpy array to a pycairo surface"""
+#     # Get the shape and data type of the numpy array
+#     if len(arr.shape) == 2:
+#         if arr.dtype == np.uint8:
+#             arr = (
+#                 np.dstack([arr, arr, arr, (np.ones(arr.shape) * 255).astype(np.uint8)])
+#                 / 255
+#             )
+#         else:
+#             # grayscale 0-1 image
+#             arr = np.dstack([arr, arr, arr, np.ones(arr.shape)])
+#     else:
+#         if arr.shape[2] == 3:
+#             if arr.dtype == np.uint8:
+#                 arr = (
+#                     np.dstack([arr, np.ones(arr.shape[:2], dtype=np.uint8) * 255]) / 255
+#                 )
+#             else:
+#                 arr = np.dstack([arr, np.ones(arr.shape[:2])])
+#         elif arr.shape[2] == 1:
+#             if arr.dtype == np.uint8:
+#                 arr = (
+#                     np.dstack(
+#                         [arr] * 3 + [np.ones(arr.shape[:2], dtype=np.uint8) * 255]
+#                     )
+#                     / 255
+#                 )
+#             else:
+#                 arr = np.dstack([arr] * 3 + [np.ones(arr.shape[:2])])
+#         else:
+#             if arr.dtype == np.uint8:
+#                 arr = arr / 255
+
+#     arr[:, :, :3] *= arr[:, :, 3:4]  # premultiply alpha
+#     arr = (arr * 255).astype(np.uint8)  # convert to uint8
+#     arr = arr.copy(order="C")  # must be "C-contiguous"
+#     arr[:, :, :3] = arr[:, :, :3][:, :, ::-1]  # Convert RGB to BGR
+#     surf = cairo.ImageSurface.create_for_data(
+#         arr, cairo.FORMAT_ARGB32, arr.shape[1], arr.shape[0]
+#     )
+
+#     return surf
+
+
+
 def numpy_to_surface(arr):
-    """Convert numpy array to a pycairo surface"""
-    # Get the shape and data type of the numpy array
-    if len(arr.shape) == 2:
-        if arr.dtype == np.uint8:
-            arr = (
-                np.dstack([arr, arr, arr, (np.ones(arr.shape) * 255).astype(np.uint8)])
-                / 255
-            )
-        else:
-            # grayscale 0-1 image
-            arr = np.dstack([arr, arr, arr, np.ones(arr.shape)])
-    else:
-        if arr.shape[2] == 3:
-            if arr.dtype == np.uint8:
-                arr = (
-                    np.dstack([arr, np.ones(arr.shape[:2], dtype=np.uint8) * 255]) / 255
-                )
-            else:
-                arr = np.dstack([arr, np.ones(arr.shape[:2])])
-        elif arr.shape[2] == 1:
-            if arr.dtype == np.uint8:
-                arr = (
-                    np.dstack(
-                        [arr] * 3 + [np.ones(arr.shape[:2], dtype=np.uint8) * 255]
-                    )
-                    / 255
-                )
-            else:
-                arr = np.dstack([arr] * 3 + [np.ones(arr.shape[:2])])
-        else:
-            if arr.dtype == np.uint8:
-                arr = arr / 255
+    """
+    Convert numpy array to a pycairo ImageSurface with fewer allocations.
 
-    arr[:, :, :3] *= arr[:, :, 3:4]  # premultiply alpha
-    arr = (arr * 255).astype(np.uint8)  # convert to uint8
-    arr = arr.copy(order="C")  # must be "C-contiguous"
-    arr[:, :, :3] = arr[:, :, :3][:, :, ::-1]  # Convert RGB to BGR
-    surf = cairo.ImageSurface.create_for_data(
-        arr, cairo.FORMAT_ARGB32, arr.shape[1], arr.shape[0]
-    )
+    Supported inputs:
+      - HxW uint8                  -> grayscale, opaque
+      - HxWx3 uint8               -> RGB, opaque
+      - HxWx4 uint8               -> RGBA, premultiplied into Cairo ARGB32 memory layout
+    """
+    if arr.dtype != np.uint8:
+        arr = (arr*255).astype(np.uint8)
+        #raise TypeError("Fast path expects uint8 input")
 
-    return surf
+    h, w = arr.shape[:2]
+
+    if arr.ndim == 2:
+        # grayscale -> RGB24
+        stride = cairo.Format.RGB24.stride_for_width(w)
+        buf = np.empty((h, stride), dtype=np.uint8)
+        pixels = buf[:, :w * 4].reshape(h, w, 4)
+
+        pixels[..., 0] = arr   # B
+        pixels[..., 1] = arr   # G
+        pixels[..., 2] = arr   # R
+        pixels[..., 3] = 0     # unused byte for RGB24
+
+        surface = cairo.ImageSurface.create_for_data(
+            buf, cairo.FORMAT_RGB24, w, h, stride
+        )
+        return surface
+
+    if arr.ndim != 3:
+        raise ValueError("Expected HxW, HxWx3, or HxWx4 array")
+
+    c = arr.shape[2]
+
+    if c == 3:
+        # RGB -> RGB24, no premultiplication needed
+        stride = cairo.Format.RGB24.stride_for_width(w)
+        buf = np.empty((h, stride), dtype=np.uint8)
+        pixels = buf[:, :w * 4].reshape(h, w, 4)
+
+        pixels[..., 0] = arr[..., 2]  # B
+        pixels[..., 1] = arr[..., 1]  # G
+        pixels[..., 2] = arr[..., 0]  # R
+        pixels[..., 3] = 0            # unused byte for RGB24
+
+        surface = cairo.ImageSurface.create_for_data(
+            buf, cairo.FORMAT_RGB24, w, h, stride
+        )
+        return surface
+
+    if c == 4:
+        # RGBA -> ARGB32, premultiplied, little-endian byte layout B,G,R,A
+        stride = cairo.Format.ARGB32.stride_for_width(w)
+        buf = np.empty((h, stride), dtype=np.uint8)
+        pixels = buf[:, :w * 4].reshape(h, w, 4)
+
+        a = arr[..., 3].astype(np.uint16)
+
+        # Integer premultiply with rounding
+        pixels[..., 0] = ((arr[..., 2].astype(np.uint16) * a + 127) // 255).astype(np.uint8)  # B
+        pixels[..., 1] = ((arr[..., 1].astype(np.uint16) * a + 127) // 255).astype(np.uint8)  # G
+        pixels[..., 2] = ((arr[..., 0].astype(np.uint16) * a + 127) // 255).astype(np.uint8)  # R
+        pixels[..., 3] = arr[..., 3]  # A
+
+        surface = cairo.ImageSurface.create_for_data(
+            buf, cairo.FORMAT_ARGB32, w, h, stride
+        )
+        return surface
+
+    raise ValueError("Expected 1, 3, or 4 channels")
 
 
 def create_font(name, size=None, style=None):
@@ -2765,7 +2840,11 @@ def fix_namespace(xml_content):
     # return xml_content
     # Remove namespace prefixes from the XML content and replace ns1 with xlink (argh)
     xml_content = xml_content.replace("ns0:", "").replace(":ns0", "")
-    return xml_content.replace("ns1:", "xlink:").replace(":ns1", ":xlink")
+    xml_content = xml_content.replace("ns1:", "xlink:").replace(":ns1", ":xlink")
+    # Remove defs as svgpathtools cannot load these
+    # TODO this might bite us back
+    xml_content = xml_content.replace("<svg:defs>", "").replace("</svg:defs>", "")
+    return xml_content
 
 
 def fix_clip_path(file_path, out_path):
