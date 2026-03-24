@@ -8,6 +8,9 @@ cfg.active = None
 cfg.hover = None
 cfg.draw_list = []
 cfg.sketch = None
+cfg.border_color = (0.0, 0.5)
+cfg.active_color = '#ff0000'
+cfg.fill_color = '#666666cc'
 
 def dprint(*args):
     return
@@ -25,9 +28,9 @@ def add_to_drawlist(id, f):
     def cb():
         c.push()
         if cfg.active == id or cfg.hover == id:
-            c.fill('#ff0000')
+            c.fill(cfg.active_color)
         else:
-            c.fill('#666666cc')
+            c.fill(cfg.fill_color)
         f()
         c.pop()
     cfg.draw_list.append(cb)
@@ -59,7 +62,7 @@ def dragger(id, pos):
         dprint('Dragging', id, pos, cfg.sketch.mouse_delta)
         pos = cfg.sketch.mouse_pos.copy() #np.array(pos) + cfg.sketch.mouse_delta
     add_to_drawlist(id, lambda :(
-        c.stroke(0),
+        c.stroke(cfg.border_color),
         c.rectangle(*(pos-cfg.dragger_size*0.5), *(cfg.dragger_size))))
 
     return np.array(pos)
