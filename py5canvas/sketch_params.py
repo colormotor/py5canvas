@@ -29,6 +29,12 @@ if imgui_loader is not None:
 else:
     imgui = None
 
+pyperclip_loader = importlib.util.find_spec('pyperclip')
+if pyperclip_loader is not None:
+    import pyperclip
+else:
+    pyperclip = None
+
 # Optionally import easydict
 edict_loader = importlib.util.find_spec('easydict')
 if edict_loader is not None:
@@ -353,6 +359,9 @@ if imgui is not None:
                 if name == '__key__':
                     continue
 
+                if parent:
+                    self.changed.add(parent[:-1]) # Also add parent (without dot)
+                    
                 if type(val) == dict:
                     key = val['__key__']
                     self.force_changed(params[key], val, parent + key + '.')
@@ -400,7 +409,7 @@ if imgui is not None:
                             if 'buf_length' in opts:
                                 buf_length = opts['buf_length']
                             if 'multiline' in opts and opts['multiline']:
-                                changed, params[key] = imgui.input_text_multiline(name, params[key], [0, 0], imgui.InputTextFlags.ENTER_RETURNS_TRUE)
+                                changed, params[key] = imgui.input_text_multiline(name, params[key], [0, 0]) #, imgui.InputTextFlags.ENTER_RETURNS_TRUE)
                             else:
                                 changed, params[key] = imgui.input_text(name, params[key],  imgui.InputTextFlags.ENTER_RETURNS_TRUE)
                         elif param_type == 'selection':
@@ -493,7 +502,14 @@ if imgui is not None:
                         fps = sketch._fps
                         sketch.grab_gif(path, framerate=fps if fps else 30)
                 imgui.end_popup()
+                
+            if pyperclip is not None:
+                imgui.same_line()
+                if imgui.button('Copy'):
+                    sketch.dump_canvas('copy.svg', copy=True)
+                
             imgui.same_line()
+        
             if imgui.button('Settings...'):
                 imgui.open_popup('Settings popup')
             if imgui.begin_popup('Settings popup'):
