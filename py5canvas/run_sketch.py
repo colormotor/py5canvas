@@ -352,6 +352,7 @@ class Sketch:
 
         # SVG/PDF saving
         self.saving_to_file = ''
+        self.copying = False
         self.recording_context = None
         self.recording_surface = None
         self.done_saving = False
@@ -696,11 +697,12 @@ class Sketch:
     def get_pixel_ratio(self):
         return 1
 
-    def save_canvas(self, path):
+    def save_canvas(self, path, copy=False):
         ''' Tells the sketch to dump the next frame to an SVG file '''
         if '~' in path:
             path = os.path.expanduser(path)
         self.saving_to_file = os.path.abspath(path)
+        self.copying = copy
         print('saving file to', self.saving_to_file)
         # Since this can be called in frame, we need to make sure we don't save svg righ after
         self.done_saving = False
@@ -1420,8 +1422,17 @@ class Sketch:
                     print(e)
                     pass
 
+                if self.copying:
+                    import pyperclip
+                    with open(self.saving_to_file, "r", encoding="utf-8") as f:
+                        data = f.read()
+                    pyperclip.copy(data)
+                    os.remove(self.saving_to_file)
+
+
             self.canvas.ctx.pop_context()
             self.saving_to_file = ''
+            self.copying = False
             self.done_saving = False
 
         return draw_frame
