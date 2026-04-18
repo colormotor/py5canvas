@@ -94,6 +94,7 @@ class CanvasState:
         self._text_leading = 16
         self._line_width = 1.0
         self._angle_mode = 'radians'
+        self._dash = []
 
     def set(self, prev=None):
         def should_set(prev, name):
@@ -109,12 +110,13 @@ class CanvasState:
             self.c.stroke_weight(self._line_width)
         if should_set(prev, "_text_size"):
             self.c.text_size(self._text_size)
+        if should_set(prev, "_dash"):
+            self.c.stroke_dash(self._dash)
 
 
 def draw_states_properties(*names):
     def decorator(cls):
         for name in names:
-
             def getter(self, n=name):
                 return getattr(self.draw_states[-1], n)
 
@@ -179,7 +181,6 @@ class Gradient:
         return cls('radial', inner=inner, outer=outer, stops=stops, extend=extend)
 
 
-
 @draw_states_properties(
     "cur_fill",
     "cur_stroke",
@@ -194,7 +195,9 @@ class Gradient:
     "_line_width",
     "_text_leading",
     "_angle_mode",
+    "_dash",
 )
+
 
 class Canvas:
     """
@@ -730,6 +733,14 @@ class Canvas:
             self.cur_stroke = None
         else:
             self.cur_stroke = self._apply_colormode(args)
+
+    def stroke_dash(self, dash):
+        """Set the line dash (stippling)
+
+        Arguments:
+        - A sequence of lengths, indicating alternating (on/off) dashed segments
+        """
+        self.ctx.set_dash(dash)
 
     def stroke_weight(self, w):
         """Set the line width
