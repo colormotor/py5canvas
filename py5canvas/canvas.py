@@ -1344,8 +1344,8 @@ class Canvas:
 
         Input arguments can be in the following formats:
 
-         - `a, b` (Two points specified as lists/tuples/numpy arrays
-         - `x1, y1, x2, y2`, a sequence of numbers, one for each coordinate
+        - `a, b` (Two points specified as lists/tuples/numpy arrays
+        - `x1, y1, x2, y2`, a sequence of numbers, one for each coordinate
         """
 
         if len(args) == 2:
@@ -1353,6 +1353,11 @@ class Canvas:
         elif len(args) == 4:
             a = args[:2]
             b = args[2:]
+        elif len(args) == 3:
+            a = args[0]
+            b = args[1]
+            size = args[2]
+            
         w = self.ctx.get_line_width() * size
         # Arrow width and 'height' (length)
         h = w * length
