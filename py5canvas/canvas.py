@@ -114,6 +114,7 @@ class CanvasState:
             self.c.stroke_dash(self._dash)
 
 
+
 def draw_states_properties(*names):
     def decorator(cls):
         for name in names:
@@ -2401,6 +2402,14 @@ class Canvas:
     #         svg_surf.finish()
     #     else:
     #         self.surf.write_to_png(self.output_file)
+
+    def to_clipboard(self):
+        import pyperclip, os
+        self.save('tmp.svg')
+        with open('tmp.svg', "r", encoding="utf-8") as f:
+            data = f.read()
+            pyperclip.copy(data)
+            os.remove('tmp.svg')
 
     def save(self, path):
         """Save the canvas into a given file path
