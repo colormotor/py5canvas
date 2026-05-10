@@ -289,7 +289,7 @@ class Sketch:
             imgui.create_context()
             implot.create_context()
             # Forwarding callbacks manually since Imgui eats these otherwise
-            self.impl = GlfwRenderer(self.window, attach_callbacks=True)
+            self.impl = GlfwRenderer(self.window, attach_callbacks=False) #True)
             sketch_params.set_theme()
 
         # # OpenGL context, shader and vao for rendering canvas
@@ -1670,6 +1670,9 @@ def main(path='', fps=0, inject=True, show_toolbar=False):
             return False
         return callable(sketch.var_context[name])
 
+    def has_imgui():
+        return imgui is not None
+
     def imgui_focus():
         if imgui is None:
             return False
@@ -1739,8 +1742,21 @@ def main(path='', fps=0, inject=True, show_toolbar=False):
     #         sketch.var_context['mouse_released'](*params[:len(sig.parameters)])
 
     # See https://www.glfw.org/docs/latest/input_guide.html
+    #
+
     def key_callback(window, key, scancode, action, mods):
         sketch.modifiers = mods
+
+        # forward to imgui
+        if sketch.impl is not None:
+            sketch.impl.keyboard_callback(window, key, scancode, action, mods)
+            # Make modifier state explicit
+            # io = imgui.get_io()
+            # io.key_ctrl  = bool(mods & glfw.MOD_CONTROL)
+            # io.key_shift = bool(mods & glfw.MOD_SHIFT)
+            # io.key_alt   = bool(mods & glfw.MOD_ALT)
+            # io.key_super = bool(mods & glfw.MOD_SUPER)
+
         char = glfw.get_key_name(key, scancode)
         # If char is not none we will consider this a char and let `char_callback` take control
         use_char_cb = True
@@ -1761,7 +1777,9 @@ def main(path='', fps=0, inject=True, show_toolbar=False):
 
         if check_callback('key_pressed'):
             if action == glfw.PRESS:
-                if imgui_focus():
+                # if imgui_focus():
+                #     return
+                if has_imgui() and imgui.get_io().want_capture_keyboard:
                     return
 
                 params = [char, mods]
@@ -1770,7 +1788,9 @@ def main(path='', fps=0, inject=True, show_toolbar=False):
 
 
     def char_callback(window, char):
-        if imgui_focus():
+        if sketch.impl is not None:
+            sketch.impl.char_callback(window, char)
+        if imgui.get_io().want_capture_keyboard:
             return
         if check_callback('key_pressed'):
             params = [chr(char), None]
@@ -1789,10 +1809,16 @@ def main(path='', fps=0, inject=True, show_toolbar=False):
         pass
 
     def cursor_position_callback(window, x, y):
+        if sketch.impl is not None:
+            sketch.impl.mouse_pos_callback(window, x, y)
+
         sketch._mouse_pos = pos = canvas_pos(x, y)
         if sketch._dragging:
-            if imgui_focus():
+            if has_imgui() and imgui.get_io().want_capture_mouse:
                 return
+
+            #if imgui_focus():
+            #    return
             if not point_in_canvas(pos):
                 return
             if check_callback('mouse_dragged'):
@@ -1811,15 +1837,27 @@ def main(path='', fps=0, inject=True, show_toolbar=False):
         sketch.modifiers = mods
         pos = sketch._mouse_pos
 
-        if imgui is not None:
-            # print("Mouse event", button, action, mods)
+        if sketch.impl is not None:
             sketch.impl.mouse_button_callback(window, button, action, mods)
+
+            # # Also force modifier state here
+            # io = imgui.get_io()
+            # io.key_ctrl  = bool(mods & glfw.MOD_CONTROL)
+            # io.key_shift = bool(mods & glfw.MOD_SHIFT)
+            # io.key_alt   = bool(mods & glfw.MOD_ALT)
+            # io.key_super = bool(mods & glfw.MOD_SUPER)
+
+        # if imgui is not None:
+        #     # print("Mouse event", button, action, mods)
+        #     sketch.impl.mouse_button_callback(window, button, action, mods)
 
         if action == glfw.PRESS:
 
             # print('Mouse button pressed')
-            if imgui_focus():
+            if has_imgui() and imgui.get_io().want_capture_mouse:
                 return
+            # if imgui_focus():
+            #     return
             if not point_in_canvas(pos):
                 return
             sketch.mouse_button = button
@@ -1838,6 +1876,8 @@ def main(path='', fps=0, inject=True, show_toolbar=False):
             sketch.mouse_button = button
             sketch._dragging = False
             sketch._clicked = False
+            if has_imgui() and imgui.get_io().want_capture_mouse:
+                return
             if check_callback('mouse_released'):
                 params = [button, mods]
                 sig = signature(sketch.var_context['mouse_released'])
@@ -1845,6 +1885,14 @@ def main(path='', fps=0, inject=True, show_toolbar=False):
 
             #sketch.impl._update_mod_keys(window)
             #sketch.impl.io.add_mouse_button_event(button, action != 0)
+    def scroll_callback(window, x, y):
+        if sketch.impl is not None:
+            sketch.impl.scroll_callback(window, x, y)
+
+    def resize_callback(window, width, height):
+        pass
+        #if sketch.impl is not None:
+        #    sketch.impl.resize_callback(window, width, height)
 
     def window_content_scale_callback(window, xscale, yscale):
         #print("Content scale", xscale, yscale)
@@ -1862,22 +1910,34 @@ def main(path='', fps=0, inject=True, show_toolbar=False):
     def window_pos_callback(window, x, y):
         pass #print("Window pos", x, y)
 
+    def window_focus_callback(window, focused, *args):
+        if sketch.impl is not None:
+            sketch.impl.window_fucus_callback(window, focused)
+
     glfw.set_window_content_scale_callback(sketch.window, window_content_scale_callback)
 
 
-    if imgui is not None:
-        # If we have imgui it will handle these for us
-        sketch.impl._prev_key_callback = key_callback
-        sketch.impl._prev_char_callback = char_callback
-        sketch.impl._prev_cursor_pos_callback = cursor_position_callback
-        glfw.set_mouse_button_callback(sketch.window, mouse_button_callback)
-        #sketch.impl._prev_mouse_button_callback = None # mouse_button_callback
-    else:
-        # otherwise explicitly set glfw cb's
-        glfw.set_key_callback(sketch.window, key_callback)
-        glfw.set_char_callback(sketch.window, char_callback)
-        glfw.set_cursor_pos_callback(sketch.window, cursor_position_callback)
-        glfw.set_mouse_button_callback(sketch.window, mouse_button_callback)
+    glfw.set_key_callback(sketch.window, key_callback)
+    glfw.set_char_callback(sketch.window, char_callback)
+    glfw.set_cursor_pos_callback(sketch.window, cursor_position_callback)
+    glfw.set_mouse_button_callback(sketch.window, mouse_button_callback)
+    glfw.set_scroll_callback(sketch.window, scroll_callback)
+    glfw.set_window_size_callback(sketch.window, resize_callback)
+    #glfw.set_window_size_callback(sketch.window, window_focus_callback)
+
+    # if imgui is not None:
+    #     # If we have imgui it will handle these for us
+    #     sketch.impl._prev_key_callback = key_callback
+    #     sketch.impl._prev_char_callback = char_callback
+    #     sketch.impl._prev_cursor_pos_callback = cursor_position_callback
+    #     glfw.set_mouse_button_callback(sketch.window, mouse_button_callback)
+    #     #sketch.impl._prev_mouse_button_callback = None # mouse_button_callback
+    # else:
+    #     # otherwise explicitly set glfw cb's
+    #     glfw.set_key_callback(sketch.window, key_callback)
+    #     glfw.set_char_callback(sketch.window, char_callback)
+    #     glfw.set_cursor_pos_callback(sketch.window, cursor_position_callback)
+    #     glfw.set_mouse_button_callback(sketch.window, mouse_button_callback)
 
     glfw.set_framebuffer_size_callback(sketch.window, framebuffer_size_callback)
     glfw.set_window_pos_callback(sketch.window, window_pos_callback)
