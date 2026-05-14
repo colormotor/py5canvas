@@ -170,12 +170,10 @@ def wrap_method(obj, func):
     return wrapper
 
 def wrap_canvas_method(sketch, func):
-    # print('wrapping ' + func)
     def wrapper(*args, **kwargs):
         # print('calling wrapped ', func, args)
         return getattr(sketch.canvas, func)(*args, **kwargs)
     return wrapper
-
 
 ASYNC_BG = True
 
@@ -636,15 +634,28 @@ class Sketch:
 
         self.window_width, self.window_height = w, h
 
-        # Expose canvas globally
-        if self.var_context:
-            self.update_globals()
-
+        
         if self.canvas_tex is not None:
             print('Releasing old canvas texture')
             self.canvas_tex.release()
         self.canvas_tex = self.glctx.texture(canvas_size, 4, self.canvas.get_buffer())
         self.canvas_tex.swizzle = 'BGRA' # Internal Cairo format
+
+        def inject(name, val):
+            if self._can_inject(name):
+                self.var_context[name] = val
+
+        inject('width', self.width)
+        inject('height', self.height)
+        inject('center', self.canvas.center)
+
+        # self._frame_count = 0
+        # self._delta_time = 0.0
+
+
+        # # Expose canvas globally
+        # if self.var_context:
+        #     self.update_globals()
 
         # # Create image and copy initial canvas buffer to it
         # buf = self.canvas.get_buffer()
@@ -991,11 +1002,37 @@ class Sketch:
             self._background_args = args
 
 
+    def _can_inject(self, func, var_context=None):
+        '''Injection guard
+        '''
+        if var_context is None:
+            var_context = self.var_context
+
+        if func not in var_context:
+            return True
+
+        val = var_context[func]
+
+        # # Keep user-defined non‑callables (numbers, modules, strings, etc.)
+        # if not callable(val) and not isinstance(val, types.ModuleType):
+        #     return False
+        
+        # Check if function comes from the module itself
+        try:
+            mod = inspect.getmodule(val)
+            if mod is None:
+                return False
+            # Only overwrite if the existing value came from py5canvas itself
+            # (i.e., previously injected by us)
+            return 'py5canvas' in mod.__name__
+        except Exception:
+            return False
+
     def _reload(self, var_context):
         print("Reloading sketch code")
         self.finalize_grab()
 
-        #var_context = {}
+        var_context = {}
         self.var_context = var_context
 
         self._frame_count = 0
@@ -1083,28 +1120,39 @@ class Sketch:
             # One reasonable solution would be to add a flag to the "run" function,
             # so that it can stop the injection from happening. Then these parameters
             # would be accesible through the ~sketch~ variable.
-            def can_inject(func):
-                if func not in var_context:
-                    return True
-                try:
-                    return (func not in var_context or
-                            'dummy_globals' in inspect.getmodule(var_context[func]).__name__ or
-                            'py5canvas' in inspect.getmodule(var_context[func]).__name__)
-                except AttributeError as e:
-                    print("'%s' seems to be defined in script and conflicting with Py5canvas built in function"%func)
-                return False
 
+
+            # def can_inject(func):
+            #     if func not in var_context:
+            #         return True
+            #     try:
+            #         return (func not in var_context or
+            #                 'dummy_globals' in inspect.getmodule(var_context[func]).__name__ or
+            #                 'py5canvas' in inspect.getmodule(var_context[func]).__name__)
+            #     except AttributeError as e:
+            #         print("'%s' seems to be defined in script and conflicting with Py5canvas built in function"%func)
+            #     return False
+
+            def is_callable(func):
+                if callable(self.canvas, func):
+                    return True
+                # Property case
+                # 
+
+            # Wrapping canvas methods. The issue here is properties,
+            # as it is not trivial to have them dynamically updated
+            # For now this will be done in `update_globals()`
             if self.inject:
+                
                 for func in dir(self.canvas):
                     if '__' not in func and callable(getattr(self.canvas, func)):
-                        if can_inject(func):
-                            var_context[func] = wrap_canvas_method(self, func)
-                        # else:
-                        #     import inspect
-                        #     pdb.set_trace()
-
+                        method = wrap_canvas_method(self, func)
+                        if method is not None and self._can_inject(func):
+                            var_context[func] = method
+                        
+            # Inject globals
             for g in dir(glob):
-                if '__' not in g:
+                if '__' not in g and self._can_inject(g):
                     var_context[g] = getattr(glob, g)
 
             # Inject basic functions from sketch
@@ -1133,9 +1181,10 @@ class Sketch:
                                 'open_folder_dialog']
                 for method in export_methods:
                     #if method not in var_context:
-                    var_context[method] = wrap_method(self, method)
+                    if self._can_inject(method):
+                        var_context[method] = wrap_method(self, method)
                 # For compatibility expose "size"
-                if can_inject('size'):
+                if self._can_inject('size'):
                     var_context['size'] = wrap_method(self, 'create_canvas')
                 # Background hack so we clear once
                 var_context['background'] = wrap_method(self, '_background')
@@ -1200,25 +1249,28 @@ class Sketch:
             self.mouse_delta = self.mouse_pos - self.prev_mouse
             self.prev_mouse = self.mouse_pos.copy()
 
-        # if self.mouse_pressed:
-        #     print('Mouse:')
-        #     print(self.mouse_delta)
-        #     print(self.mouse_pos)
-        #     print(self.mouse_delta)
 
     def update_globals(self):
         ''' Inject globals that are not updated automatically'''
+        def inject(name, val):
+            if self._can_inject(name):
+                self.var_context[name] = val
         self.var_context['delta_time'] = self._delta_time
         self.var_context['frame_count'] = self._frame_count
         self.var_context['fps'] = self._fps
-        self.var_context['width'] = self.width
-        self.var_context['height'] = self.height
-        self.var_context['center'] = self.canvas.center
+        # Properties...annyoing
+        # self.var_context['width'] = self.width
+        # self.var_context['height'] = self.height
+        # self.var_context['center'] = self.canvas.center
+
+        # inject('delta_time', self._delta_time)
+        # inject('frame_count', self._frame_count)
+        # inject('fps', self._fps)
 
         # HACK keep mouse_pressed as a flag for backwards compatibility, but must be deprecated
         #if 'mouse_pressed' not in self.var_context or not callable(self.var_context['mouse_pressed']):
         #    self.var_context['mouse_pressed'] = self.dragging
-        self.var_context['dragging'] = self.dragging
+        
         self.var_context['clicked'] = self.clicked
         self.var_context['mouse_is_pressed'] = self.dragging # For compatibility with p5py
         self.var_context['mouse_button'] = self.mouse_button
@@ -1227,7 +1279,16 @@ class Sketch:
         self.var_context['mouse_x'] = self.mouse_x
         self.var_context['mouse_y'] = self.mouse_y
         self.var_context['key_is_down'] = self.key_is_down
-        self.var_context['key'] = self.key
+        # inject('dragging', self.dragging)
+        # inject('clicked', self.clicked)
+        # inject('mouse_is_pressed', self.dragging) # For compatibility with p5py
+        # inject('mouse_button', self.mouse_button)
+        # inject('mouse_delta', self.mouse_delta)
+        # inject('mouse_pos', self.mouse_pos)
+        # inject('mouse_x', self.mouse_x)
+        # inject('mouse_y', self.mouse_y)
+        # inject('key_is_down', self.key_is_down)
+        # inject('key', self.key)
 
 
     def _fpdate(self, dt):
@@ -1436,8 +1497,6 @@ class Sketch:
             self.done_saving = False
 
         return draw_frame
-
-
 
     def title(self, title):
         ''' Sets the title of the sketch window'''

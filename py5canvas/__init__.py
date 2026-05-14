@@ -5,7 +5,7 @@ from .canvas import Canvas
 import pdb
 
 # Tricks the linter into knowing the symbols we inject
-from .dummy_globals import *
+#from .dummy_globals import *
 from .globals import *
 
 _canvas = None
