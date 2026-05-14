@@ -228,6 +228,9 @@ class Canvas:
         output_file="",
         recording=True,
         save_background=True,
+        color_scale=255,
+        **kwargs
+            
     ):
         """Constructor"""
         # See https://pycairo.readthedocs.io/en/latest/reference/context.html
@@ -235,8 +238,11 @@ class Canvas:
         # surf = cairo.ImageSurface(cairo.FORMAT_RGB30, width, height)
         ctx = MultiContext(surf)  # cairo.Context(surf)
 
+        if 'cs' in kwargs:
+            color_scale = kwargs['cs']
+            
         # Create SVG surface for saving
-        self.color_scale = np.ones(4) * 255.0
+        self.color_scale = np.ones(4) * color_scale
 
         # This is useful for py5sketch to reset SVG each time background is cleared
         self.clear_callback = clear_callback
@@ -609,7 +615,7 @@ class Canvas:
             args = args[3:]
 
         theta = self._to_radians(angle)
-        x2, y2 = x1+np.cos(theta)*length, x2+np.sin(theta)*length
+        x2, y2 = x1+np.cos(theta)*length, x1+np.sin(theta)*length
 
         if len(args) < 2:
             raise ValueError("You must provide at least 2 stops for creating a gradient")
@@ -762,7 +768,7 @@ class Canvas:
         joins = {
             "miter": cairo.LINE_JOIN_MITER,
             "bevel": cairo.LINE_JOIN_BEVEL,
-            "round": cairo.LINE_CAP_ROUND,
+            "round": cairo.LINE_JOIN_ROUND,
         }
         if join not in joins:
             print(str(join) + " not a valid line join")
@@ -785,14 +791,6 @@ class Canvas:
             - `MULTIPLY = "multiply"` - Colors multiplied (always darker)
             - `SCREEN = "screen"` - Colors inverted, multiplied, then inverted (always lighter)
             - `OVERLAY = "overlay"` - MULTIPLY for dark areas, SCREEN f
-    n = 300
-    delta = TWO_PI / 4
-    a, b = 1.0, 4.0
-
-    for i in range(n):
-        t = remap(i, 0, n, 0, TWO_PI) + seconds()*0.1
-        x = sin(t * a + delta)*width*0.5
-        y = sin(t * b)*height*0.5or light areas
             - `DARKEST = "darken"` - Keeps the darker color value
             - `LIGHTEST = "lighten"` - Keeps the lighter color value
             - `DIFFERENCE = "difference"` - Canvas minus source (absolute value)
@@ -1816,9 +1814,10 @@ class Canvas:
         - `opacity`: a value between 0 and 1 specifying image opacity.
 
         """
-
+        
         if isinstance(img, Canvas):
             img = img.surf
+            
         else:
             if not isinstance(img, np.ndarray):
                 # This should take care of tensors and PIL Images
@@ -1865,23 +1864,28 @@ class Canvas:
             sy = size[1] / img.get_height()
             self.ctx.scale(sx, sy)
 
-        # if self.cur_tint is None:
-        #     # No tint: draw the original image with opacity
-        #     self.ctx.set_source_surface(img)
-        #     self.ctx.paint_with_alpha(opacity)
-        # else:
-        #     # Tint is stored as (r, g, b, a) in [0, 1]
-        #     r, g, b, a = self.cur_tint
-        #     # Combine global opacity with tint alpha
-        #     effective_alpha = a * opacity
-        #     # Use the image as an alpha mask and paint with a solid tint color
-        #     self.ctx.set_source_rgba(r, g, b, effective_alpha)
-        #     self.ctx.mask_surface(img)
-
-        # self.ctx.restore()
-
-        self.ctx.set_source_surface(img)
-        self.ctx.paint_with_alpha(opacity)
+        # Apply tint if set
+        if self.cur_tint is not None:
+            r, g, b, a = self.cur_tint
+            op = self.ctx.get_operator()
+            self.ctx.push_group()
+            # base image
+            self.ctx.set_source_surface(img, 0, 0)
+            self.ctx.paint_with_alpha(1)
+            # multiply tint 
+            self.ctx.set_operator(cairo.OPERATOR_MULTIPLY)
+            self.ctx.set_source_rgba(r, g, b, 1.0)
+            self.ctx.mask_surface(img, 0, 0)
+            # render group
+            self.ctx.pop_group_to_source()
+            self.ctx.set_operator(op)
+            self.ctx.paint_with_alpha(opacity*a)
+        else:
+        # Draw straight otherwise
+            self.ctx.set_source_surface(img)
+            self.ctx.paint_with_alpha(opacity)
+            
+        
         self.ctx.restore()
 
     def shape(self, poly_list, close=False):
@@ -2195,9 +2199,8 @@ class Canvas:
             raise ValueError("Wrong number of arguments")
         self.ctx.move_to(*points[0])
 
-        for i in range(0, len(points) - 1, 3):
+        for i in range(0, len(points) - 3, 3):
             self.ctx.curve_to(*points[i + 1], *points[i + 2], *points[i + 3])
-
         if close:
             self.ctx.close_path()
 
