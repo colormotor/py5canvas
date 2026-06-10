@@ -209,10 +209,10 @@ class SketchParams:
 
 
 if imgui is not None:
-    def set_theme(hue=0.127):
+    def set_theme(hue=0.5): #0.127):
         style = imgui.get_style() # override active style
         imgui.style_colors_light(style) # optional: set base colors from "Dark" (or any other) style
-        return
+        #return
 
         sat_mul = 0.5
         col_main_sat = (sat_mul*120) / 255

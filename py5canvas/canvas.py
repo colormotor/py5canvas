@@ -339,7 +339,7 @@ class Canvas:
         self.color_scale[: len(scale)] = scale
 
     @property
-    def cur_fill(self):
+    def cur_fill(self) -> np.ndarray:
         return self.draw_states[-1].cur_fill
 
     @cur_fill.setter
@@ -347,7 +347,7 @@ class Canvas:
         self.draw_states[-1].cur_fill = value
 
     @property
-    def cur_stroke(self):
+    def cur_stroke(self) -> np.ndarray:
         return self.draw_states[-1].cur_stroke
 
     @cur_stroke.setter
@@ -366,25 +366,25 @@ class Canvas:
         return None  # self.cur_fill
 
     @property
-    def center(self):
+    def center(self) -> np.ndarray:
         """The center of the canvas (as a 2d numpy array)"""
         return np.array([self._width / 2, self._height / 2])
 
-    def get_width(self):
+    def get_width(self) -> int:
         """The width of canvas"""
         return self._width
 
-    def get_height(self):
+    def get_height(self) -> int:
         """The height of canvas"""
         return self._height
 
     @property
-    def width(self):
+    def width(self) -> int:
         """The width of canvas"""
         return self._width
 
     @property
-    def height(self):
+    def height(self) -> int:
         """The height of canvas"""
         return self._height
 
@@ -471,7 +471,7 @@ class Canvas:
             return hsv_to_rgb(col)
         return col
 
-    def red(self, *args):
+    def red(self, *args) -> float:
         """Return the red component of a color.
 
         Arguments:
@@ -485,7 +485,7 @@ class Canvas:
         rgba = self._apply_colormode(args)*self.color_scale
         return rgba[0]
 
-    def green(self, *args):
+    def green(self, *args) -> float:
         """Return the green component of a color.
 
         Arguments:
@@ -499,7 +499,7 @@ class Canvas:
         rgba = self._apply_colormode(args)*self.color_scale
         return rgba[1]
 
-    def blue(self, *args):
+    def blue(self, *args) -> float:
         """Return the blue component of a color.
 
         Arguments:
@@ -513,7 +513,7 @@ class Canvas:
         rgba = self._apply_colormode(args)*self.color_scale
         return rgba[2]
 
-    def hue(self, *args):
+    def hue(self, *args) -> float:
         """Return the hue component of a color.
 
         Arguments:
@@ -528,7 +528,7 @@ class Canvas:
         hsva = rgb_to_hsv(rgba)*self.color_scale
         return hsva[0]
 
-    def saturation(self, *args):
+    def saturation(self, *args) -> float:
         """Return the saturation component of a color.
 
         Arguments:
@@ -543,7 +543,7 @@ class Canvas:
         hsva = rgb_to_hsv(rgba)*self.color_scale
         return hsva[1]
 
-    def lightness(self, *args):
+    def lightness(self, *args) -> float:
         """Return the lightness component of a color.
 
         Arguments:
@@ -558,7 +558,7 @@ class Canvas:
         hsva = rgb_to_hsv(rgba)*self.color_scale
         return hsva[2]
 
-    def brightness(self, *args):
+    def brightness(self, *args) -> float:
         """Return the brightness component of a color.
 
         Arguments:
@@ -2433,6 +2433,7 @@ class Canvas:
 
     def show(self, size=None, resample="bicubic"):
         """Display the canvas in a notebook"""
+        img = self.get_image()
         if size is not None:
             filter = {
                 "bicubic": Image.BICUBIC,
@@ -2440,10 +2441,14 @@ class Canvas:
                 "bilinear": Image.BILINEAR,
                 "lanczos": Image.LANCZOS,
             }
-            display(self.get_image().resize(size, filter[resample]))
-            return
-        display(self.get_image())
-
+            img = img.resize(size, filter[resample])
+        try:
+            # IPython path will throw error if in marimo
+            display(img)
+        except NameError as e:
+            import marimo as mo
+            mo.output.append(img)
+        
     def show_plt(self, size=None, title="", axis=False):
         """Show the canvas in a notebook with matplotlib
 

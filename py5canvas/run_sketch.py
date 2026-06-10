@@ -21,6 +21,7 @@ It will probably be significantly slow when using a large canvas size
 #pyglet.options['osx_alt_loop'] = True
 
 # from pyglet.window import key
+from pylab import bool
 import numpy as np
 import os, sys, time
 from py5canvas import canvas, sketch_params
@@ -424,30 +425,30 @@ class Sketch:
 
 
     @property
-    def mouse_x(self):
+    def mouse_x(self) -> int:
         ''' The horizontal coordinate of the mouse position'''
         return self.mouse_pos[0]
 
     @property
-    def mouse_y(self):
+    def mouse_y(self) -> int:
         ''' The vertical coordinate of the mouse position'''
         return self.mouse_pos[1]
 
     @property
-    def frame_count(self):
+    def frame_count(self) -> int:
         ''' The number of frames since the script has loaded'''
         return self._frame_count
 
-    def millis(self):
+    def millis(self) -> int:
         ''' The number of milliseconds since the script has loaded'''
         return int(self._seconds*1000)
 
-    def seconds(self):
+    def seconds(self) -> float:
         ''' The number of seconds since the script has loaded'''
         return self._seconds
 
     @property
-    def clicked(self):
+    def clicked(self) -> bool:
         ''' Returns `True` if mouse was clicked'''
         # if self._clicked:
         #     print('Function clicked is true', self)
@@ -455,26 +456,26 @@ class Sketch:
         return self._clicked
 
     @property
-    def dragging(self):
+    def dragging(self) -> bool:
         ''' Returns `True` if mouse is pressed'''
         return self._dragging
 
     @property
-    def mouse_is_pressed(self):
+    def mouse_is_pressed(self) -> bool:
         ''' Returns `True` if mouse is pressed'''
         return self._dragging
 
     @property
-    def key(self):
+    def key(self) -> str:
         ''' Returns last key pressed'''
         return self._key
 
-    def key_is_down(self, k):
+    def key_is_down(self, k) -> bool:
         ''' Returns True if the key `k` is pressed'''
         return k in self._keys
 
     @property
-    def delta_time(self):
+    def delta_time(self) -> float:
         return self._delta_time
 
     def _prepare_parameters(self, params):
@@ -486,7 +487,7 @@ class Sketch:
     def has_error(self):
         return self.startup_error or self.runtime_error
 
-    def open_file_dialog(self, exts, title='Open file…'):
+    def open_file_dialog(self, exts, title='Open file…') -> str:
         """
         Opens a dialog to select a file.
         exts: 'png' or ['png', 'jpg'] (extensions without dots)
@@ -545,7 +546,7 @@ class Sketch:
 
     #     return res
 
-    def save_file_dialog(self, exts, title='Open file...', filename='untitled'):
+    def save_file_dialog(self, exts, title='Open file...', filename='untitled') -> str:
         ''' Opens a dialog to select a file to be saved,
         the first argument is the extension or the file to be saved,
         e.g. `'png'` or a list of extensions, e.g. `['png', 'jpg']`
@@ -570,7 +571,7 @@ class Sketch:
 
         return file_path
 
-    def open_folder_dialog(self, title='Open folder...'):
+    def open_folder_dialog(self, title='Open folder...') -> str:
         ''' Opens a dialog to select a folder/directory to be opened,
 
         The function returns the path of the directory if it is selected or an empty string othewise.
