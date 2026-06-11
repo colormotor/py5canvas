@@ -33,6 +33,7 @@ def draw():
     if param_changed('other.a_text'):
         print('Text changed')
     if param_changed('hue'):
-        print('Hue changed')
+        sketch.gui.set_theme(params.hue)
+        
 
 run()
