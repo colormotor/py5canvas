@@ -32,15 +32,197 @@ from typing import Union, Optional
 from fontTools.ttLib import TTFont
 import pdb
 
-# perlin_loader = importlib.util.find_spec('perlin_noise')
-# if perlin_loader is not None:
-#     from perlin_noise import PerlinNoise
-#     perlin = PerlinNoise()
-# else:
-#     print("Perlin noise not installed. Use `pip install perlin-noise` to install")
-#     perlin = None
 
+class Shape:
+    """
+    Holds a list of contours, each contour being a sequence of drawing commands.
+    Mirrors Processing's PShape: use begin_shape()/end_shape() to construct.
+    """
+    def __init__(self, tension=0.5):
+        self.tension = tension
+        self.contours = []           # list of contour command lists
+        self._current_contour = None # list of commands for the contour being built
+        self._curve_points = []      # pending Catmull‑Rom points for curve_vertex
+        self._spline_start = None    # first point of the current spline (move-to)
+        self._active = False         # True between begin_shape()/end_shape()
 
+    # --- Public construction methods (mirror PShape) ---
+    def begin_shape(self):
+        """Start building the shape. Clears any previous geometry."""
+        self._active = True
+        self.contours = []
+        self._current_contour = None
+        self._curve_points = []
+        self._spline_start = None
+
+    def end_shape(self, close=False):
+        """
+        Finish building the shape.
+        If close is True, the last contour is closed before finalising.
+        """
+        if self._active:
+            if self._current_contour is not None:
+                self.end_contour(close)
+            self._active = False
+
+    def begin_contour(self):
+        """Start a new contour. Must be called after begin_shape()."""
+        if not self._active:
+            raise RuntimeError("begin_shape() must be called before add_contour()")
+        self._flush_spline()
+        self._current_contour = []
+        self.contours.append(self._current_contour)
+        self._curve_points = []
+        self._spline_start = None
+
+    def vertex(self, x, y):
+        """Add a straight vertex (line-to, or move-to if first of contour)."""
+        self._start_contour_if_needed()
+        self._flush_spline()
+        if not self._current_contour:
+            self._current_contour.append(('M', (x, y)))
+        else:
+            self._current_contour.append(('L', (x, y)))
+
+    def curve_vertex(self, x, y):
+        """Add a smooth (Catmull‑Rom) vertex."""
+        self._start_contour_if_needed()
+        if not self._curve_points:
+            if not self._current_contour:
+                raise RuntimeError("curve_vertex requires an initial vertex")
+            last_cmd = self._current_contour[-1]
+            if last_cmd[0] not in ('M', 'L'):
+                raise RuntimeError("curve_vertex must follow a regular vertex")
+            self._spline_start = last_cmd[1]
+            self._curve_points = [self._spline_start, (x, y)]
+        else:
+            self._curve_points.append((x, y))
+
+    def bezier_vertex(self, *args):
+        """Add a cubic Bézier vertex; three control points."""
+        if len(args) == 3:
+            p1, p2, p3 = args
+        else:
+            p1 = np.array(args[:2])
+            p2 = np.array(args[2:4])
+            p3 = np.array(args[4:6])
+        self._start_contour_if_needed()
+        self._flush_spline()
+        self._current_contour.append(
+            ('C', (p1[0], p1[1], p2[0], p2[1], p3[0], p3[1]))
+        )
+
+    def polyline(self, points, closed=False):
+        """Add a contour of straight line segments from a sequence of (x,y) points."""
+        if not self._active:
+            self.begin_shape()          # temporary activation for standalone use
+        self._contour()
+        for i, p in enumerate(points):
+            if i == 0:
+                self.vertex(*p)         # move-to
+            else:
+                self.vertex(*p)         # line-to
+        self.end_contour(closed)
+
+    def end_contour(self, close=False):
+        """Finish the current contour. If close=True, the contour is closed."""
+        self._flush_spline()
+        if close and self._current_contour:
+            self._current_contour.append(('Z',))
+        self._current_contour = None
+        self._curve_points = []
+        self._spline_start = None
+
+    def polyline(self, points, closed=False):
+        """Add a contour of straight line segments from a sequence of (x,y) points."""
+        if not self._active:
+            self.begin_shape()          # temporary activation for standalone use
+        self.begin_contour()
+        for i, p in enumerate(points):
+            if i == 0:
+                self.vertex(*p)         # move-to
+            else:
+                self.vertex(*p)         # line-to
+        self.end_contour(closed)
+
+    def multibezier(self, points, closed=False):
+        """
+        Add a contour of cubic Bézier segments.
+        points: flat list of (x,y) pairs; first is move‑to, then triples are Bézier
+                control points (p1, p2, p3), p1 being the first control point, etc.
+        """
+        if not self._active:
+            self.begin_shape()
+        self.begin_contour()
+        # first point is move-to
+        self.vertex(*points[0])
+        for i in range(1, len(points)-2, 3):
+            p1 = points[i]
+            p2 = points[i+1]
+            p3 = points[i+2]
+            self._current_contour.append(
+                ('C', (p1[0], p1[1], p2[0], p2[1], p3[0], p3[1])))
+        self.end_contour(closed)
+
+    def curve(self, points, closed=False):
+        """
+        Add a contour of smooth Cardinal spline segments.
+        points: sequence of (x,y) knots.
+        """
+        if not self._active:
+            self.begin_shape()
+        self.begin_contour()
+        for i, p in enumerate(points):
+            if i == 0:
+                self.vertex(*p)         # move-to needed
+            else:
+                self.curve_vertex(*p)
+        self.end_contour(closed)
+
+    def _start_contour_if_needed(self):
+        if self._current_contour is None:
+            self.begin_contour()
+
+    def _flush_spline(self):
+        """Convert any pending curve_vertex points into Bézier commands."""
+        if not self._curve_points or len(self._curve_points) < 3:
+            self._curve_points = []
+            self._spline_start = None
+            return
+        pts = np.array(self._curve_points)
+        cp = cardinal_spline(pts, self.tension, closed=False)
+        n_seg = len(pts) - 1
+        for si in range(n_seg):
+            c1 = cp[1 + 3*si]
+            c2 = cp[2 + 3*si]
+            end = cp[3 + 3*si]
+            self._current_contour.append(
+                ('C', (c1[0], c1[1], c2[0], c2[1], end[0], end[1]))
+            )
+        self._curve_points = []
+        self._spline_start = None
+
+    # Cairo drawing
+    def apply(self, ctx):
+        """Replay all contours onto a Cairo context (does not fill/stroke)."""
+        for contour in self.contours:
+            if not contour:
+                continue
+            first = contour[0]
+            ctx.new_sub_path()
+            if first[0] != 'M':
+                raise ValueError("Contour must start with a move-to command")
+            ctx.move_to(*first[1])
+            for cmd in contour[1:]:
+                if cmd[0] == 'L':
+                    ctx.line_to(*cmd[1])
+                elif cmd[0] == 'C':
+                    c1x, c1y, c2x, c2y, ex, ey = cmd[1]
+                    ctx.curve_to(c1x, c1y, c2x, c2y, ex, ey)
+                elif cmd[0] == 'Z':
+                    ctx.close_path()
+
+                    
 def is_number(x):
     return isinstance(x, numbers.Number)
 
@@ -52,7 +234,6 @@ def wrapper(self, fn):
         for ctx in self.ctxs:  # [::-1]:
             res = getattr(ctx, fn)(*args, **kwargs)
         return res
-
     return result
 
 
@@ -60,7 +241,6 @@ class MultiContext:
     """Workaround for TeeSurface not working on Mac (at least)
     This should enable rendering to multiple surfaces (each with their own context)
     """
-
     def __init__(self, surf):
         self.surface = surf
         self.dirty = False
@@ -75,11 +255,10 @@ class MultiContext:
     def pop_context(self):
         self.ctxs.pop()
 
-
+        
 class CanvasState:
     def __init__(self, c):
         self.c = c
-
         self.cur_fill = c._scale_color([255.0])
         self.cur_stroke = c._scale_color([0.0])
         self.cur_tint = c._scale_color([255.0])
@@ -113,20 +292,16 @@ class CanvasState:
         if should_set(prev, "_dash"):
             self.c.stroke_dash(self._dash)
 
-
-
+            
 def draw_states_properties(*names):
     def decorator(cls):
         for name in names:
             def getter(self, n=name):
                 return getattr(self.draw_states[-1], n)
-
             def setter(self, value, n=name):
                 setattr(self.draw_states[-1], n, value)
-
             setattr(cls, name, property(getter, setter))
         return cls
-
     return decorator
 
 
@@ -136,6 +311,7 @@ class Font:
     size: int = None
     style: str = None
 
+    
 class Gradient:
     def __init__(self, kind, **kw):
         extend_modes = {
@@ -144,7 +320,6 @@ class Gradient:
             'repeat': cairo.EXTEND_REPEAT,
             'reflect': cairo.EXTEND_REFLECT,
         }
-
         stops = kw.pop('stops', [])
         extend = extend_modes.get(kw.pop('extend', 'pad'), cairo.EXTEND_PAD)
 
@@ -152,12 +327,10 @@ class Gradient:
             start = kw.get('start', (0, 0))
             end   = kw.get('end', (1, 0))
             grad = cairo.LinearGradient(*start, *end)
-
         elif kind == 'radial':
             inner = kw.get('inner', (0, 0, 0))
             outer = kw.get('outer', (0, 0, 1))
             grad = cairo.RadialGradient(*inner, *outer)
-
         else:
             raise ValueError("kind must be 'linear' or 'radial'")
 
@@ -181,7 +354,7 @@ class Gradient:
     def radial(cls, inner, outer, stops, extend='pad'):
         return cls('radial', inner=inner, outer=outer, stops=stops, extend=extend)
 
-
+    
 @draw_states_properties(
     "cur_fill",
     "cur_stroke",
@@ -206,17 +379,16 @@ class Canvas:
 
     Constructor arguments:
 
-    - `width` : (`int`), width of the canvas in pixels
-    - `height` : (`int`), height of the canvas in pixels
-    - `clear_callback` (optional): function, a callback to be called when the canvas is cleared (for internal use mostly)
+    - =width= : (=int=), width of the canvas in pixels
+    - =height= : (=int=), height of the canvas in pixels
+    - =clear_callback= (optional): function, a callback to be called when the canvas is cleared (for internal use mostly)
 
     In a notebook you can create a canvas globally with either of:
 
-    - `size(width, height)`
-    - `create_canvas(width, height)`
+    - =size(width, height)=
+    - =create_canvas(width, height)=
 
     When using these functions all the canvas functionalities below will become globally available to the notebook.
-
     """
 
     def __init__(
@@ -230,17 +402,15 @@ class Canvas:
         save_background=True,
         color_scale=255,
         **kwargs
-            
     ):
         """Constructor"""
         # See https://pycairo.readthedocs.io/en/latest/reference/context.html
         surf = cairo.ImageSurface(cairo.FORMAT_ARGB32, width, height)
-        # surf = cairo.ImageSurface(cairo.FORMAT_RGB30, width, height)
-        ctx = MultiContext(surf)  # cairo.Context(surf)
+        ctx = MultiContext(surf)
 
         if 'cs' in kwargs:
             color_scale = kwargs['cs']
-            
+
         # Create SVG surface for saving
         self.color_scale = np.ones(4) * color_scale
 
@@ -253,22 +423,19 @@ class Canvas:
         self.surf = surf
         self.ctx = ctx
 
-        # ctx.set_fill_rule(cairo.FILL_RULE_EVEN_ODD) #FILL_RULE_WINDING) #EVEN_ODD)
-        ctx.set_fill_rule(cairo.FILL_RULE_WINDING)  # FILL_RULE_WINDING) #EVEN_ODD)
+        ctx.set_fill_rule(cairo.FILL_RULE_EVEN_ODD)
+        #ctx.set_fill_rule(cairo.FILL_RULE_WINDING)
         ctx.set_line_join(cairo.LINE_JOIN_MITER)
         # ctx.set_antialias(cairo.ANTIALIAS_BEST)
         ctx.set_source_rgba(*self._apply_colormode(background))
         ctx.paint()  # rectangle(0, 0, width, height)
-        # ctx.fill()
+
         self.last_background = background
         self._first_background = True
 
         # Keep track of draw states
         self.draw_states = [CanvasState(self)]
         self.draw_states[-1].set()
-
-        # self.cur_fill = self._scale_color([255.0])
-        # self.cur_stroke = None
 
         self.no_draw = False
 
@@ -301,8 +468,9 @@ class Canvas:
         self.DEGREES = "degrees"
         self.RADIANS = "radians"
 
-        # Utils
-        self._cur_point = []
+        # Shape building
+        self.cur_shape = None      # current Shape being built
+        self.tension = 0.5
 
         self.output_file = output_file
         self.recording_surface = None
@@ -314,18 +482,6 @@ class Canvas:
             self.ctx.push_context(recording_context)
         else:
             print("Not creating recording context")
-
-        self.tension = 0.5
-
-        # self.stroke_cap('round')
-        # self.stroke_join('miter')
-
-        # self.ctx.select_font_face("sans-serif")
-        # self.ctx.set_font_size(16)
-
-        # self.ctx.select_font_face(self._font)
-        # self.ctx.set_font_size(self._text_size)
-        # self.ctx.set_line_width(1.0)
 
     def set_color_scale(self, scale):
         """Set color scale:
@@ -355,15 +511,11 @@ class Canvas:
         self.draw_states[-1].cur_stroke = value
 
     def _get_stroke_or_fill_color(self):
-        """
-        Returns the current stroke color if set, the fill color otherwise
-        returns the current stroke or fill color as a numpy array, or `None` if no color is set
-        """
         if self.cur_stroke is not None:
             return np.array(self.cur_stroke) * self.color_scale
         if self.cur_fill is not None:
             return np.array(self.cur_fill) * self.color_scale
-        return None  # self.cur_fill
+        return None
 
     @property
     def center(self) -> np.ndarray:
@@ -405,7 +557,11 @@ class Canvas:
         self.tint(None)
 
     def fill_rule(self, rule):
-        """Sets the fill rule"""
+        """Sets the fill rule for complex shapes.
+
+        Arguments:
+        - One of `"evenodd"`, `"nonzero"`, or `"winding"`
+        """
         rules = {
             "evenodd": cairo.FILL_RULE_EVEN_ODD,
             "nonzero": cairo.FILL_RULE_WINDING,
@@ -452,7 +608,6 @@ class Canvas:
                 # Assume we set all scale to be equal
                 self.set_color_scale(args[0])
             else:
-                # Specify each component
                 self.set_color_scale(args)
 
     def _is_hsv(self):
@@ -464,9 +619,7 @@ class Canvas:
         col = self._scale_color(clr)
         # If originally user provided a string return rgba
         if type(clr[0]) in [str, np.str_]:
-            # print("Color is string")
             return col
-        # otherwise check if it needs HSV conversion
         if self._is_hsv():
             return hsv_to_rgb(col)
         return col
@@ -653,7 +806,6 @@ class Canvas:
             x1, y1, x2, y2 = args[:4]
             args = args[4:]
         else:
-
             (x1, y1), (x2, y2) = args[:2]
             args = args[2:]
 
@@ -774,7 +926,6 @@ class Canvas:
             print(str(join) + " not a valid line join")
             print("Choose one of " + str(joins.keys()))
             return
-
         self.ctx.set_line_join(joins[join])
 
     line_join = stroke_join
@@ -836,10 +987,7 @@ class Canvas:
             "hsl_color": cairo.OPERATOR_HSL_COLOR,
             "hsl_luminosity": cairo.OPERATOR_HSL_LUMINOSITY,
         }
-
         mode = mode.lower()
-
-        # Set the blend mode if it exists in the dictionary
         if mode in blend_modes:
             self.ctx.set_operator(blend_modes[mode])
         else:
@@ -862,7 +1010,6 @@ class Canvas:
             print(str(cap) + " not a valid line cap")
             print("Choose one of " + str(caps.keys()))
             return
-
         self.ctx.set_line_cap(caps[cap])
 
     line_cap = stroke_cap
@@ -958,7 +1105,7 @@ class Canvas:
             )
         else:
             print(
-                f"font style `{style}` not recognised (choose from: normal, italic, bold, bolditalic)"
+                f"font style ={style}= not recognised (choose from: normal, italic, bold, bolditalic)"
             )
 
     def text_width(self, txt):
@@ -981,7 +1128,6 @@ class Canvas:
                 yield
             finally:
                 self.pop_matrix()
-
         self.ctx.save()
         return popmanager()
 
@@ -1003,7 +1149,6 @@ class Canvas:
                 yield
             finally:
                 self.pop_style()
-
         self.draw_states.append(copy.copy(self.draw_states[-1]))
         return popmanager()
 
@@ -1026,7 +1171,6 @@ class Canvas:
                 yield
             finally:
                 self.pop()
-
         self.ctx.save()
         self.draw_states.append(copy.copy(self.draw_states[-1]))
         return popmanager()
@@ -1118,9 +1262,11 @@ class Canvas:
             self.ctx.set_source_rgba(*self.cur_fill)
 
     def _fillstroke(self):
-        if self.no_draw:  # we are in a begin_shape end_shape pair
+        """Draw the current path with current fill/stroke attributes.
+        This is only used by the old‑style path functions (polyline, circle, etc.)
+        and is left unchanged for them."""
+        if self.no_draw:
             return
-
         if self.cur_fill is not None:
             self._setfill()
             if self.cur_stroke is not None:
@@ -1131,6 +1277,146 @@ class Canvas:
             self.ctx.set_source_rgba(*self.cur_stroke)
             self.ctx.stroke()
 
+    def _draw_shape(self, shape_obj):
+        """Draw a complete Shape object using current fill/stroke."""
+        if shape_obj is None:
+            return
+        # Apply shape geometry to Cairo path
+        if self.cur_fill is not None:
+            self._setfill()
+            if self.cur_stroke is not None:
+                shape_obj.apply(self.ctx)
+                self.ctx.fill_preserve()
+            else:
+                shape_obj.apply(self.ctx)
+                self.ctx.fill()
+        if self.cur_stroke is not None:
+            self.ctx.set_source_rgba(*self.cur_stroke)
+            if self.cur_fill is None:
+                shape_obj.apply(self.ctx)
+            self.ctx.stroke()
+
+    def begin_shape(self):
+        """Start building a complex shape. Drawing is deferred until end_shape()."""
+        self.no_draw = True
+        self.cur_shape = Shape(tension=self.tension)
+        self.cur_shape.begin_shape()          # ← activate the PShape
+
+    def end_shape(self, close=False):
+        """Finish the shape and draw it."""
+        if self.cur_shape is None:
+            return
+        self.cur_shape.end_shape(close)       # ← finalise the PShape
+        self._draw_shape(self.cur_shape)
+        self.cur_shape = None
+        self.no_draw = False
+
+    def begin_contour(self):
+        """Start a new contour within the currently built shape.
+        If no shape is active, a new one is created automatically."""
+        if self.cur_shape is None:
+            self.cur_shape = Shape(tension=self.tension)
+            self.cur_shape.begin_shape()
+        self.cur_shape.begin_contour()
+
+    def end_contour(self, close=False):
+        """End the current contour. If not inside a begin_shape/end_shape block,
+        the contour is drawn immediately.
+
+        Arguments:
+
+        - `close` (bool, optional): if `True` close the contour
+
+        """
+        if self.cur_shape is None:
+            return
+        self.cur_shape.end_contour(close)
+        if not self.no_draw:
+            # Called directly, so finalise and draw now
+            self.cur_shape.end_shape(close=False)   # already closed contour
+            self._draw_shape(self.cur_shape)
+            self.cur_shape = None
+
+    def vertex(self, x, y=None):
+        """Add a vertex to current contour
+
+        Input arguments can be in the following formats:
+
+        - `[x, y]`
+        - `x, y`
+        """
+        if y is None:
+            x, y = x
+        if self.cur_shape is None:
+            raise RuntimeError("vertex() called without begin_shape()")
+        self.cur_shape.vertex(x, y)
+
+    def curve_vertex(self, x, y=None):
+        """Add a curved vertex to current contour
+
+        Input arguments can be in the following formats:
+
+        - `[x, y]`
+        - `x, y`
+        """
+        if y is None:
+            x, y = x
+        if self.cur_shape is None:
+            raise RuntimeError("curve_vertex() called without begin_shape()")
+        self.cur_shape.curve_vertex(x, y)
+
+    def bezier_vertex(self, *args):
+        """Draw a cubic Bezier segment from the current point
+        requires a first control point to be already defined with `vertex`.
+
+
+        Requires three points. Input arguments can be in the following formats:
+
+        - `[x1, y1], [x2, y2], [x3, y3]`
+        - `x1, y1, x2, y2, x3, y3`
+        """
+        if self.cur_shape is None:
+            raise RuntimeError("bezier_vertex() called without begin_shape()")
+        self.cur_shape.bezier_vertex(*args)
+
+    def curve_tightness(self, val):
+        """Sets the 'tension' parameter for the curve used when using `curve_vertex`"""
+        self.tension = val
+        if self.cur_shape is not None:
+            self.cur_shape.tension = val
+
+    def shape(self, obj, close=False):
+        """Draw a pre‑built Shape object or a list of polylines (list of lists/arrays).
+        For lists, each polyline becomes one contour (open or closed)."""
+        if isinstance(obj, Shape):
+            self._draw_shape(obj)
+            return
+
+        # Convert legacy polyline lists into a temporary Shape
+        if not is_compound(obj):
+            obj = [obj]   # single polyline -> wrap in list
+        tmp_shape = Shape()
+        tmp_shape.begin_shape()                  # activate construction
+        for poly in obj:
+            pts = np.asarray(poly)
+            if pts.ndim != 2 or pts.shape[1] != 2:
+                raise ValueError("Each polyline must be an Nx2 array-like")
+            tmp_shape.begin_contour()
+            for i, p in enumerate(pts):
+                if i == 0:
+                    tmp_shape.vertex(*p)
+                else:
+                    tmp_shape.vertex(*p)   # moves to first point, lines to others
+            if close:
+                tmp_shape.end_contour(True)
+            else:
+                tmp_shape.end_contour(False)
+        tmp_shape.end_shape(close=False)         # finalise
+        self._draw_shape(tmp_shape)
+
+    # ------------------------------------------------------------------------
+    # Old‑style simple shape drawing (unchanged, still uses _fillstroke)
+    # ------------------------------------------------------------------------
     def rect_mode(self, mode):
         """Set the "mode" for drawing rectangles.
 
@@ -1161,13 +1447,9 @@ class Canvas:
     def _roundrect(self, x, y, w, h, r):
         # https://www.geeksforgeeks.org/python/pycairo-drawing-the-roundrect/
         self.ctx.arc(x + r, y + r, r, np.pi, 3 * np.pi / 2)
-
         self.ctx.arc(x + w - r, y + r, r, 3 * np.pi / 2, 0)
-
         self.ctx.arc(x + w - r, y + h - r, r, 0, np.pi / 2)
-
         self.ctx.arc(x + r, y + h - r, r, np.pi / 2, np.pi)
-
         self.ctx.close_path()
 
     def rectangle(self, *args, mode=None):
@@ -1195,14 +1477,11 @@ class Canvas:
 
         if mode is None:
             mode = self._rect_mode
-
         if len(args) == 1:
-            # Packed single arg rect case
             radius = None
         elif len(args) % 2 == 1:
             if len(args) == 3:
                 if not is_number(args[1]):
-                    # [x, y], [width, height], radius
                     radius = args[-1]
                     args = args[:-1]
                 else:
@@ -1212,7 +1491,6 @@ class Canvas:
                 args = args[:-1]
         else:
             if len(args) == 2 and is_number(args[1]):
-                # # Packed single arg rect with radius case
                 radius = args[-1]
                 args = args[:-1]
             else:
@@ -1367,22 +1645,16 @@ class Canvas:
             a = args[0]
             b = args[1]
             size = args[2]
-            
         w = self.ctx.get_line_width() * size
-        # Arrow width and 'height' (length)
         h = w * length
         a = np.array(a)
         b = np.array(b)
-        # direction
         d = b - a
         l = np.linalg.norm(d)
         d = d / (np.linalg.norm(d) + 1e-10)
-        # Shift end of segment so arrow tip is at end
         b = a + d * max(0.0, l - h)
         p = np.array([-d[1], d[0]])
-        # arrow polygon
         P = [b + p * w - d * w * overhang, b + d * h, b - p * w - d * w * overhang, b]
-        # draw
         self.line(a, b)
         self.push()
         self.fill(self._get_stroke_or_fill_color())
@@ -1416,7 +1688,6 @@ class Canvas:
             mode = self._ellipse_mode.lower()
         else:
             mode = mode.lower()
-
         if len(args) == 3:
             center = args[:2]
             size = args[2]
@@ -1448,7 +1719,6 @@ class Canvas:
 
         if mode is None:
             mode = self._ellipse_mode
-
         if len(args) == 2:
             center = args[0]
             w = args[1]
@@ -1467,27 +1737,21 @@ class Canvas:
         else:
             center = args[0]
             w, h = args[1]
-
         if mode.lower() == "corners":
             x1, y1 = center
             x2, y2 = w, h
             center = np.array([x1 + x2, y1 + y2]) / 2
             w, h = abs(x2 - x1), abs(y2 - y1)
-
         if not (w > 0 and h > 0):
             return
-
         self.push()
         self.translate(center)
-
         if mode.lower() == "corner":
             self.translate(w / 2, h / 2)
         if mode.lower() == "radius":
             w = w * 2
             h = h * 2
-
         self.scale([w / 2, h / 2])
-
         self.ctx.new_sub_path()
         self.ctx.arc(0, 0, 1, 0, np.pi * 2.0)
         if self.cur_fill is not None:
@@ -1497,7 +1761,6 @@ class Canvas:
             else:
                 self.ctx.fill()
         self.pop()
-
         if self.cur_stroke is not None:
             self.ctx.set_source_rgba(*self.cur_stroke)
             self.ctx.stroke()
@@ -1523,7 +1786,6 @@ class Canvas:
             args = args[:-1]
         else:
             mode = "open"
-
         if len(args) == 3:
             x, y = args[0]
             w, h = args[1]
@@ -1533,8 +1795,7 @@ class Canvas:
         else:
             x, y = args[0]
             w, h, start, stop = args[1:]
-
-        if w==0 or h==0:
+        if w == 0 or h == 0:
             return
 
         # Cairo expects degrees
@@ -1545,17 +1806,13 @@ class Canvas:
         save_mat = self.ctx.get_matrix()
         self.ctx.translate(x, y)
         self.ctx.scale(w / 2, h / 2)
-
-        # cairo_scale(cr, 0.5, 1);
-
         if self.cur_fill is not None:
-            self._setfill() #self.ctx.set_source_rgba(*self.cur_fill)
+            self._setfill()
             self.ctx.new_sub_path()
             if mode != "chord":
                 self.ctx.move_to(0, 0)
             self.ctx.arc(0, 0, 1, start, stop)
             self.ctx.fill()
-
         if self.cur_stroke is not None:
             self.ctx.set_source_rgba(*self.cur_stroke)
             self.ctx.new_sub_path()
@@ -1564,215 +1821,363 @@ class Canvas:
             self.ctx.arc(0, 0, 1, start, stop)
             if mode != "open":
                 self.ctx.close_path()
-
         self.ctx.set_matrix(save_mat)
-        # Stroke after matrix set to avoid non-uniform scaling of stroke
         if self.cur_stroke is not None:
             self.ctx.stroke()
-            # self.ctx.set_line_width(lw)
 
-            # if self.cur_stroke is not None:
-            #     self.ctx.fill_preserve()
-            # else:
-            #     self.ctx.fill()
-        # self.pop()
+    def polygon(self, *args, close=True):
+        """Draw a polygon (closed by default).
 
-    def clear_segments(self):
-        self.curve_segments = []
-        self.curve_segment_types = []
+        The polyline is specified as either:
 
-    def begin_shape(self):
-        """Begin drawing a compound shape"""
-        self.no_draw = True
-        self.clear_segments()
+        - a list of =[x,y]= pairs (e.g. =[[0, 100], [200, 100], [200, 200]]=)
+        - a numpy array with shape =(n, 2)=, representing =n= points (a point for each row and a coordinate for each column)
+        - two lists (or numpy array) of numbers, one for each coordinate
 
-    def end_shape(self, close=False):
-        """End drawing a compound shape"""
-        self.no_draw = False
-        self.end_contour(close)
-        # if close:
-        #     self.ctx.close_path()
-        # self._fillstroke()
+        To create an opne polygon set the named =close= argument to =False=, e.g. =c.polygon(points, close=False)=.
+        """
+        self.polyline(*args, close=close)
 
-    def begin_contour(self):
-        """Begin drawing a contour"""
-        #if not self.no_draw:
-        self.clear_segments()
-        self.ctx.new_sub_path()
+    def polyline(self, *args, close=False):
+        """Draw a polyline (open by default).
 
-    def end_contour(self, close=False):
-        """End drawing a contour
+        The polyline is specified as either:
+
+        - a list of =[x,y]= pairs (e.g. =[[0, 100], [200, 100], [200, 200]]=)
+        - a numpy array with shape =(n, 2)=, representing =n= points (a point for each row and a coordinate for each column)
+        - two lists (or numpy array) of numbers, one for each coordinate
+
+        To close the polyline set the named =close= argument to =True=, e.g. =c.polyline(points, close=True)=.
+        """
+        # Parse arguments into a list of (x,y) tuples
+        if len(args) == 1:
+            points = args[0]
+        elif len(args) == 2:
+            points = np.vstack(args).T
+        else:
+            raise ValueError("Wrong number of arguments")
+        # Build a temporary Shape and draw it
+        tmp = Shape()
+        tmp.polyline(points, closed=close)
+        self._draw_shape(tmp)
+
+    def multibezier(self, *args, close=False):
+        """
+        Draw a sequence of connected cubic Bézier curves.
+
+        Input can be:
+        - a list of [x,y] pairs: first point is start, then triples of control points
+          (c1, c2, end) for each segment.
+        - two lists (or numpy arrays) of x, y coordinates, similarly arranged.
+        - a flat list of coordinates.
+        """
+        # Parse arguments into a flat list of (x,y) pairs
+        if len(args) == 1:
+            points = args[0]
+        elif len(args) == 2:
+            points = np.vstack(args).T
+        else:
+            raise ValueError("Wrong number of arguments")
+        tmp = Shape()
+        tmp.multibezier(points, closed=close)
+        self._draw_shape(tmp)
+
+    def curve(self, *args, close=True):
+        """Draw a curve (open by default) using Cardinal spline interpolation.
+
+        The polyline is specified as either:
+
+        - a list of =[x,y]= pairs (e.g. =[[0, 100], [200, 100], [200, 200]]=)
+        - a numpy array with shape =(n, 2)=, representing =n= points (a point for each row and a coordinate for each column)
+        - two lists (or numpy array) of numbers, one for each coordinate
+
+        To close the curve set the named =close= argument to =True=, e.g. =c.curve(points, close=True)=.
+        """
+        if len(args) == 1:
+            points = args[0]
+        elif len(args) == 2:
+            points = np.vstack(args).T
+        else:
+            raise ValueError("Wrong number of arguments")
+        tmp = Shape()
+        tmp.curve(points, closed=close)
+        self._draw_shape(tmp)
+
+    def identity(self):
+        """Resets the current matrix to the identity (no transformation)"""
+        self.ctx.identity_matrix()
+
+    def reset_matrix(self):
+        """Resets the current matrix to the identity (no transformation)"""
+        self.ctx.identity_matrix()
+
+    def copy(self, *args):
+        """The first parameter can optionally be an image, if an image is not specified the funtion will use
+        the canvas image, .
+        The next four parameters, sx, sy, sw, and sh determine the region to copy from the source image.
+        (sx, sy) is the top-left corner of the region. sw and sh are the region's width and height.
+        The next four parameters, dx, dy, dw, and dh determine the region of the canvas to copy into.
+        (dx, dy) is the top-left corner of the region. dw and dh are the region's width and height.
+
+        `copy(src_image, sx, sy, sw, sh, dx, dy, dw, dh)`
+        or
+        `copy(sx, sy, sw, sh, dx, dy, dw, dh)`
+        """
+
+        if len(args) % 2 == 1:
+            img = np.array(args[0])
+            args = args[1:]
+        else:
+            img = self.get_image_array()
+        if len(args) == 8:
+            sx, sy, sw, sh, dx, dy, dw, dh = args
+        else:
+            ValueError("Unspported number of arguments for copy")
+        img = img[sy : sy + sh, sx : sx + sw]
+        self.image(img, dx, dy, dw, dh)
+
+    def background(self, *args):
+        """Clear the canvas with a given color
+        Accepts either an array with the color components, or single color components (as in `fill`)
+        """
+        # self.clear_callback()
+        # HACK Save background, this is needed for saving and no_loop in sketches
+        # Since saving has to be done as a postprocess after the frame
+        if not len(args):
+            raise ValueError("background requires at least one argument")
+        if len(args) == 1:
+            self.last_background = args[0]
+        else:
+            self.last_background = args
+        self.ctx.identity_matrix()
+        # HACK - we don't want to necessarily save the background when exporting SVG
+        # Especially if we want to plot the output, so only draw the background to the
+        # bitmap surface if that is the case.
+        # if self._save_background:
+        #     ctx = self.ctx
+        # else:
+        #     ctx = self.ctx.ctxs[0]
+
+        # For the first clear, we use OPERATOR_SOURCE
+        # Otherwise the background will not actually be transparent
+        if self._first_background:
+            cur_op = self.ctx.get_operator()
+            self.ctx.set_operator(cairo.OPERATOR_SOURCE)
+        ctx = self.ctx
+        rgba = np.array(self._apply_colormode(args))
+        ctx.set_source_rgba(*rgba)
+        if self._save_background:
+            ctx.rectangle(0, 0, self.width, self.height)
+            ctx.fill()
+        else:
+            ctx.paint()
+        if self._first_background:
+            self.ctx.set_operator(cur_op)
+        self._first_background = False
+
+    def get_buffer(self):
+        return self.surf.get_data()
+
+    def get_image_array(self):
+        """Get canvas image as a numpy array"""
+        img = np.ndarray(
+            shape=(self.height, self.width, 4),
+            dtype=np.uint8,
+            buffer=self.surf.get_data(),
+        )[:, :, :3].copy()
+        img = img[:, :, ::-1]
+        return img
+
+    def get_grayscale_array(self):
+        """Get grayscale image of canvas contents as float numpy array (0 to 1 range)"""
+        return np.mean(self.get_image_array() / 255, axis=-1)
+
+    def get_image(self):
+        """Get canvas as a PIL image"""
+        return Image.fromarray(self.get_image_array())
+
+    def get_image_grayscale(self):
+        """Returns the canvas image as a grayscale numpy array (in 0-1 range)"""
+        return self.get_image().convert("L")
+
+    def save_image(self, path):
+        """Save the canvas to an image
 
         Arguments:
 
-        - `close` (bool, optional): if `True` close the contour
+        - The path where to save
+
         """
-        if isinstance(close, str):
-            if close.lower() == "close":
-                close = True
+        self.surf.write_to_png(path)
+
+    def save_svg(self, path):
+        """Save the canvas to an svg file
+
+        Arguments:
+
+        - The path where to save
+
+        """
+        if self.recording_surface is None:
+            raise ValueError("No recording surface in canvas")
+        surf = cairo.SVGSurface(path, self.width, self.height)
+        ctx = cairo.Context(surf)
+        ctx.set_source_surface(self.recording_surface)
+        ctx.paint()
+        surf.finish()
+        fix_clip_path(path, path)
+
+    def save_pdf(self, path):
+        """Save the canvas to an svg file
+
+        Arguments:
+
+        - The path where to save
+
+        """
+        if self.recording_surface is None:
+            raise ValueError("No recording surface in canvas")
+        surf = cairo.PDFSurface(path, self.width, self.height)
+        ctx = cairo.Context(surf)
+        ctx.set_source_surface(self.recording_surface)
+        ctx.paint()
+        surf.finish()
+
+    def Image(self):
+        print("Image is deprected use =get_image()= instead")
+        return self.get_image()
+
+    def to_clipboard(self):
+        """Copy canvas contents to clipboard (as SVG data)
+        Requires pyperclip to be installed
+        """
+        import pyperclip, os
+        self.save('tmp.svg')
+        with open('tmp.svg', "r", encoding="utf-8") as f:
+            data = f.read()
+            pyperclip.copy(data)
+            os.remove('tmp.svg')
+
+    def save(self, path):
+        """Save the canvas into a given file path
+        The file format depends on the file extension
+        """
+        if ".svg" in path:
+            self.save_svg(path)
+        elif ".pdf" in path:
+            self.save_pdf(path)
+        elif ".png" in path:
+            self.save_image(path)
+
+    def show(self, size=None, resample="bicubic"):
+        """Display the canvas in a notebook"""
+        img = self.get_image()
+        if size is not None:
+            filter = {
+                "bicubic": Image.BICUBIC,
+                "nearest": Image.NEAREST,
+                "bilinear": Image.BILINEAR,
+                "lanczos": Image.LANCZOS,
+            }
+            img = img.resize(size, filter[resample])
+        try:
+            display(img)
+        except NameError as e:
+            import marimo as mo
+            mo.output.append(img)
+
+    def show_plt(self, size=None, title="", axis=False):
+        """Show the canvas in a notebook with matplotlib
+
+        Arguments:
+
+        - `size` (tuple, optional): The size of the displayed image, by default this is the size of the canvas
+        - `title` (string, optional): A title for the figure
+        - `axis` (bool, optional): If `True` shows the coordinate axes
+        """
+        import matplotlib.pyplot as plt
+        if size is not None:
+            plt.figure(figsize=(size[0] / 100, size[1] / 100))
+        else:
+            plt.figure(figsize=(self.width / 100, self.height / 100))
+        if title:
+            plt.title(title)
+        plt.imshow(self.get_image())
+        if not axis:
+            plt.gca().axis("off")
+        plt.show()
+
+    def _convert_html_color(self, html_color):
+        if html_color.startswith("#"):
+            html_color = html_color[1:]
+        if len(html_color) == 6:
+            r = int(html_color[:2], 16) / 255.0
+            g = int(html_color[2:4], 16) / 255.0
+            b = int(html_color[4:6], 16) / 255.0
+            return np.array([r, g, b, 1.0])
+        elif len(html_color) == 8:
+            r = int(html_color[:2], 16) / 255.0
+            g = int(html_color[2:4], 16) / 255.0
+            b = int(html_color[4:6], 16) / 255.0
+            a = int(html_color[6:8], 16) / 255.0
+            return np.array([r, g, b, a])
+        else:
+            raise ValueError("Invalid HTML color format")
+
+    def _scale_color(self, x):
+        if len(x) == 1:
+            if type(x[0]) == str:
+                return self._convert_html_color(x[0])
+            elif not is_number(x[0]):  # array like input
+                return self._scale_color(*x)
+                # return np.array(x[0])/self.color_scale[:len(x[0])]
+            if self._is_hsv():
+                # HSV sets value
+                return (0, 0, x[0] / self.color_scale[2], 1.0)
             else:
-                close = False
-        if not self.curve_segments:
-            if close:
-                self.ctx.close_path()
-            self._fillstroke()
-            return
-        if len(self.curve_segments) == 1 and self.curve_segment_types[-1] == "C":
-            P = self.curve_segments[-1]
-            if len(P) < 3:
-                raise ValueError("Insufficient points for spline")
-            Cp = cardinal_spline(P, self.tension, close)
-            self.ctx.move_to(*Cp[0])
-            for i in range(0, len(Cp) - 1, 3):
-                self.ctx.curve_to(*Cp[i + 1], *Cp[i + 2], *Cp[i + 3])
-        else:
-            #curve_segments = self.curve_segments
-            if len(self.curve_segments[0])==1:
-                cur = self.curve_segments[0].pop(0)
-                self.ctx.move_to(*cur)
-            for seg, type in zip(self.curve_segments, self.curve_segment_types):
-                if not seg:
-                    continue
-                if type == "C":
-                    P = [cur] + seg
-                    Cp = cardinal_spline(P, self.tension, False)
-                    for i in range(0, len(Cp) - 1, 3):
-                        self.ctx.curve_to(*Cp[i + 1], *Cp[i + 2], *Cp[i + 3])
-                elif type == "B":
-                    # Cubic Bezier segment
-                    for i in range(0, len(seg), 3):
-                        #self.ctx.line_to(*seg[i+2])
-                        self.ctx.curve_to(*seg[i], *seg[i + 1], *seg[i + 2])
-                else:
-                    for p in seg:
-                        self.ctx.line_to(*p)
-                cur = seg[-1]
-
-        if close:
-            self.ctx.close_path()
-
-        #if not self.no_draw:
-        if not self.no_draw:
-            self._fillstroke()
-
-    def _add_curve_segment(self, type):
-        self.curve_segments.append([])
-        self.curve_segment_types.append(type)
-
-    def vertex(self, x, y=None):
-        """Add a vertex to current contour
-
-        Input arguments can be in the following formats:
-
-        - `[x, y]`
-        - `x, y`
-        """
-        if y is None:
-            x, y = x
-        if not self.curve_segments or self.curve_segment_types[-1] != "L":
-            self._add_curve_segment("L")
-
-        self.curve_segments[-1].append([x, y])
-
-    def curve_vertex(self, x, y=None):
-        """Add a curved vertex to current contour
-
-        Input arguments can be in the following formats:
-
-        - `[x, y]`
-        - `x, y`
-        """
-        if y is None:
-            x, y = x
-        if not self.curve_segments or self.curve_segment_types[-1] != "C":
-            self._add_curve_segment("C")
-        self.curve_segments[-1].append([x, y])
-
-    def bezier_vertex(self, *args):
-        """Draw a cubic Bezier segment from the current point
-        requires a first control point to be already defined with `vertex`.
-
-
-        Requires three points. Input arguments can be in the following formats:
-
-        - `[x1, y1], [x2, y2], [x3, y3]`
-        - `x1, y1, x2, y2, x3, y3`
-        """
-        if len(args) == 3:
-            p1, p2, p3 = args
-        else:
-            p1 = args[:2]
-            p2 = args[2:4]
-            p3 = args[4:6]
-        if not self.curve_segments:
-            raise ValueError("bezier_vertex requires an initial vertex to work")
-        if self.curve_segment_types[-1] != "B":
-            self._add_curve_segment("B")
-        self.curve_segments[-1].append(p1)
-        self.curve_segments[-1].append(p2)
-        self.curve_segments[-1].append(p3)
-
-    def curve_tightness(self, val):
-        """Sets the 'tension' parameter for the curve used when using `curve_vertex`"""
-        self.tension = val
-
-    def cubic(self, *args):
-        """Draw a cubic bezier curve
-
-        Input arguments can be in the following formats:
-
-        - `[x1, y1], [x2, y2], [x3, y3]`
-        - `x1, y1, x2, y2, x3, y3`
-        """
-        if len(args) == 4:
-            p0, p1, p2, p3 = args
-        else:
-            p0 = args[:2]
-            p1 = args[2:4]
-            p2 = args[4:6]
-            p3 = args[6:8]
-        self.ctx.move_to(*p0)
-        self.ctx.curve_to(*p1, *p2, *p3)
-        self._fillstroke()
-
-    def quadratic(self, *args):
-        """Draw a quadratic bezier curve
-
-        Input arguments can be in the following formats:
-
-        -    `[x1, y1], [x2, y2]`
-        -    `x1, y1, x2, y2`
-        """
-        if len(args) == 3:
-            (x0, y0), (x1, y1), (x2, y2) = args
-        else:
-            x0, y0, x1, y1, x2, y2 = args
-
-        self.ctx.move_to(*p0)
-        self.ctx.curve_to(
-            (2 * x1 + x0) / 3,
-            (2 * y1 + y0) / 3,
-            (2 * x1 + x2) / 3,
-            (2 * y1 + y2) / 3,
-            x2,
-            y2,
+                return (
+                    x[0] / self.color_scale[0],
+                    x[0] / self.color_scale[0],
+                    x[0] / self.color_scale[0],
+                    1.0,
+                )
+        elif len(x) == 3:
+            return (
+                x[0] / self.color_scale[0],
+                x[1] / self.color_scale[1],
+                x[2] / self.color_scale[2],
+                1.0,
+            )
+        elif len(x) == 2:
+            if type(x[0]) == str:
+                clr = self._convert_html_color(x[0])
+                clr[-1] = x[1] / self.color_scale[-1]
+                return clr
+            elif not is_number(x[0]):
+                # (r, g, b), alpha case
+                if len(x[0]) != 3:
+                    raise ValueError("Need 3 components for color")
+                clr = x[0]
+                return (clr[0] / self.color_scale[0],
+                        clr[1] / self.color_scale[1],
+                        clr[2] / self.color_scale[2],
+                        x[1] / self.color_scale[3])
+            if self._is_hsv():
+                return (0, 0, x[0] / self.color_scale[2], x[1] / self.color_scale[3])
+            else:
+                return (
+                    x[0] / self.color_scale[0],
+                    x[0] / self.color_scale[0],
+                    x[0] / self.color_scale[0],
+                    x[1] / self.color_scale[3],
+                )
+        return (
+            x[0] / self.color_scale[0],
+            x[1] / self.color_scale[1],
+            x[2] / self.color_scale[2],
+            x[3] / self.color_scale[3],
         )
-        self._fillstroke()
 
-    def bezier(self, *args):
-        """Draws a bezier curve segment from current point
-            The degree of the curve (2 or 3) depends on the input arguments
-        Arguments:
-        Input arguments can be in the following formats:
-            `[x1, y1], [x2, y2], [x3, y3]` is cubic
-            `x1, y1, x2, y2, x3, y3` is cubic
-            `[x1, y1], [x2, y2]` is quadratic
-            `x1, y1, x2, y2` is quadratic
-        """
-        if len(args) == 4 or len(args) == 8:
-            self.cubic(*args)
-        else:
-            self.quadratic(*args)
 
     def create_turtle(self, *args, autodraw=True):
         """Create a turtle object at a given position (default is the origin)
@@ -1817,7 +2222,6 @@ class Canvas:
         
         if isinstance(img, Canvas):
             img = img.surf
-            
         else:
             if not isinstance(img, np.ndarray):
                 # This should take care of tensors and PIL Images
@@ -1849,14 +2253,6 @@ class Canvas:
 
         pos = np.array(pos).astype(float)
         size = np.array(size).astype(float)
-
-        # Disabling rect mode for images
-        # if self._rect_mode == 'center':
-        #     pos -= size/2
-        # elif self._rect_mode == 'radius':
-        #     pos -= size
-        #     size *= 2
-
         self.ctx.translate(pos[0], pos[1])
 
         if size is not None:
@@ -1884,20 +2280,7 @@ class Canvas:
         # Draw straight otherwise
             self.ctx.set_source_surface(img)
             self.ctx.paint_with_alpha(opacity)
-            
-        
         self.ctx.restore()
-
-    def shape(self, poly_list, close=False):
-        """Draw a shape represented as a list of polylines, see the `polyline`
-        method for the format of each polyline. Also accepts a single polyline as an input
-        """
-        if not is_compound(poly_list):
-            poly_list = [poly_list]
-        self.begin_shape()
-        for P in poly_list:
-            self.polyline(P, close=close)
-        self.end_shape()
 
     def text(self, text, *args, align="", valign="", center=None, **kwargs):
         """Draw text at a given position
@@ -2042,8 +2425,7 @@ class Canvas:
                 res = [np.vstack(P) + pos for P in shape if len(P) > 1]
                 all_shapes.append(res)
                 pos += [extents.x_advance, 0]
-
-        return all_shapes  # List of lists: one list per glyph
+        return all_shapes
 
     def text_shape(self, text, *args, dist=1, align="", valign=""):
         """Retrieves polylines for a given string of text in the current font
@@ -2081,7 +2463,6 @@ class Canvas:
             align = self._text_halign
         if not valign:
             valign = self._text_valign
-
         ox = 0
         oy = 0
         if align == "center":
@@ -2140,424 +2521,6 @@ class Canvas:
             }
         )
 
-    def polygon(self, *args, close=True):
-        """Draw a polygon (closed by default).
-
-        The polyline is specified as either:
-
-        - a list of `[x,y]` pairs (e.g. `[[0, 100], [200, 100], [200, 200]]`)
-        - a numpy array with shape `(n, 2)`, representing `n` points (a point for each row and a coordinate for each column)
-        - two lists (or numpy array) of numbers, one for each coordinate
-
-        To create an opne polygon set the named `close` argument to `False`, e.g. `c.polygon(points, close=False)`.
-        """
-        self.polyline(*args, close=close)
-
-    def curve(self, *args, close=True):
-        """Draw a curve (open by default).
-
-        The polyline is specified as either:
-
-        - a list of `[x,y]` pairs (e.g. `[[0, 100], [200, 100], [200, 200]]`)
-        - a numpy array with shape `(n, 2)`, representing `n` points (a point for each row and a coordinate for each column)
-        - two lists (or numpy array) of numbers, one for each coordinate
-
-        To close the curve set the named `close` argument to `True`, e.g. `c.curve(points, close=True)`.
-        """
-        if len(args) == 1:
-            points = args[0]
-        elif len(args) == 2:
-            points = np.vstack(args).T
-        else:
-            raise ValueError("Wrong number of arguments")
-
-        self.begin_contour()
-        for p in points:
-            self.curve_vertex(p)
-        self.end_contour(close)
-
-
-
-    def multibezier(self, *args, close=False):
-        """Draw a polyline (open by default).
-
-        The polyline is specified as either:
-
-        - a list of `[x,y]` pairs (e.g. `[[0, 100], [200, 100], [200, 200]]`)
-        - a numpy array with shape `(n, 2)`, representing `n` points (a point for each row and a coordinate for each column)
-        - two lists (or numpy array) of numbers, one for each coordinate
-
-        To close the polyline set the named `close` argument to `True`, e.g. `c.polyline(points, close=True)`.
-        """
-        self.ctx.new_sub_path()
-        #self.ctx.new_path()
-        if len(args) == 1:
-            points = args[0]
-        elif len(args) == 2:
-            points = np.vstack(args).T
-        else:
-            raise ValueError("Wrong number of arguments")
-        self.ctx.move_to(*points[0])
-
-        for i in range(0, len(points) - 3, 3):
-            self.ctx.curve_to(*points[i + 1], *points[i + 2], *points[i + 3])
-        if close:
-            self.ctx.close_path()
-
-        self._fillstroke()
-
-
-    def polyline(self, *args, close=False):
-        """Draw a polyline (open by default).
-
-        The polyline is specified as either:
-
-        - a list of `[x,y]` pairs (e.g. `[[0, 100], [200, 100], [200, 200]]`)
-        - a numpy array with shape `(n, 2)`, representing `n` points (a point for each row and a coordinate for each column)
-        - two lists (or numpy array) of numbers, one for each coordinate
-
-        To close the polyline set the named `close` argument to `True`, e.g. `c.polyline(points, close=True)`.
-        """
-        self.ctx.new_sub_path()
-        #self.ctx.new_path()
-        if len(args) == 1:
-            points = args[0]
-        elif len(args) == 2:
-            points = np.vstack(args).T
-        else:
-            raise ValueError("Wrong number of arguments")
-        self.ctx.move_to(*points[0])
-        for p in points[1:]:
-            self.ctx.line_to(*p)
-        if close:
-            self.ctx.close_path()
-
-        self._fillstroke()
-
-    def identity(self):
-        """Resets the current matrix to the identity (no transformation)"""
-        self.ctx.identity_matrix()
-
-    def reset_matrix(self):
-        """Resets the current matrix to the identity (no transformation)"""
-        self.ctx.identity_matrix()
-
-    def copy(self, *args):
-        """The first parameter can optionally be an image, if an image is not specified the funtion will use
-        the canvas image, .
-        The next four parameters, sx, sy, sw, and sh determine the region to copy from the source image.
-        (sx, sy) is the top-left corner of the region. sw and sh are the region's width and height.
-        The next four parameters, dx, dy, dw, and dh determine the region of the canvas to copy into.
-        (dx, dy) is the top-left corner of the region. dw and dh are the region's width and height.
-
-        `copy(src_image, sx, sy, sw, sh, dx, dy, dw, dh)`
-        or
-        `copy(sx, sy, sw, sh, dx, dy, dw, dh)`
-        """
-
-        if len(args) % 2 == 1:
-            img = np.array(args[0])
-            args = args[1:]
-        else:
-            img = self.get_image_array()
-
-        if len(args) == 8:
-            sx, sy, sw, sh, dx, dy, dw, dh = args
-        else:
-            ValueError("Unspported number of arguments for copy")
-
-        img = img[sy : sy + sh, sx : sx + sw]
-        self.image(img, dx, dy, dw, dh)
-
-    def background(self, *args):
-        """Clear the canvas with a given color
-        Accepts either an array with the color components, or single color components (as in `fill`)
-        """
-        # self.clear_callback()
-        # HACK Save background, this is needed for saving and no_loop in sketches
-        # Since saving has to be done as a postprocess after the frame
-        if not len(args):
-            raise ValueError("background requires at least one argument")
-
-        if len(args) == 1:
-            self.last_background = args[0]
-        else:
-            self.last_background = args
-
-        self.ctx.identity_matrix()
-        # HACK - we don't want to necessarily save the background when exporting SVG
-        # Especially if we want to plot the output, so only draw the background to the
-        # bitmap surface if that is the case.
-        # if self._save_background:
-        #     ctx = self.ctx
-        # else:
-        #     ctx = self.ctx.ctxs[0]
-
-        # For the first clear, we use OPERATOR_SOURCE
-        # Otherwise the background will not actually be transparent
-        if self._first_background:
-            cur_op = self.ctx.get_operator()
-            self.ctx.set_operator(cairo.OPERATOR_SOURCE)
-
-        # self.push()
-        ctx = self.ctx
-        rgba = np.array(self._apply_colormode(args))
-        ctx.set_source_rgba(*rgba)
-        if self._save_background:
-            ctx.rectangle(0, 0, self.width, self.height)
-            ctx.fill()
-        else:
-            ctx.paint()
-
-        if self._first_background:
-            self.ctx.set_operator(cur_op)
-        self._first_background = False
-
-        # ctx.rectangle(0, 0, self.width, self.height)
-        # ctx.fill()
-        # self.pop()
-
-    def get_buffer(self):
-        return self.surf.get_data()
-
-    def get_image_array(self):
-        """Get canvas image as a numpy array"""
-        img = np.ndarray(
-            shape=(self.height, self.width, 4),
-            dtype=np.uint8,
-            buffer=self.surf.get_data(),
-        )[:, :, :3].copy()
-        img = img[:, :, ::-1]
-        return img
-
-    def get_grayscale_array(self):
-        """Get grayscale image of canvas contents as float numpy array (0 to 1 range)"""
-        return np.mean(self.get_image_array() / 255, axis=-1)
-
-    def get_image(self):
-        """Get canvas as a PIL image"""
-        return Image.fromarray(self.get_image_array())
-        # img = np.ndarray (shape=(self.height, self.width, 4), dtype=np.uint8, buffer=self.surf.get_data())[:,:,:3].copy()
-        # img = img[:,:,::-1]
-        # return img
-
-    def get_image_grayscale(self):
-        """Returns the canvas image as a grayscale numpy array (in 0-1 range)"""
-        return self.get_image().convert("L")
-        # img = self.get_image()
-        # img = np.sum(img, axis=-1)/3
-        # return img/255
-
-    def save_image(self, path):
-        """Save the canvas to an image
-
-        Arguments:
-
-        - The path where to save
-
-        """
-        self.surf.write_to_png(path)
-
-    def save_svg(self, path):
-        """Save the canvas to an svg file
-
-        Arguments:
-
-        - The path where to save
-
-        """
-        if self.recording_surface is None:
-            raise ValueError("No recording surface in canvas")
-        surf = cairo.SVGSurface(path, self.width, self.height)
-        ctx = cairo.Context(surf)
-        ctx.set_source_surface(self.recording_surface)
-        ctx.paint()
-        surf.finish()
-        fix_clip_path(path, path)
-
-    def save_pdf(self, path):
-        """Save the canvas to an svg file
-
-        Arguments:
-
-        - The path where to save
-
-        """
-        if self.recording_surface is None:
-            raise ValueError("No recording surface in canvas")
-        surf = cairo.PDFSurface(path, self.width, self.height)
-        ctx = cairo.Context(surf)
-        ctx.set_source_surface(self.recording_surface)
-        ctx.paint()
-        surf.finish()
-
-    def Image(self):
-        print("Image is deprected use `get_image()` instead")
-        return self.get_image()
-
-    # def save(self):
-    #     ''' Save the canvas to an image'''
-    #     if not self.output_file:
-    #         print('No output file specified')
-    #         return
-    #     if '.svg' in self.output_file:
-    #         svg_surf = cairo.SVGSurface(self.output_file, self.width, self.height)
-    #         svg_ctx = cairo.Context(svg_surf)
-    #         svg_ctx.set_source_surface(self.surf)
-    #         svg_ctx.paint()
-    #         svg_ctx.set_source_surface(self.recording_surface)
-    #         svg_ctx.paint()
-    #         svg_surf.finish()
-    #     else:
-    #         self.surf.write_to_png(self.output_file)
-
-    def to_clipboard(self):
-        import pyperclip, os
-        self.save('tmp.svg')
-        with open('tmp.svg', "r", encoding="utf-8") as f:
-            data = f.read()
-            pyperclip.copy(data)
-            os.remove('tmp.svg')
-
-    def save(self, path):
-        """Save the canvas into a given file path
-        The file format depends on the file extension
-        """
-        if ".svg" in path:
-            self.save_svg(path)
-        elif ".pdf" in path:
-            self.save_pdf(path)
-        elif ".png" in path:
-            # TODO use PIL
-            self.save_image(path)
-
-    def show(self, size=None, resample="bicubic"):
-        """Display the canvas in a notebook"""
-        img = self.get_image()
-        if size is not None:
-            filter = {
-                "bicubic": Image.BICUBIC,
-                "nearest": Image.NEAREST,
-                "bilinear": Image.BILINEAR,
-                "lanczos": Image.LANCZOS,
-            }
-            img = img.resize(size, filter[resample])
-        try:
-            # IPython path will throw error if in marimo
-            display(img)
-        except NameError as e:
-            import marimo as mo
-            mo.output.append(img)
-        
-    def show_plt(self, size=None, title="", axis=False):
-        """Show the canvas in a notebook with matplotlib
-
-        Arguments:
-
-        - `size` (tuple, optional): The size of the displayed image, by default this is the size of the canvas
-        - `title` (string, optional): A title for the figure
-        - `axis` (bool, optional): If `True` shows the coordinate axes
-        """
-        import matplotlib.pyplot as plt
-
-        if size is not None:
-            plt.figure(figsize=(size[0] / 100, size[1] / 100))
-        else:
-            plt.figure(figsize=(self.width / 100, self.height / 100))
-        if title:
-            plt.title(title)
-        plt.imshow(self.get_image())
-        if not axis:
-            plt.gca().axis("off")
-        plt.show()
-
-    def _convert_html_color(self, html_color):
-        # Remove '#' if present
-        if html_color.startswith("#"):
-            html_color = html_color[1:]
-
-        # Extract RGB or RGBA components
-        if len(html_color) == 6:
-            r = int(html_color[:2], 16) / 255.0
-            g = int(html_color[2:4], 16) / 255.0
-            b = int(html_color[4:6], 16) / 255.0
-            return np.array([r, g, b, 1.0])
-        elif len(html_color) == 8:
-            r = int(html_color[:2], 16) / 255.0
-            g = int(html_color[2:4], 16) / 255.0
-            b = int(html_color[4:6], 16) / 255.0
-            a = int(html_color[6:8], 16) / 255.0
-            return np.array([r, g, b, a])
-        else:
-            raise ValueError("Invalid HTML color format")
-
-    # def _convert_rgb(self, x):
-    #     # DEPRECATED
-    #     if len(x)==1:
-    #         if not is_number(x[0]): # array like input
-    #             return np.array(x[0])/self.color_scale[:len(x[0])]
-    #         return (x[0]/self.color_scale[0],
-    #                 x[0]/self.color_scale[0],
-    #                 x[0]/self.color_scale[0])
-    #     return (x[0]/self.color_scale[0],
-    #             x[1]/self.color_scale[1],
-    #             x[2]/self.color_scale[2])
-
-    def _scale_color(self, x):
-        if len(x) == 1:
-            if type(x[0]) == str:
-                return self._convert_html_color(x[0])
-            elif not is_number(x[0]):  # array like input
-                return self._scale_color(*x)
-                # return np.array(x[0])/self.color_scale[:len(x[0])]
-            if self._is_hsv():
-                # HSV sets value
-                return (0, 0, x[0] / self.color_scale[2], 1.0)
-            else:
-                return (
-                    x[0] / self.color_scale[0],
-                    x[0] / self.color_scale[0],
-                    x[0] / self.color_scale[0],
-                    1.0,
-                )
-        elif len(x) == 3:
-            return (
-                x[0] / self.color_scale[0],
-                x[1] / self.color_scale[1],
-                x[2] / self.color_scale[2],
-                1.0,
-            )
-        elif len(x) == 2:
-            if type(x[0]) == str:
-                clr = self._convert_html_color(x[0])
-                clr[-1] = x[1] / self.color_scale[-1]
-                return clr
-            elif not is_number(x[0]):
-                # (r, g, b), alpha case
-                if len(x[0]) != 3:
-                    raise ValueError("Need 3 components for color")
-                clr = x[0]
-                return (clr[0] / self.color_scale[0],
-                        clr[1] / self.color_scale[1],
-                        clr[2] / self.color_scale[2],
-                        x[1] / self.color_scale[3])
-            if self._is_hsv():
-                return (0, 0, x[0] / self.color_scale[2], x[1] / self.color_scale[3])
-            else:
-                return (
-                    x[0] / self.color_scale[0],
-                    x[0] / self.color_scale[0],
-                    x[0] / self.color_scale[0],
-                    x[1] / self.color_scale[3],
-                )
-        return (
-            x[0] / self.color_scale[0],
-            x[1] / self.color_scale[1],
-            x[2] / self.color_scale[2],
-            x[3] / self.color_scale[3],
-        )
-
-
 def radians(x):
     """Get radians given an angle in degrees"""
     return np.pi / 180 * x
@@ -2566,10 +2529,6 @@ def radians(x):
 def degrees(x):
     """Get degrees given an angle in radians"""
     return x * (180.0 / np.pi)
-
-
-import numpy as np
-import cairo
 
 
 # def numpy_to_surface(arr):
@@ -2620,6 +2579,7 @@ import cairo
 
 def numpy_to_surface(arr):
     """
+    LLM optimization
     Convert numpy array to a pycairo ImageSurface with fewer allocations.
 
     Supported inputs:
