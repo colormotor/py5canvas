@@ -16,7 +16,6 @@ Simplistic utilty to mimic [P5js](https://p5js.org) in Python/Jupyter notebooks.
 #%%
 import os
 import numpy as np
-import cairo
 import numbers
 import copy, sys, types
 import ctypes as ct
@@ -30,6 +29,7 @@ import rumore  # Noise utils
 from dataclasses import dataclass
 from typing import Union, Optional
 from fontTools.ttLib import TTFont
+from . import renderer as rend
 import pdb
 
 
@@ -45,7 +45,7 @@ class Shape:
         self._curve_points = []      # pending Catmull‑Rom points for curve_vertex
         self._spline_start = None    # first point of the current spline (move-to)
         self._active = False         # True between begin_shape()/end_shape()
-
+        
     # --- Public construction methods (mirror PShape) ---
     def begin_shape(self):
         """Start building the shape. Clears any previous geometry."""
@@ -202,58 +202,28 @@ class Shape:
         self._curve_points = []
         self._spline_start = None
 
-    # Cairo drawing
-    def apply(self, ctx):
+    def apply(self, renderer):
         """Replay all contours onto a Cairo context (does not fill/stroke)."""
         for contour in self.contours:
             if not contour:
                 continue
             first = contour[0]
-            ctx.new_sub_path()
+            renderer.new_sub_path()
             if first[0] != 'M':
                 raise ValueError("Contour must start with a move-to command")
-            ctx.move_to(*first[1])
+            renderer.move_to(*first[1])
             for cmd in contour[1:]:
                 if cmd[0] == 'L':
-                    ctx.line_to(*cmd[1])
+                    renderer.line_to(*cmd[1])
                 elif cmd[0] == 'C':
                     c1x, c1y, c2x, c2y, ex, ey = cmd[1]
-                    ctx.curve_to(c1x, c1y, c2x, c2y, ex, ey)
+                    renderer.curve_to(c1x, c1y, c2x, c2y, ex, ey)
                 elif cmd[0] == 'Z':
-                    ctx.close_path()
+                    renderer.close_path()
 
                     
 def is_number(x):
     return isinstance(x, numbers.Number)
-
-
-def wrapper(self, fn):
-    def result(*args, **kwargs):
-        res = None
-        self.dirty = True
-        for ctx in self.ctxs:  # [::-1]:
-            res = getattr(ctx, fn)(*args, **kwargs)
-        return res
-    return result
-
-
-class MultiContext:
-    """Workaround for TeeSurface not working on Mac (at least)
-    This should enable rendering to multiple surfaces (each with their own context)
-    """
-    def __init__(self, surf):
-        self.surface = surf
-        self.dirty = False
-        self.ctxs = [cairo.Context(surf)]
-        for key, value in cairo.Context.__dict__.items():
-            if hasattr(value, "__call__"):
-                self.__dict__[key] = wrapper(self, key)
-
-    def push_context(self, ctx):
-        self.ctxs.append(ctx)
-
-    def pop_context(self):
-        self.ctxs.pop()
 
         
 class CanvasState:
@@ -314,6 +284,7 @@ class Font:
     
 class Gradient:
     def __init__(self, kind, **kw):
+        import cairo
         extend_modes = {
             'none': cairo.EXTEND_NONE,
             'pad': cairo.EXTEND_PAD,
@@ -401,13 +372,18 @@ class Canvas:
         recording=True,
         save_background=True,
         color_scale=255,
+        backend='cairo',
         **kwargs
     ):
         """Constructor"""
-        # See https://pycairo.readthedocs.io/en/latest/reference/context.html
-        surf = cairo.ImageSurface(cairo.FORMAT_ARGB32, width, height)
-        ctx = MultiContext(surf)
-
+        # # See https://pycairo.readthedocs.io/en/latest/reference/context.html
+        # surf = cairo.ImageSurface(cairo.FORMAT_ARGB32, width, height)
+        # ctx = MultiContext(surf)
+        if backend == 'cairo' and rend.CairoRenderer is not None:
+            self.renderer = rend.CairoRenderer(width, height, recording=recording)
+        else:
+            self.renderer = rend.SVGRenderer(width, height)
+        
         if 'cs' in kwargs:
             color_scale = kwargs['cs']
 
@@ -420,15 +396,17 @@ class Canvas:
         self._color_mode = "rgb"
         self._width = width
         self._height = height
-        self.surf = surf
-        self.ctx = ctx
+        #self.surf = surf
 
-        ctx.set_fill_rule(cairo.FILL_RULE_EVEN_ODD)
-        #ctx.set_fill_rule(cairo.FILL_RULE_WINDING)
-        ctx.set_line_join(cairo.LINE_JOIN_MITER)
-        # ctx.set_antialias(cairo.ANTIALIAS_BEST)
-        ctx.set_source_rgba(*self._apply_colormode(background))
-        ctx.paint()  # rectangle(0, 0, width, height)
+        self.renderer.set_source_rgba(*self._apply_colormode(background))
+        self.renderer.paint()
+
+        # ctx.set_fill_rule(cairo.FILL_RULE_EVEN_ODD)
+        # #ctx.set_fill_rule(cairo.FILL_RULE_WINDING)
+        # ctx.set_line_join(cairo.LINE_JOIN_MITER)
+        # # ctx.set_antialias(cairo.ANTIALIAS_BEST)
+        # ctx.set_source_rgba(*self._apply_colormode(background))
+        # ctx.paint()  # rectangle(0, 0, width, height)
 
         self.last_background = background
         self._first_background = True
@@ -473,15 +451,15 @@ class Canvas:
         self.tension = 0.5
 
         self.output_file = output_file
-        self.recording_surface = None
-        if output_file or recording:
-            self.recording_surface = cairo.RecordingSurface(
-                cairo.CONTENT_COLOR_ALPHA, None
-            )
-            recording_context = cairo.Context(self.recording_surface)
-            self.ctx.push_context(recording_context)
-        else:
-            print("Not creating recording context")
+        # self.recording_surface = None
+        # if output_file or recording:
+        #     self.recording_surface = cairo.RecordingSurface(
+        #         cairo.CONTENT_COLOR_ALPHA, None
+        #     )
+        #     recording_context = cairo.Context(self.recording_surface)
+        #     self.ctx.push_context(recording_context)
+        # else:
+        #     print("Not creating recording context")
 
     def set_color_scale(self, scale):
         """Set color scale:
@@ -542,7 +520,7 @@ class Canvas:
 
     @property
     def surface(self):
-        return self.surf
+        return self.renderer.get_surface()
 
     def no_fill(self):
         """Do not fill subsequent shapes"""
@@ -562,15 +540,16 @@ class Canvas:
         Arguments:
         - One of `"evenodd"`, `"nonzero"`, or `"winding"`
         """
-        rules = {
-            "evenodd": cairo.FILL_RULE_EVEN_ODD,
-            "nonzero": cairo.FILL_RULE_WINDING,
-            "winding": cairo.FILL_RULE_WINDING,
-        }
-        if rule not in rules:
-            print("Rule ", rule, " is not valid")
-            print('Use either "nonzero" or "evenodd"')
-        self.ctx.set_fill_rule(rules[rule])
+        self.renderer.set_fill_rule(rule)
+        # rules = {
+        #     "evenodd": cairo.FILL_RULE_EVEN_ODD,
+        #     "nonzero": cairo.FILL_RULE_WINDING,
+        #     "winding": cairo.FILL_RULE_WINDING,
+        # }
+        # if rule not in rules:
+        #     print("Rule ", rule, " is not valid")
+        #     print('Use either "nonzero" or "evenodd"')
+        # self.ctx.set_fill_rule(rules[rule])
 
     def angle_mode(self, mode='degrees'):
         mode = mode.lower()
@@ -899,7 +878,7 @@ class Canvas:
         Arguments:
         - A sequence of lengths, indicating alternating (on/off) dashed segments
         """
-        self.ctx.set_dash(dash)
+        self.renderer.set_dash(dash)
 
     def stroke_weight(self, w):
         """Set the line width
@@ -907,7 +886,7 @@ class Canvas:
         Arguments:
         - The width in pixel of the stroke
         """
-        self.ctx.set_line_width(w)
+        self.renderer.set_line_width(w)
 
     def stroke_join(self, join):
         """Specify the 'join' mode for polylines.
@@ -916,17 +895,19 @@ class Canvas:
 
         - `join` (string): can be one of "miter", "bevel" or "round"
         """
-        join = join.lower()
-        joins = {
-            "miter": cairo.LINE_JOIN_MITER,
-            "bevel": cairo.LINE_JOIN_BEVEL,
-            "round": cairo.LINE_JOIN_ROUND,
-        }
-        if join not in joins:
-            print(str(join) + " not a valid line join")
-            print("Choose one of " + str(joins.keys()))
-            return
-        self.ctx.set_line_join(joins[join])
+        
+        self.renderer.set_line_join(join)
+        # join = join.lower()
+        # joins = {
+        #     "miter": cairo.LINE_JOIN_MITER,
+        #     "bevel": cairo.LINE_JOIN_BEVEL,
+        #     "round": cairo.LINE_JOIN_ROUND,
+        # }
+        # if join not in joins:
+        #     print(str(join) + " not a valid line join")
+        #     print("Choose one of " + str(joins.keys()))
+        #     return
+        # self.ctx.set_line_join(joins[join])
 
     line_join = stroke_join
 
@@ -956,42 +937,43 @@ class Canvas:
           "dest", "dest_over", "dest_in", "dest_out", "dest_atop", "xor", "add", "saturate", "multiply", "screen", "overlay", "darken", "lighten", "color_dodge", "color_burn", "hard_light", "soft_light", "difference", "exclusion", "hsl_hue", "hsl_saturation", "hsl_color", "hsl_luminosity".
           See [Cairo Graphics Operators](https://www.cairographics.org/operators/) for a discussion on the different operators.
         """
-        blend_modes = {
-            "clear": cairo.OPERATOR_CLEAR,
-            "source": cairo.OPERATOR_SOURCE,
-            "over": cairo.OPERATOR_OVER,  # This is the default blend mode
-            "in": cairo.OPERATOR_IN,
-            "out": cairo.OPERATOR_OUT,
-            "atop": cairo.OPERATOR_ATOP,
-            "dest": cairo.OPERATOR_DEST,
-            "dest_over": cairo.OPERATOR_DEST_OVER,
-            "dest_in": cairo.OPERATOR_DEST_IN,
-            "dest_out": cairo.OPERATOR_DEST_OUT,
-            "dest_atop": cairo.OPERATOR_DEST_ATOP,
-            "xor": cairo.OPERATOR_XOR,
-            "add": cairo.OPERATOR_ADD,
-            "saturate": cairo.OPERATOR_SATURATE,
-            "multiply": cairo.OPERATOR_MULTIPLY,
-            "screen": cairo.OPERATOR_SCREEN,
-            "overlay": cairo.OPERATOR_OVERLAY,
-            "darken": cairo.OPERATOR_DARKEN,
-            "lighten": cairo.OPERATOR_LIGHTEN,
-            "color_dodge": cairo.OPERATOR_COLOR_DODGE,
-            "color_burn": cairo.OPERATOR_COLOR_BURN,
-            "hard_light": cairo.OPERATOR_HARD_LIGHT,
-            "soft_light": cairo.OPERATOR_SOFT_LIGHT,
-            "difference": cairo.OPERATOR_DIFFERENCE,
-            "exclusion": cairo.OPERATOR_EXCLUSION,
-            "hsl_hue": cairo.OPERATOR_HSL_HUE,
-            "hsl_saturation": cairo.OPERATOR_HSL_SATURATION,
-            "hsl_color": cairo.OPERATOR_HSL_COLOR,
-            "hsl_luminosity": cairo.OPERATOR_HSL_LUMINOSITY,
-        }
-        mode = mode.lower()
-        if mode in blend_modes:
-            self.ctx.set_operator(blend_modes[mode])
-        else:
-            raise ValueError(f"Invalid blend mode: {mode}")
+        self.renderer.set_blend_mode(mode)
+        # blend_modes = {
+        #     "clear": cairo.OPERATOR_CLEAR,
+        #     "source": cairo.OPERATOR_SOURCE,
+        #     "over": cairo.OPERATOR_OVER,  # This is the default blend mode
+        #     "in": cairo.OPERATOR_IN,
+        #     "out": cairo.OPERATOR_OUT,
+        #     "atop": cairo.OPERATOR_ATOP,
+        #     "dest": cairo.OPERATOR_DEST,
+        #     "dest_over": cairo.OPERATOR_DEST_OVER,
+        #     "dest_in": cairo.OPERATOR_DEST_IN,
+        #     "dest_out": cairo.OPERATOR_DEST_OUT,
+        #     "dest_atop": cairo.OPERATOR_DEST_ATOP,
+        #     "xor": cairo.OPERATOR_XOR,
+        #     "add": cairo.OPERATOR_ADD,
+        #     "saturate": cairo.OPERATOR_SATURATE,
+        #     "multiply": cairo.OPERATOR_MULTIPLY,
+        #     "screen": cairo.OPERATOR_SCREEN,
+        #     "overlay": cairo.OPERATOR_OVERLAY,
+        #     "darken": cairo.OPERATOR_DARKEN,
+        #     "lighten": cairo.OPERATOR_LIGHTEN,
+        #     "color_dodge": cairo.OPERATOR_COLOR_DODGE,
+        #     "color_burn": cairo.OPERATOR_COLOR_BURN,
+        #     "hard_light": cairo.OPERATOR_HARD_LIGHT,
+        #     "soft_light": cairo.OPERATOR_SOFT_LIGHT,
+        #     "difference": cairo.OPERATOR_DIFFERENCE,
+        #     "exclusion": cairo.OPERATOR_EXCLUSION,
+        #     "hsl_hue": cairo.OPERATOR_HSL_HUE,
+        #     "hsl_saturation": cairo.OPERATOR_HSL_SATURATION,
+        #     "hsl_color": cairo.OPERATOR_HSL_COLOR,
+        #     "hsl_luminosity": cairo.OPERATOR_HSL_LUMINOSITY,
+        # }
+        # mode = mode.lower()
+        # if mode in blend_modes:
+        #     self.ctx.set_operator(blend_modes[mode])
+        # else:
+        #     raise ValueError(f"Invalid blend mode: {mode}")
 
     def stroke_cap(self, cap):
         """Specify the 'cap' for lines.
@@ -1000,17 +982,18 @@ class Canvas:
 
         - `cap` (string): can be one of "butt", "round" or "square"
         """
-        cap = cap.lower()
-        caps = {
-            "square": cairo.LINE_CAP_BUTT,
-            "round": cairo.LINE_CAP_ROUND,
-            "project": cairo.LINE_CAP_SQUARE,
-        }
-        if cap not in caps:
-            print(str(cap) + " not a valid line cap")
-            print("Choose one of " + str(caps.keys()))
-            return
-        self.ctx.set_line_cap(caps[cap])
+        self.renderer.set_line_cap(cap.lower())
+        # cap = cap.lower()
+        # caps = {
+        #     "square": cairo.LINE_CAP_BUTT,
+        #     "round": cairo.LINE_CAP_ROUND,
+        #     "project": cairo.LINE_CAP_SQUARE,
+        # }
+        # if cap not in caps:
+        #     print(str(cap) + " not a valid line cap")
+        #     print("Choose one of " + str(caps.keys()))
+        #     return
+        # self.ctx.set_line_cap(caps[cap])
 
     line_cap = stroke_cap
 
@@ -1035,7 +1018,8 @@ class Canvas:
         """
         self._text_size = size
         self._text_leading = size
-        self.ctx.set_font_size(self._text_size)
+        self.renderer.set_font_size(self._text_size)
+        #self.ctx.set_font_size(self._text_size)
 
     def text_leading(self, *args):
         """Specify the space between consecutive lines of text
@@ -1061,23 +1045,25 @@ class Canvas:
             if os.path.isfile(font):
                 try:
                     info = read_font_names(font)
+                    face = create_cairo_font_face_for_file(font)
+                    # Only CairoRenderer supports set_font_face; SVG will ignore fine.
+                    if hasattr(self.renderer, 'set_font_face'):
+                        self.renderer.set_font_face(face)
                     self._font = f"{info['family']} {info['subfamily']}"
-                    self.ctx.set_font_face(create_cairo_font_face_for_file(font))
                 except Exception as e:
-                    print(f"Error: failed to load font {font}:")
-                    print(e)
+                    print(f"Error loading font: {e}")
                 return
             else:
                 self._font = font
-                self.ctx.select_font_face(self._font)
+                self.renderer.select_font_face(font)
         else:
             self._font = font.obj
             if type(self._font) == str:
                 # "Toy" case of a System font selected by name
-                self.ctx.select_font_face(self._font)
+                self.renderer.select_font_face(self._font)
             else:
                 # Loaded font case
-                self.ctx.set_font_face(self._font)
+                self.renderer.set_font_face(self._font)
             if font.style is not None:
                 self.text_style(font.style)
             if font.size is not None:
@@ -1091,18 +1077,14 @@ class Canvas:
         - `style` (string): the name of a style ("normal", "italic", "bold",
         "bolditalic")
         """
+        if style == 'bolditalic':
+            self.renderer.select_font_face(self._font, 'bold', 'italic')
         if style == "normal":
-            self.ctx.select_font_face(self._font, cairo.FontSlant.NORMAL)
+            self.renderer.select_font_face(self._font, 'normal')
         elif style == "italic":
-            self.ctx.select_font_face(self._font, cairo.FontSlant.ITALIC)
+            self.renderer.select_font_face(self._font, 'normal', 'italic')
         elif style == "bold":
-            self.ctx.select_font_face(
-                self._font, cairo.FontSlant.NORMAL, cairo.FontWeight.BOLD
-            )
-        elif style == "bolditalic":
-            self.ctx.select_font_face(
-                self._font, cairo.FontSlant.ITALIC, cairo.FontWeight.BOLD
-            )
+            self.renderer.select_font_face(self._font, 'bold')
         else:
             print(
                 f"font style ={style}= not recognised (choose from: normal, italic, bold, bolditalic)"
@@ -1110,11 +1092,13 @@ class Canvas:
 
     def text_width(self, txt):
         # x_advance safer than width (works with spaces)
-        info = self.ctx.get_scaled_font().text_extents(txt)
+        info = self.renderer.text_extents()
+        #info = self.ctx.get_scaled_font().text_extents(txt)
         return info.x_advance
 
     def text_height(self, txt):
-        info = self.ctx.get_scaled_font().text_extents(txt)
+        info = self.renderer.text_extents()
+        #info = self.ctx.get_scaled_font().text_extents(txt)
         return info.height
 
     def push_matrix(self):
@@ -1128,20 +1112,19 @@ class Canvas:
                 yield
             finally:
                 self.pop_matrix()
-        self.ctx.save()
+        self.renderer.save()
         return popmanager()
 
     def pop_matrix(self):
         """
         Restore the previous transformation
         """
-        self.ctx.restore()
+        self.renderer.restore()
 
     def push_style(self):
         """
         Save the current drawing state
         """
-
         @contextmanager
         def popmanager():
             pass
@@ -1171,7 +1154,7 @@ class Canvas:
                 yield
             finally:
                 self.pop()
-        self.ctx.save()
+        self.renderer.save()
         self.draw_states.append(copy.copy(self.draw_states[-1]))
         return popmanager()
 
@@ -1179,7 +1162,7 @@ class Canvas:
         """
         Restore the previously pushed drawing state and transformations
         """
-        self.ctx.restore()
+        self.renderer.restore()
         old = self.draw_states.pop()
         self.draw_states[-1].set(old)
 
@@ -1195,7 +1178,7 @@ class Canvas:
             v = args[0]
         else:
             v = args
-        self.ctx.translate(*v)
+        self.renderer.translate(*v)
 
     def scale(self, *args):
         """Apply a scaling transformation.
@@ -1214,11 +1197,11 @@ class Canvas:
                 s = [s, s]
         else:
             s = args
-        self.ctx.scale(*s)
+        self.renderer.scale(*s)
 
     def rotate(self, angle):
         """Rotate by `theta` radians (or degrees, depeending on the angle mode)"""
-        self.ctx.rotate(self._to_radians(angle))
+        self.renderer.rotate(self._to_radians(angle))
 
     rotate_rad = rotate
 
@@ -1227,17 +1210,16 @@ class Canvas:
         matrix = cairo.Matrix(
             mat[0][0], mat[1][0], mat[0][1], mat[1][1], mat[0][2], mat[1][2]
         )
-        self.ctx.transform(matrix)
+        self.renderer.transform(matrix)
 
     def get_origin(self):
         """Get the origin in canvas coordinates for the current transformation.
         Returns a 2d numpy array"""
-        return np.array([self.ctx.get_matrix().x0,
-                         self.ctx.get_matrix().y0])
-
+        return self.renderer.get_origin()
+        
     def rotate_deg(self, deg):
         """Rotate using degrees"""
-        self.ctx.rotate(radians(deg))
+        self.renderer.rotate(radians(deg))
 
     def hsb(self, *args):
         """ Return RGB components for a color defined as HSB"""
@@ -1256,10 +1238,11 @@ class Canvas:
             return rgb_to_hsv(np.array(args[0])) * self.color_scale
 
     def _setfill(self):
-        if isinstance(self.cur_fill, Gradient):
-            self.ctx.set_source(self.cur_fill.gradient)
-        else:
-            self.ctx.set_source_rgba(*self.cur_fill)
+        self.renderer.set_fill(self.cur_fill)
+        # if isinstance(self.cur_fill, Gradient):
+        #     self.renderer.set_source_gradient(self.cur_fill) #.gradient)
+        # else:
+        #     self.renderer.set_source_rgba(*self.cur_fill)
 
     def _fillstroke(self):
         """Draw the current path with current fill/stroke attributes.
@@ -1267,50 +1250,44 @@ class Canvas:
         and is left unchanged for them."""
         if self.no_draw:
             return
-        if self.cur_fill is not None:
-            self._setfill()
-            if self.cur_stroke is not None:
-                self.ctx.fill_preserve()
-            else:
-                self.ctx.fill()
-        if self.cur_stroke is not None:
-            self.ctx.set_source_rgba(*self.cur_stroke)
-            self.ctx.stroke()
+        self.renderer.set_fill(self.cur_fill)
+        self.renderer.set_stroke(self.cur_stroke)
+        self.renderer.fillstroke()
+         
+        # self.renderer.fillstroke()
+        
+        # if self.cur_fill is not None:
+        #     self._setfill()
+        #     if self.cur_stroke is not None:
+        #         self.renderer.fill_preserve()
+        #     else:
+        #         self.renderer.fill()
+        # if self.cur_stroke is not None:
+        #     self.renderer.set_source_rgba(*self.cur_stroke)
+        #     self.renderer.stroke()
 
     def _draw_shape(self, shape_obj):
         """Draw a complete Shape object using current fill/stroke."""
         if shape_obj is None:
             return
-        # Apply shape geometry to Cairo path
-        if self.cur_fill is not None:
-            self._setfill()
-            if self.cur_stroke is not None:
-                shape_obj.apply(self.ctx)
-                self.ctx.fill_preserve()
-            else:
-                shape_obj.apply(self.ctx)
-                self.ctx.fill()
-        if self.cur_stroke is not None:
-            self.ctx.set_source_rgba(*self.cur_stroke)
-            if self.cur_fill is None:
-                shape_obj.apply(self.ctx)
-            self.ctx.stroke()
-
+        shape_obj.apply(self.renderer)
+        self._fillstroke()
+        
     def begin_shape(self):
         """Start building a complex shape. Drawing is deferred until end_shape()."""
         self.no_draw = True
         self.cur_shape = Shape(tension=self.tension)
-        self.cur_shape.begin_shape()          # ← activate the PShape
+        self.cur_shape.begin_shape()        
 
     def end_shape(self, close=False):
         """Finish the shape and draw it."""
         if self.cur_shape is None:
             return
-        self.cur_shape.end_shape(close)       # ← finalise the PShape
+        self.cur_shape.end_shape(close)
+        self.no_draw = False
         self._draw_shape(self.cur_shape)
         self.cur_shape = None
-        self.no_draw = False
-
+        
     def begin_contour(self):
         """Start a new contour within the currently built shape.
         If no shape is active, a new one is created automatically."""
@@ -1444,14 +1421,7 @@ class Canvas:
             return
         self._ellipse_mode = mode
 
-    def _roundrect(self, x, y, w, h, r):
-        # https://www.geeksforgeeks.org/python/pycairo-drawing-the-roundrect/
-        self.ctx.arc(x + r, y + r, r, np.pi, 3 * np.pi / 2)
-        self.ctx.arc(x + w - r, y + r, r, 3 * np.pi / 2, 0)
-        self.ctx.arc(x + w - r, y + h - r, r, 0, np.pi / 2)
-        self.ctx.arc(x + r, y + h - r, r, np.pi / 2, np.pi)
-        self.ctx.close_path()
-
+    
     def rectangle(self, *args, mode=None):
         """Draw a rectangle.
         Can use `rect` equivalently.
@@ -1520,12 +1490,7 @@ class Canvas:
             # Interpret 'size' as the bottom right corner
             size = size - p
 
-        if radius is None:
-            self.ctx.rectangle(*p, *size)
-        else:
-            radius = min(radius, min(size) / 2)
-            self._roundrect(*p, *size, radius)
-
+        self.renderer.rectangle(*p, *size, radius)
         self._fillstroke()
 
     rect = rectangle
@@ -1645,7 +1610,7 @@ class Canvas:
             a = args[0]
             b = args[1]
             size = args[2]
-        w = self.ctx.get_line_width() * size
+        w = self.renderer.get_line_width() * size
         h = w * length
         a = np.array(a)
         b = np.array(b)
@@ -1701,8 +1666,9 @@ class Canvas:
         if mode == "corner":
             x += radius
             y += radius
-        self.ctx.new_sub_path()
-        self.ctx.arc(x, y, radius, 0, np.pi * 2.0)
+        self.renderer.ellipse(x, y, radius, radius)
+        #self.renderer.new_sub_path()
+        #self.renderer.arc(x, y, radius, 0, np.pi * 2.0)
         self._fillstroke()
 
     def ellipse(self, *args, mode=None):
@@ -1744,26 +1710,31 @@ class Canvas:
             w, h = abs(x2 - x1), abs(y2 - y1)
         if not (w > 0 and h > 0):
             return
-        self.push()
-        self.translate(center)
+        self.push_matrix()
         if mode.lower() == "corner":
-            self.translate(w / 2, h / 2)
+            center += [w/2, h/2]
         if mode.lower() == "radius":
             w = w * 2
             h = h * 2
-        self.scale([w / 2, h / 2])
-        self.ctx.new_sub_path()
-        self.ctx.arc(0, 0, 1, 0, np.pi * 2.0)
-        if self.cur_fill is not None:
-            self._setfill()
-            if self.cur_stroke is not None:
-                self.ctx.fill_preserve()
-            else:
-                self.ctx.fill()
-        self.pop()
-        if self.cur_stroke is not None:
-            self.ctx.set_source_rgba(*self.cur_stroke)
-            self.ctx.stroke()
+
+        self.renderer.ellipse(center[0], center[1], w/2, h/2)
+        self._fillstroke()
+        
+        # self.scale([w / 2, h / 2])
+        # self.renderer.new_sub_path()
+        # self.renderer.arc(0, 0, 1, 0, np.pi * 2.0)
+        # self.pop_matrix()
+        
+        # if self.cur_fill is not None:
+        #     self.set_fill(self.cur_fill)
+        #     if self.cur_stroke is not None:
+        #         self.renderer.fill_preserve()
+        #     else:
+        #         self.renderer.fill()
+        # self.pop()
+        # if self.cur_stroke is not None:
+        #     self.renderer.set_stroke(self.cur_stroke)
+        #     self.renderer.stroke()
 
     def arc(self, *args):
         """Draw an ellpitical arc, given the center of the ellipse `x, y`
@@ -1803,27 +1774,27 @@ class Canvas:
                        self._to_radians(stop))
         start = mod2pi(start)
         stop = mod2pi(stop)
-        save_mat = self.ctx.get_matrix()
-        self.ctx.translate(x, y)
-        self.ctx.scale(w / 2, h / 2)
+        save_mat = self.renderer.get_matrix()
+        self.renderer.translate(x, y)
+        self.renderer.scale(w / 2, h / 2)
         if self.cur_fill is not None:
             self._setfill()
-            self.ctx.new_sub_path()
+            self.renderer.new_sub_path()
             if mode != "chord":
-                self.ctx.move_to(0, 0)
-            self.ctx.arc(0, 0, 1, start, stop)
-            self.ctx.fill()
+                self.renderer.move_to(0, 0)
+            self.renderer.arc(0, 0, 1, start, stop)
+            self.renderer.fill()
         if self.cur_stroke is not None:
-            self.ctx.set_source_rgba(*self.cur_stroke)
-            self.ctx.new_sub_path()
+            self.renderer.set_stroke(self.cur_stroke)
+            self.renderer.new_sub_path()
             if mode == "pie":
-                self.ctx.move_to(0, 0)
-            self.ctx.arc(0, 0, 1, start, stop)
+                self.renderer.move_to(0, 0)
+            self.renderer.arc(0, 0, 1, start, stop)
             if mode != "open":
-                self.ctx.close_path()
-        self.ctx.set_matrix(save_mat)
+                self.renderer.close_path()
+        self.renderer.set_matrix(save_mat)
         if self.cur_stroke is not None:
-            self.ctx.stroke()
+            self.renderer.stroke()
 
     def polygon(self, *args, close=True):
         """Draw a polygon (closed by default).
@@ -1905,11 +1876,12 @@ class Canvas:
 
     def identity(self):
         """Resets the current matrix to the identity (no transformation)"""
-        self.ctx.identity_matrix()
+        self.renderer.set_matrix(np.eye(3)) #identity_matrix()
 
     def reset_matrix(self):
         """Resets the current matrix to the identity (no transformation)"""
-        self.ctx.identity_matrix()
+        self.renderer.set_matrix(np.eye(3)) #
+        #self.renderer.identity_matrix()
 
     def copy(self, *args):
         """The first parameter can optionally be an image, if an image is not specified the funtion will use
@@ -1949,7 +1921,7 @@ class Canvas:
             self.last_background = args[0]
         else:
             self.last_background = args
-        self.ctx.identity_matrix()
+        self.renderer.set_matrix(np.eye(3)) #identity_matrix()
         # HACK - we don't want to necessarily save the background when exporting SVG
         # Especially if we want to plot the output, so only draw the background to the
         # bitmap surface if that is the case.
@@ -1960,30 +1932,25 @@ class Canvas:
 
         # For the first clear, we use OPERATOR_SOURCE
         # Otherwise the background will not actually be transparent
-        if self._first_background:
-            cur_op = self.ctx.get_operator()
-            self.ctx.set_operator(cairo.OPERATOR_SOURCE)
-        ctx = self.ctx
         rgba = np.array(self._apply_colormode(args))
-        ctx.set_source_rgba(*rgba)
-        if self._save_background:
-            ctx.rectangle(0, 0, self.width, self.height)
-            ctx.fill()
-        else:
-            ctx.paint()
-        if self._first_background:
-            self.ctx.set_operator(cur_op)
+        self.renderer.background(rgba,
+                                 self._first_background,
+                                 self._save_background)
+        
         self._first_background = False
 
     def get_buffer(self):
-        return self.surf.get_data()
+        surf = self.renderer.get_surface()
+        if surf is None:
+            return None
+        return surf.get_data()
 
     def get_image_array(self):
         """Get canvas image as a numpy array"""
         img = np.ndarray(
             shape=(self.height, self.width, 4),
             dtype=np.uint8,
-            buffer=self.surf.get_data(),
+            buffer=self.get_buffer(),
         )[:, :, :3].copy()
         img = img[:, :, ::-1]
         return img
@@ -2018,14 +1985,15 @@ class Canvas:
         - The path where to save
 
         """
-        if self.recording_surface is None:
-            raise ValueError("No recording surface in canvas")
-        surf = cairo.SVGSurface(path, self.width, self.height)
-        ctx = cairo.Context(surf)
-        ctx.set_source_surface(self.recording_surface)
-        ctx.paint()
-        surf.finish()
-        fix_clip_path(path, path)
+        self.renderer.save_svg(path)
+        # if self.recording_surface is None:
+        #     raise ValueError("No recording surface in canvas")
+        # surf = cairo.SVGSurface(path, self.width, self.height)
+        # ctx = cairo.Context(surf)
+        # ctx.set_source_surface(self.recording_surface)
+        # ctx.paint()
+        # surf.finish()
+        # fix_clip_path(path, path)
 
     def save_pdf(self, path):
         """Save the canvas to an svg file
@@ -2035,11 +2003,14 @@ class Canvas:
         - The path where to save
 
         """
+        if not isinstance(self.renderer, rend.CairoRenderer):
+            raise NotImplementedError("pdf saving is only implemented for CairoRenderer")
         if self.recording_surface is None:
             raise ValueError("No recording surface in canvas")
+        import cairo
         surf = cairo.PDFSurface(path, self.width, self.height)
         ctx = cairo.Context(surf)
-        ctx.set_source_surface(self.recording_surface)
+        ctx.set_source_surface(self.renderer.recording_surface)
         ctx.paint()
         surf.finish()
 
@@ -2071,20 +2042,31 @@ class Canvas:
 
     def show(self, size=None, resample="bicubic"):
         """Display the canvas in a notebook"""
-        img = self.get_image()
-        if size is not None:
-            filter = {
-                "bicubic": Image.BICUBIC,
-                "nearest": Image.NEAREST,
-                "bilinear": Image.BILINEAR,
-                "lanczos": Image.LANCZOS,
-            }
-            img = img.resize(size, filter[resample])
-        try:
-            display(img)
-        except NameError as e:
-            import marimo as mo
-            mo.output.append(img)
+        if isinstance(self.renderer, rend.SVGRenderer):
+            svg_str = self.renderer.get_svg_string()
+            try:
+                # Jupyter / IPython environment
+                from IPython.display import SVG, display
+                return display(SVG(svg_str))
+            except ImportError:
+                from marimo import ui
+                return ui.Html(f"<div>{svg_str}</div>")
+        else:
+            img = self.get_image()
+            if size is not None:
+                filter = {
+                    "bicubic": Image.BICUBIC,
+                    "nearest": Image.NEAREST,
+                    "bilinear": Image.BILINEAR,
+                    "lanczos": Image.LANCZOS,
+                }
+                img = img.resize(size, filter[resample])
+            try:
+                from IPython.display import display
+                display(img)
+            except (NameError, ImportError) as e:
+                import marimo as mo
+                mo.output.append(img)
 
     def show_plt(self, size=None, title="", axis=False):
         """Show the canvas in a notebook with matplotlib
@@ -2219,9 +2201,12 @@ class Canvas:
         - `opacity`: a value between 0 and 1 specifying image opacity.
 
         """
-        
+        if isinstance(self.renderer, rend.SVGRenderer):
+            raise NotImplementedError('SVG renderer does not support image yet')
         if isinstance(img, Canvas):
-            img = img.surf
+            if isinstance(img, rend.SVGRenderer):
+                raise NotImplementedError('SVG renderer does not support image yet')
+            img = img.renderer.surf
         else:
             if not isinstance(img, np.ndarray):
                 # This should take care of tensors and PIL Images
@@ -2231,7 +2216,7 @@ class Canvas:
                     img = img.convert('RGBA')
                 img = np.array(img)
             img = numpy_to_surface(img)
-        self.ctx.save()
+        self.renderer.save()
         if len(args) == 0:
             pos = np.zeros(2)
             size = [img.get_width(), img.get_height()]
@@ -2253,34 +2238,34 @@ class Canvas:
 
         pos = np.array(pos).astype(float)
         size = np.array(size).astype(float)
-        self.ctx.translate(pos[0], pos[1])
+        self.renderer.translate(pos[0], pos[1])
 
         if size is not None:
             sx = size[0] / img.get_width()
             sy = size[1] / img.get_height()
-            self.ctx.scale(sx, sy)
+            self.renderer.scale(sx, sy)
 
         # Apply tint if set
         if self.cur_tint is not None:
             r, g, b, a = self.cur_tint
-            op = self.ctx.get_operator()
-            self.ctx.push_group()
+            op = self.renderer.get_blend_mode()
+            self.renderer.push_group()
             # base image
-            self.ctx.set_source_surface(img, 0, 0)
-            self.ctx.paint_with_alpha(1)
+            self.renderer.set_source_surface(img, 0, 0)
+            self.renderer.paint_with_alpha(1)
             # multiply tint 
-            self.ctx.set_operator(cairo.OPERATOR_MULTIPLY)
-            self.ctx.set_source_rgba(r, g, b, 1.0)
-            self.ctx.mask_surface(img, 0, 0)
+            self.renderer.set_blend_mode('multiply')
+            self.renderer.set_source_rgba(r, g, b, 1.0)
+            self.renderer.mask_surface(img, 0, 0)
             # render group
-            self.ctx.pop_group_to_source()
-            self.ctx.set_operator(op)
-            self.ctx.paint_with_alpha(opacity*a)
+            self.renderer.pop_group_to_source()
+            self.renderer.set_blend_mode(op)
+            self.renderer.paint_with_alpha(opacity*a)
         else:
         # Draw straight otherwise
-            self.ctx.set_source_surface(img)
-            self.ctx.paint_with_alpha(opacity)
-        self.ctx.restore()
+            self.renderer.set_source_surface(img)
+            self.renderer.paint_with_alpha(opacity)
+        self.renderer.restore()
 
     def text(self, text, *args, align="", valign="", center=None, **kwargs):
         """Draw text at a given position
@@ -2334,8 +2319,8 @@ class Canvas:
 
         for line in lines:
             ox, oy = self._text_offset(line, align, valign)
-            self.ctx.move_to(x + ox, y + oy)
-            self.ctx.text_path(line)
+            self.renderer.move_to(x + ox, y + oy)
+            self.renderer.text_path(line)
             self._fillstroke()
             y += self._text_leading
 
@@ -2360,8 +2345,8 @@ class Canvas:
         if not valign:
             valign = self._text_valign
 
-        ctx = self.ctx
-        font = ctx.get_scaled_font()
+        
+        font = self.renderer.get_scaled_font()
 
         start_pos = np.array(pos, dtype=np.float32)
 
@@ -2382,10 +2367,10 @@ class Canvas:
                 extents = font.text_extents(char)
 
                 # Extract path data
-                ctx.text_path(char)
-                path = ctx.copy_path()
+                self.renderer.text_path(char)
+                path = self.renderer.copy_path()
                 # Clear path so we don't draw
-                ctx.new_path()
+                self.renderer.new_path()
 
                 shape = []
 
@@ -2458,7 +2443,7 @@ class Canvas:
         )
 
     def _text_offset(self, text, align, valign):
-        (x_bearing, y_bearing, w, h, x_advance, y_advance) = self.ctx.text_extents(text)
+        (x_bearing, y_bearing, w, h, x_advance, y_advance) = self.renderer.text_extents(text)
         if not align:
             align = self._text_halign
         if not valign:
@@ -2498,7 +2483,7 @@ class Canvas:
         tl = []
         br = []
         for line in lines:
-            (x_bearing, y_bearing, w, h, x_advance, y_advance) = self.ctx.text_extents(
+            (x_bearing, y_bearing, w, h, x_advance, y_advance) = self.renderer.text_extents(
                 line
             )
             ox, oy = self._text_offset(line, align, valign)
@@ -2587,6 +2572,7 @@ def numpy_to_surface(arr):
       - HxWx3 uint8               -> RGB, opaque
       - HxWx4 uint8               -> RGBA, premultiplied into Cairo ARGB32 memory layout
     """
+    import cairo
     if arr.dtype != np.uint8:
         arr = (arr*255).astype(np.uint8)
         #raise TypeError("Fast path expects uint8 input")
