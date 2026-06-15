@@ -628,7 +628,7 @@ class Sketch:
         print('Setting up recording surface')
         self.recording_surface = cairo.RecordingSurface(cairo.CONTENT_COLOR_ALPHA, None)
         self.recording_context = cairo.Context(self.recording_surface)
-        self.canvas.ctx.push_context(self.recording_context)
+        self.canvas.renderer._ctx.push_context(self.recording_context)
         # self.setup_surface = cairo.RecordingSurface(cairo.CONTENT_COLOR_ALPHA, None)
         # self.setup_ctx = cairo.Context(self.setup_surface)
         #self.canvas.ctx.push_context(self.setup_ctx)
@@ -994,8 +994,8 @@ class Sketch:
         ''' Hook on canvas background to take care of recording context and other '''
         self.recording_surface = cairo.RecordingSurface(cairo.CONTENT_COLOR_ALPHA, None)
         self.recording_context = cairo.Context(self.recording_surface)
-        if len(self.canvas.ctx.ctxs) > 1: # assumes with 2 ctxs second is recording
-            self.canvas.ctx.ctxs[1] = self.recording_context
+        if len(self.canvas.renderer._ctx.ctxs) > 1: # assumes with 2 ctxs second is recording
+            self.canvas.renderer._ctx.ctxs[1] = self.recording_context
 
         if True: #not self._async_background: # Disabled
             self.canvas.background(*args)
@@ -1232,9 +1232,9 @@ class Sketch:
             #self.error_label.text = str(e)
             print_traceback()
         # create_canvas created and added a recording context so pop it in case (if no error)
-        if len(self.canvas.ctx.ctxs) > 1:
+        if len(self.canvas.renderer._ctx.ctxs) > 1:
             print('Removing setup recording context')
-            self.canvas.ctx.pop_context()
+            self.canvas.renderer._ctx.pop_context()
 
     def _update_mouse(self, draw_frame):
         if self._mouse_pos is None:
@@ -1492,7 +1492,7 @@ class Sketch:
                     os.remove(self.saving_to_file)
 
 
-            self.canvas.ctx.pop_context()
+            self.canvas.renderer._ctx.pop_context()
             self.saving_to_file = ''
             self.copying = False
             self.done_saving = False

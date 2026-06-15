@@ -75,8 +75,11 @@ class Shape:
         self._curve_points = []
         self._spline_start = None
 
-    def vertex(self, x, y):
-        """Add a straight vertex (line-to, or move-to if first of contour)."""
+    def vertex(self, x, y=None):
+        """Add a straight vertex ."""
+        if y is None:
+            x, y = x
+
         self._start_contour_if_needed()
         self._flush_spline()
         if not self._current_contour:
@@ -84,19 +87,18 @@ class Shape:
         else:
             self._current_contour.append(('L', (x, y)))
 
-    def curve_vertex(self, x, y):
-        """Add a smooth (Catmull‑Rom) vertex."""
+    def curve_vertex(self, x, y=None):
+        """Add a curved vertex (Catmull Rom spline)."""
+        if y is None:
+            x, y = x
+
         self._start_contour_if_needed()
         if not self._curve_points:
-            if not self._current_contour:
-                raise RuntimeError("curve_vertex requires an initial vertex")
-            last_cmd = self._current_contour[-1]
-            if last_cmd[0] not in ('M', 'L'):
-                raise RuntimeError("curve_vertex must follow a regular vertex")
-            self._spline_start = last_cmd[1]
-            self._curve_points = [self._spline_start, (x, y)]
-        else:
-            self._curve_points.append((x, y))
+            if self._current_contour and self._current_contour[-1][0] in ('M', 'L'):
+                self._spline_start = self._current_contour[-1][1]
+            else:
+                self._spline_start = None
+        self._curve_points.append((x, y))
 
     def bezier_vertex(self, *args):
         """Add a cubic Bézier vertex; three control points."""
@@ -116,17 +118,14 @@ class Shape:
         """Add a contour of straight line segments from a sequence of (x,y) points."""
         if not self._active:
             self.begin_shape()          # temporary activation for standalone use
-        self._contour()
+        self.begin_contour()
         for i, p in enumerate(points):
-            if i == 0:
-                self.vertex(*p)         # move-to
-            else:
-                self.vertex(*p)         # line-to
+            self.vertex(*p)         # line-to
         self.end_contour(closed)
 
     def end_contour(self, close=False):
         """Finish the current contour. If close=True, the contour is closed."""
-        self._flush_spline()
+        self._flush_spline(close=close)
         if close and self._current_contour:
             self._current_contour.append(('Z',))
         self._current_contour = None
@@ -164,7 +163,7 @@ class Shape:
                 ('C', (p1[0], p1[1], p2[0], p2[1], p3[0], p3[1])))
         self.end_contour(closed)
 
-    def curve(self, points, closed=False):
+    def curve(self, points, close=False):
         """
         Add a contour of smooth Cardinal spline segments.
         points: sequence of (x,y) knots.
@@ -173,25 +172,29 @@ class Shape:
             self.begin_shape()
         self.begin_contour()
         for i, p in enumerate(points):
-            if i == 0:
-                self.vertex(*p)         # move-to needed
-            else:
-                self.curve_vertex(*p)
-        self.end_contour(closed)
+            self.curve_vertex(*p)
+        self.end_contour(close)
 
     def _start_contour_if_needed(self):
         if self._current_contour is None:
             self.begin_contour()
 
-    def _flush_spline(self):
-        """Convert any pending curve_vertex points into Bézier commands."""
-        if not self._curve_points or len(self._curve_points) < 3:
+    def _flush_spline(self, close=False):
+        if not self._curve_points or len(self._curve_points) < 2:
             self._curve_points = []
             self._spline_start = None
             return
-        pts = np.array(self._curve_points)
-        cp = cardinal_spline(pts, self.tension, closed=False)
-        n_seg = len(pts) - 1
+
+        # Build full points list: include previous anchor if available
+        pts = list(self._curve_points)
+        if self._spline_start is not None:
+            pts = [self._spline_start] + pts
+        pts = np.array(pts)
+
+        cp = cardinal_spline(pts, self.tension, closed=close)
+        n_seg = len(pts) - 1 if not close else len(pts)
+
+        self._current_contour.append(('M', cp[0]))
         for si in range(n_seg):
             c1 = cp[1 + 3*si]
             c2 = cp[2 + 3*si]
@@ -199,6 +202,7 @@ class Shape:
             self._current_contour.append(
                 ('C', (c1[0], c1[1], c2[0], c2[1], end[0], end[1]))
             )
+
         self._curve_points = []
         self._spline_start = None
 
@@ -1322,8 +1326,6 @@ class Canvas:
         - `[x, y]`
         - `x, y`
         """
-        if y is None:
-            x, y = x
         if self.cur_shape is None:
             raise RuntimeError("vertex() called without begin_shape()")
         self.cur_shape.vertex(x, y)
@@ -1336,8 +1338,6 @@ class Canvas:
         - `[x, y]`
         - `x, y`
         """
-        if y is None:
-            x, y = x
         if self.cur_shape is None:
             raise RuntimeError("curve_vertex() called without begin_shape()")
         self.cur_shape.curve_vertex(x, y)
@@ -1871,7 +1871,7 @@ class Canvas:
         else:
             raise ValueError("Wrong number of arguments")
         tmp = Shape()
-        tmp.curve(points, closed=close)
+        tmp.curve(points, close=close)
         self._draw_shape(tmp)
 
     def identity(self):
