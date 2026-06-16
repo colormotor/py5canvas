@@ -250,6 +250,7 @@ class CanvasState:
         self._dash = []
 
     def set(self, prev=None):
+        ''' Called if calling pop'''
         def should_set(prev, name):
             if prev is None:
                 return True
@@ -1391,9 +1392,6 @@ class Canvas:
         tmp_shape.end_shape(close=False)         # finalise
         self._draw_shape(tmp_shape)
 
-    # ------------------------------------------------------------------------
-    # Old‑style simple shape drawing (unchanged, still uses _fillstroke)
-    # ------------------------------------------------------------------------
     def rect_mode(self, mode):
         """Set the "mode" for drawing rectangles.
 
@@ -1853,7 +1851,7 @@ class Canvas:
         tmp.multibezier(points, closed=close)
         self._draw_shape(tmp)
 
-    def curve(self, *args, close=True):
+    def curve(self, *args, close=False):
         """Draw a curve (open by default) using Cardinal spline interpolation.
 
         The polyline is specified as either:
