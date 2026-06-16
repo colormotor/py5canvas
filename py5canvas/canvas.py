@@ -1543,88 +1543,6 @@ class Canvas:
         else:
             self.polygon([[args[i * 2], args[i * 2 + 1]] for i in range(4)])
 
-    def line(self, *args):
-        """Draws a line between two points
-
-        Input arguments can be in the following formats:
-
-         - `a, b` (Two points specified as lists/tuples/numpy arrays
-         - `x1, y1, x2, y2`, a sequence of numbers, one for each coordinate
-        """
-        nostroke = False
-        if self.cur_stroke is None:
-            nostroke = True
-            if self.cur_fill is not None:
-                self.cur_stroke = self.cur_fill
-            else:
-                print("line: No color is set")
-        if len(args) == 2:
-            self.polyline([args[0], args[1]])
-        if len(args) == 4:
-            self.polyline([[args[0], args[1]], [args[2], args[3]]])
-        if nostroke:
-            self.cur_stroke = None
-
-    def point(self, *args):
-        """Draw a point at a given position
-
-        Input arguments can be in the following formats:
-
-         - `[x, y]`: a single point specified as a tuple/list/numpy array
-         - `x1, y1`: two coordinates
-
-        """
-        nostroke = False
-        if self.cur_stroke is None:
-            nostroke = True
-            if self.cur_fill is not None:
-                self.cur_stroke = self.cur_fill
-            else:
-                print("point: No color is set")
-        if len(args) == 1:
-            self.polyline([args[0], args[0]])
-        elif len(args) == 2:
-            self.polyline([[args[0], args[1]], [args[0], args[1]]])
-        else:
-            raise ValueError("point: Illegal number of arguments")
-        if nostroke:
-            self.cur_stroke = None
-
-    def arrow(self, *args, size=2.5, overhang=0.7, length=2.0):
-        """Draw an arrow between two points
-
-        Input arguments can be in the following formats:
-
-        - `a, b` (Two points specified as lists/tuples/numpy arrays
-        - `x1, y1, x2, y2`, a sequence of numbers, one for each coordinate
-        """
-
-        if len(args) == 2:
-            a, b = args
-        elif len(args) == 4:
-            a = args[:2]
-            b = args[2:]
-        elif len(args) == 3:
-            a = args[0]
-            b = args[1]
-            size = args[2]
-        w = self.renderer.get_line_width() * size
-        h = w * length
-        a = np.array(a)
-        b = np.array(b)
-        d = b - a
-        l = np.linalg.norm(d)
-        d = d / (np.linalg.norm(d) + 1e-10)
-        b = a + d * max(0.0, l - h)
-        p = np.array([-d[1], d[0]])
-        P = [b + p * w - d * w * overhang, b + d * h, b - p * w - d * w * overhang, b]
-        self.line(a, b)
-        self.push()
-        self.fill(self._get_stroke_or_fill_color())
-        self.no_stroke()
-        self.polygon(P)
-        self.pop()
-
     def triangle(self, *args):
         """Draws a triangle given three points
 
@@ -1733,6 +1651,89 @@ class Canvas:
         # if self.cur_stroke is not None:
         #     self.renderer.set_stroke(self.cur_stroke)
         #     self.renderer.stroke()
+
+    def line(self, *args):
+        """Draws a line between two points
+
+        Input arguments can be in the following formats:
+
+         - `a, b` (Two points specified as lists/tuples/numpy arrays
+         - `x1, y1, x2, y2`, a sequence of numbers, one for each coordinate
+        """
+        nostroke = False
+        if self.cur_stroke is None:
+            nostroke = True
+            if self.cur_fill is not None:
+                self.cur_stroke = self.cur_fill
+            else:
+                print("line: No color is set")
+        if len(args) == 2:
+            self.polyline([args[0], args[1]])
+        if len(args) == 4:
+            self.polyline([[args[0], args[1]], [args[2], args[3]]])
+        if nostroke:
+            self.cur_stroke = None
+
+    def point(self, *args):
+        """Draw a point at a given position
+
+        Input arguments can be in the following formats:
+
+         - `[x, y]`: a single point specified as a tuple/list/numpy array
+         - `x1, y1`: two coordinates
+
+        """
+        nostroke = False
+        if self.cur_stroke is None:
+            nostroke = True
+            if self.cur_fill is not None:
+                self.cur_stroke = self.cur_fill
+            else:
+                print("point: No color is set")
+        if len(args) == 1:
+            self.polyline([args[0], args[0]])
+        elif len(args) == 2:
+            self.polyline([[args[0], args[1]], [args[0], args[1]]])
+        else:
+            raise ValueError("point: Illegal number of arguments")
+        if nostroke:
+            self.cur_stroke = None
+
+    def arrow(self, *args, size=2.5, overhang=0.7, length=2.0):
+        """Draw an arrow between two points
+
+        Input arguments can be in the following formats:
+
+        - `a, b` (Two points specified as lists/tuples/numpy arrays
+        - `x1, y1, x2, y2`, a sequence of numbers, one for each coordinate
+        """
+
+        if len(args) == 2:
+            a, b = args
+        elif len(args) == 4:
+            a = args[:2]
+            b = args[2:]
+        elif len(args) == 3:
+            a = args[0]
+            b = args[1]
+            size = args[2]
+        w = self.renderer.get_line_width() * size
+        h = w * length
+        a = np.array(a)
+        b = np.array(b)
+        d = b - a
+        l = np.linalg.norm(d)
+        d = d / (np.linalg.norm(d) + 1e-10)
+        b = a + d * max(0.0, l - h)
+        p = np.array([-d[1], d[0]])
+        P = [b + p * w - d * w * overhang, b + d * h, b - p * w - d * w * overhang, b]
+        self.line(a, b)
+        self.push()
+        self.fill(self._get_stroke_or_fill_color())
+        self.no_stroke()
+        self.polygon(P)
+        self.pop()
+
 
     def arc(self, *args):
         """Draw an ellpitical arc, given the center of the ellipse `x, y`
