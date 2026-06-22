@@ -83,6 +83,7 @@ class Renderer:
     def fill_preserve(self): fill()  # default: no preserve, will be overridden by Cairo
     def stroke_preserve(self): stroke()
 
+    def get_line_width(self): pass
     def set_fill(self, fill): pass
     def set_stroke(self, stroke): pass
     
@@ -184,6 +185,13 @@ try:
                 self._recording_ctx = cairo.Context(self.recording_surface)
                 self._ctx.push_context(self._recording_ctx)
 
+        def get_origin(self):
+            """Get the origin in canvas coordinates for the current transformation.
+            Returns a 2d numpy array"""
+            return np.array([self._ctx.get_matrix().x0,
+                            self._ctx.get_matrix().y0])
+        def get_line_width(self): return self._ctx.get_line_width()
+        
         def move_to(self, x, y): self._ctx.move_to(x, y)
         def line_to(self, x, y): self._ctx.line_to(x, y)
         def curve_to(self, cx1, cy1, cx2, cy2, x, y):
