@@ -30,6 +30,7 @@ from dataclasses import dataclass
 from typing import Union, Optional
 from fontTools.ttLib import TTFont
 from . import renderer as rend
+from . import svg
 import pdb
 
 
@@ -45,8 +46,27 @@ class Shape:
         self._curve_points = []      # pending Catmull‑Rom points for curve_vertex
         self._spline_start = None    # first point of the current spline (move-to)
         self._active = False         # True between begin_shape()/end_shape()
-        
-    # --- Public construction methods (mirror PShape) ---
+        self.style = {}
+
+    def no_fill(self):
+        self.fill(None)
+
+    def no_stroke(self):
+        self.stroke(None)
+        return self
+    
+    def fill(self, *args):
+        self.style['fill'] = args
+        return self
+    
+    def stroke(self, *args):
+        self.style['stroke'] = args
+        return self
+    
+    def stroke_weight(self, w):
+        self.style['stroke_weight'] = w
+        return self
+    
     def begin_shape(self):
         """Start building the shape. Clears any previous geometry."""
         self._active = True
@@ -54,7 +74,8 @@ class Shape:
         self._current_contour = None
         self._curve_points = []
         self._spline_start = None
-
+        return self
+    
     def end_shape(self, close=False):
         """
         Finish building the shape.
@@ -64,7 +85,8 @@ class Shape:
             if self._current_contour is not None:
                 self.end_contour(close)
             self._active = False
-
+        return self
+    
     def begin_contour(self):
         """Start a new contour. Must be called after begin_shape()."""
         if not self._active:
@@ -74,7 +96,8 @@ class Shape:
         self.contours.append(self._current_contour)
         self._curve_points = []
         self._spline_start = None
-
+        return self
+    
     def vertex(self, x, y=None):
         """Add a straight vertex ."""
         if y is None:
@@ -86,7 +109,8 @@ class Shape:
             self._current_contour.append(('M', (x, y)))
         else:
             self._current_contour.append(('L', (x, y)))
-
+        return self
+    
     def curve_vertex(self, x, y=None):
         """Add a curved vertex (Catmull Rom spline)."""
         if y is None:
@@ -99,7 +123,8 @@ class Shape:
             else:
                 self._spline_start = None
         self._curve_points.append((x, y))
-
+        return self
+    
     def bezier_vertex(self, *args):
         """Add a cubic Bézier vertex; three control points."""
         if len(args) == 3:
@@ -113,7 +138,8 @@ class Shape:
         self._current_contour.append(
             ('C', (p1[0], p1[1], p2[0], p2[1], p3[0], p3[1]))
         )
-
+        return self
+    
     def polyline(self, points, closed=False):
         """Add a contour of straight line segments from a sequence of (x,y) points."""
         if not self._active:
@@ -122,7 +148,8 @@ class Shape:
         for i, p in enumerate(points):
             self.vertex(*p)         # line-to
         self.end_contour(closed)
-
+        return self
+    
     def end_contour(self, close=False):
         """Finish the current contour. If close=True, the contour is closed."""
         self._flush_spline(close=close)
@@ -131,7 +158,8 @@ class Shape:
         self._current_contour = None
         self._curve_points = []
         self._spline_start = None
-
+        return self
+    
     def polyline(self, points, closed=False):
         """Add a contour of straight line segments from a sequence of (x,y) points."""
         if not self._active:
@@ -143,6 +171,7 @@ class Shape:
             else:
                 self.vertex(*p)         # line-to
         self.end_contour(closed)
+        return self
 
     def multibezier(self, points, closed=False):
         """
@@ -162,6 +191,7 @@ class Shape:
             self._current_contour.append(
                 ('C', (p1[0], p1[1], p2[0], p2[1], p3[0], p3[1])))
         self.end_contour(closed)
+        return self
 
     def curve(self, points, close=False):
         """
@@ -174,6 +204,7 @@ class Shape:
         for i, p in enumerate(points):
             self.curve_vertex(*p)
         self.end_contour(close)
+        return self
 
     def _start_contour_if_needed(self):
         if self._current_contour is None:
@@ -366,7 +397,6 @@ class Canvas:
 
     When using these functions all the canvas functionalities below will become globally available to the notebook.
     """
-
     def __init__(
         self,
         width,
@@ -476,7 +506,8 @@ class Canvas:
         if is_number(scale):
             scale = np.ones(4) * scale
         self.color_scale[: len(scale)] = scale
-
+        return self
+    
     @property
     def cur_fill(self) -> np.ndarray:
         return self.draw_states[-1].cur_fill
@@ -530,14 +561,17 @@ class Canvas:
     def no_fill(self):
         """Do not fill subsequent shapes"""
         self.fill(None)
+        return self
 
     def no_stroke(self):
         """Do not stroke subsequent shapes"""
         self.stroke(None)
+        return self
 
     def no_tint(self):
         """Do not tint images"""
         self.tint(None)
+        return self
 
     def fill_rule(self, rule):
         """Sets the fill rule for complex shapes.
@@ -555,12 +589,14 @@ class Canvas:
         #     print("Rule ", rule, " is not valid")
         #     print('Use either "nonzero" or "evenodd"')
         # self.ctx.set_fill_rule(rules[rule])
+        return self
 
     def angle_mode(self, mode='degrees'):
         mode = mode.lower()
         if not mode in ['degrees', 'radians']:
             raise ValueError('invalid angle mode, use either RADIANS or DEGREES')
         self._angle_mode = mode
+        return self
 
     def _to_radians(self, ang):
         if self._angle_mode == 'radians':
@@ -593,6 +629,7 @@ class Canvas:
                 self.set_color_scale(args[0])
             else:
                 self.set_color_scale(args)
+        return self
 
     def _is_hsv(self):
         mode = self._color_mode.lower()
@@ -709,23 +746,6 @@ class Canvas:
         rgba = self._apply_colormode(args)
         hsva = rgb_to_hsv(rgba)*self.color_scale
         return hsva[2]
-
-    def fill(self, *args):
-        """Set the color of the current fill
-
-        Arguments:
-
-        - A single argument specifies a grayscale value, e.g `fill(128)` will fill with 50% gray.
-        - Two arguments specify grayscale with opacity, e.g. `fill(255, 128)` will fill with transparent white.
-        - Three arguments specify a color depending on the color mode (rgb or hsv)
-        - Four arguments specify a color with opacity
-        """
-        if args[0] is None:
-            self.cur_fill = None
-        elif isinstance(args[0], Gradient):
-            self.cur_fill = args[0]
-        else:
-            self.cur_fill = self._apply_colormode(args)
 
     def linear_gradient_angle(self, *args, extend='pad'):
         """Create a linear gradient fill.
@@ -861,6 +881,25 @@ class Canvas:
             self.cur_tint = None
         else:
             self.cur_tint = self._apply_colormode(args)
+        return self
+    
+    def fill(self, *args):
+        """Set the color of the current fill
+
+        Arguments:
+
+        - A single argument specifies a grayscale value, e.g `fill(128)` will fill with 50% gray.
+        - Two arguments specify grayscale with opacity, e.g. `fill(255, 128)` will fill with transparent white.
+        - Three arguments specify a color depending on the color mode (rgb or hsv)
+        - Four arguments specify a color with opacity
+        """
+        if args[0] is None:
+            self.cur_fill = None
+        elif isinstance(args[0], Gradient):
+            self.cur_fill = args[0]
+        else:
+            self.cur_fill = self._apply_colormode(args)
+        return self
 
     def stroke(self, *args):
         """Set the color of the current stroke
@@ -876,6 +915,7 @@ class Canvas:
             self.cur_stroke = None
         else:
             self.cur_stroke = self._apply_colormode(args)
+        return self
 
     def stroke_dash(self, dash):
         """Set the line dash (stippling)
@@ -884,6 +924,7 @@ class Canvas:
         - A sequence of lengths, indicating alternating (on/off) dashed segments
         """
         self.renderer.set_dash(dash)
+        return self
 
     def stroke_weight(self, w):
         """Set the line width
@@ -892,6 +933,7 @@ class Canvas:
         - The width in pixel of the stroke
         """
         self.renderer.set_line_width(w)
+        return self
 
     def stroke_join(self, join):
         """Specify the 'join' mode for polylines.
@@ -913,6 +955,7 @@ class Canvas:
         #     print("Choose one of " + str(joins.keys()))
         #     return
         # self.ctx.set_line_join(joins[join])
+        return self
 
     line_join = stroke_join
 
@@ -925,6 +968,7 @@ class Canvas:
         """
         
         self.renderer.set_line_cap(join)
+        return self
         
     line_cap = stroke_cap
     
@@ -955,42 +999,7 @@ class Canvas:
           See [Cairo Graphics Operators](https://www.cairographics.org/operators/) for a discussion on the different operators.
         """
         self.renderer.set_blend_mode(mode)
-        # blend_modes = {
-        #     "clear": cairo.OPERATOR_CLEAR,
-        #     "source": cairo.OPERATOR_SOURCE,
-        #     "over": cairo.OPERATOR_OVER,  # This is the default blend mode
-        #     "in": cairo.OPERATOR_IN,
-        #     "out": cairo.OPERATOR_OUT,
-        #     "atop": cairo.OPERATOR_ATOP,
-        #     "dest": cairo.OPERATOR_DEST,
-        #     "dest_over": cairo.OPERATOR_DEST_OVER,
-        #     "dest_in": cairo.OPERATOR_DEST_IN,
-        #     "dest_out": cairo.OPERATOR_DEST_OUT,
-        #     "dest_atop": cairo.OPERATOR_DEST_ATOP,
-        #     "xor": cairo.OPERATOR_XOR,
-        #     "add": cairo.OPERATOR_ADD,
-        #     "saturate": cairo.OPERATOR_SATURATE,
-        #     "multiply": cairo.OPERATOR_MULTIPLY,
-        #     "screen": cairo.OPERATOR_SCREEN,
-        #     "overlay": cairo.OPERATOR_OVERLAY,
-        #     "darken": cairo.OPERATOR_DARKEN,
-        #     "lighten": cairo.OPERATOR_LIGHTEN,
-        #     "color_dodge": cairo.OPERATOR_COLOR_DODGE,
-        #     "color_burn": cairo.OPERATOR_COLOR_BURN,
-        #     "hard_light": cairo.OPERATOR_HARD_LIGHT,
-        #     "soft_light": cairo.OPERATOR_SOFT_LIGHT,
-        #     "difference": cairo.OPERATOR_DIFFERENCE,
-        #     "exclusion": cairo.OPERATOR_EXCLUSION,
-        #     "hsl_hue": cairo.OPERATOR_HSL_HUE,
-        #     "hsl_saturation": cairo.OPERATOR_HSL_SATURATION,
-        #     "hsl_color": cairo.OPERATOR_HSL_COLOR,
-        #     "hsl_luminosity": cairo.OPERATOR_HSL_LUMINOSITY,
-        # }
-        # mode = mode.lower()
-        # if mode in blend_modes:
-        #     self.ctx.set_operator(blend_modes[mode])
-        # else:
-        #     raise ValueError(f"Invalid blend mode: {mode}")
+        return self
 
     def stroke_cap(self, cap):
         """Specify the 'cap' for lines.
@@ -1000,17 +1009,7 @@ class Canvas:
         - `cap` (string): can be one of "butt", "round" or "square"
         """
         self.renderer.set_line_cap(cap.lower())
-        # cap = cap.lower()
-        # caps = {
-        #     "square": cairo.LINE_CAP_BUTT,
-        #     "round": cairo.LINE_CAP_ROUND,
-        #     "project": cairo.LINE_CAP_SQUARE,
-        # }
-        # if cap not in caps:
-        #     print(str(cap) + " not a valid line cap")
-        #     print("Choose one of " + str(caps.keys()))
-        #     return
-        # self.ctx.set_line_cap(caps[cap])
+        return self
 
     line_cap = stroke_cap
 
@@ -1023,6 +1022,7 @@ class Canvas:
         """
         self._text_halign = halign
         self._text_valign = valign
+        return self
 
     def text_size(self, size):
         """Specify the text size
@@ -1037,6 +1037,7 @@ class Canvas:
         self._text_leading = size
         self.renderer.set_font_size(self._text_size)
         #self.ctx.set_font_size(self._text_size)
+        return self
 
     def text_leading(self, *args):
         """Specify the space between consecutive lines of text
@@ -1049,6 +1050,7 @@ class Canvas:
         if len(args) == 0:
             return self._text_leading
         self._text_leading = args[0]
+        return self
 
     def text_font(self, font):
         """Specify the font to use for text rendering.
@@ -1085,6 +1087,7 @@ class Canvas:
                 self.text_style(font.style)
             if font.size is not None:
                 self.text_size(font.size)
+        return self
 
     def text_style(self, style):
         """Specify the style (normal, italic, bold, bolditalic) to use for text
@@ -1106,6 +1109,7 @@ class Canvas:
             print(
                 f"font style ={style}= not recognised (choose from: normal, italic, bold, bolditalic)"
             )
+        return self
 
     def text_width(self, txt):
         # x_advance safer than width (works with spaces)
@@ -1196,6 +1200,7 @@ class Canvas:
         else:
             v = args
         self.renderer.translate(*v)
+        return self
 
     def scale(self, *args):
         """Apply a scaling transformation.
@@ -1215,10 +1220,12 @@ class Canvas:
         else:
             s = args
         self.renderer.scale(*s)
+        return self
 
     def rotate(self, angle):
         """Rotate by `theta` radians (or degrees, depeending on the angle mode)"""
         self.renderer.rotate(self._to_radians(angle))
+        return self
 
     rotate_rad = rotate
 
@@ -1228,6 +1235,7 @@ class Canvas:
             mat[0][0], mat[1][0], mat[0][1], mat[1][1], mat[0][2], mat[1][2]
         )
         self.renderer.transform(matrix)
+        return self
 
     def get_origin(self):
         """Get the origin in canvas coordinates for the current transformation.
@@ -1237,6 +1245,7 @@ class Canvas:
     def rotate_deg(self, deg):
         """Rotate using degrees"""
         self.renderer.rotate(radians(deg))
+        return self
 
     def hsb(self, *args):
         """ Return RGB components for a color defined as HSB"""
@@ -1287,14 +1296,26 @@ class Canvas:
         """Draw a complete Shape object using current fill/stroke."""
         if shape_obj is None:
             return
+        if shape_obj.style:
+            self.push_style()
+            if 'fill' in shape_obj.style:
+                self.fill(*shape_obj.style['fill'])
+            if 'stroke' in shape_obj.style:
+                self.stroke(*shape_obj.style['stroke'])
+            if 'stroke_weight' in shape_obj.style:
+                self.stroke_weight(*shape_obj.style['stroke_weight'])
+                
         shape_obj.apply(self.renderer)
         self._fillstroke()
+        if shape_obj.style:
+            self.pop_style()
         
     def begin_shape(self):
         """Start building a complex shape. Drawing is deferred until end_shape()."""
         self.no_draw = True
         self.cur_shape = Shape(tension=self.tension)
         self.cur_shape.begin_shape()        
+        return self
 
     def end_shape(self, close=False):
         """Finish the shape and draw it."""
@@ -1304,6 +1325,7 @@ class Canvas:
         self.no_draw = False
         self._draw_shape(self.cur_shape)
         self.cur_shape = None
+        return self
         
     def begin_contour(self):
         """Start a new contour within the currently built shape.
@@ -1312,6 +1334,7 @@ class Canvas:
             self.cur_shape = Shape(tension=self.tension)
             self.cur_shape.begin_shape()
         self.cur_shape.begin_contour()
+        return self
 
     def end_contour(self, close=False):
         """End the current contour. If not inside a begin_shape/end_shape block,
@@ -1330,6 +1353,7 @@ class Canvas:
             self.cur_shape.end_shape(close=False)   # already closed contour
             self._draw_shape(self.cur_shape)
             self.cur_shape = None
+        return self
 
     def vertex(self, x, y=None):
         """Add a vertex to current contour
@@ -1342,6 +1366,7 @@ class Canvas:
         if self.cur_shape is None:
             raise RuntimeError("vertex() called without begin_shape()")
         self.cur_shape.vertex(x, y)
+        return self
 
     def curve_vertex(self, x, y=None):
         """Add a curved vertex to current contour
@@ -1354,6 +1379,7 @@ class Canvas:
         if self.cur_shape is None:
             raise RuntimeError("curve_vertex() called without begin_shape()")
         self.cur_shape.curve_vertex(x, y)
+        return self
 
     def bezier_vertex(self, *args):
         """Draw a cubic Bezier segment from the current point
@@ -1368,20 +1394,28 @@ class Canvas:
         if self.cur_shape is None:
             raise RuntimeError("bezier_vertex() called without begin_shape()")
         self.cur_shape.bezier_vertex(*args)
+        return self
 
     def curve_tightness(self, val):
         """Sets the 'tension' parameter for the curve used when using `curve_vertex`"""
         self.tension = val
         if self.cur_shape is not None:
             self.cur_shape.tension = val
+        return self
 
     def shape(self, obj, close=False):
         """Draw a pre‑built Shape object or a list of polylines (list of lists/arrays).
         For lists, each polyline becomes one contour (open or closed)."""
         if isinstance(obj, Shape):
             self._draw_shape(obj)
-            return
+            return self
 
+        # List of shapes 
+        if isinstance(obj[0], Shape):
+            for S in obj:
+                self._draw_shape(S)
+            return self
+        
         # Convert legacy polyline lists into a temporary Shape
         if not is_compound(obj):
             obj = [obj]   # single polyline -> wrap in list
@@ -1403,6 +1437,7 @@ class Canvas:
                 tmp_shape.end_contour(False)
         tmp_shape.end_shape(close=False)         # finalise
         self._draw_shape(tmp_shape)
+        return self
 
     def rect_mode(self, mode):
         """Set the "mode" for drawing rectangles.
@@ -1417,6 +1452,7 @@ class Canvas:
             print("choose one among: corner, center, radius")
             return
         self._rect_mode = mode
+        return self
 
     def ellipse_mode(self, mode):
         """Set the "mode" for drawing rectangles.
@@ -1430,6 +1466,7 @@ class Canvas:
             print("choose one among: corner, center")
             return
         self._ellipse_mode = mode
+        return self
 
     
     def rectangle(self, *args, mode=None):
@@ -1502,6 +1539,7 @@ class Canvas:
 
         self.renderer.rectangle(*p, *size, radius)
         self._fillstroke()
+        return self
 
     rect = rectangle
 
@@ -1527,6 +1565,7 @@ class Canvas:
             self.rectangle(args[0], args[1], args[2], args[2], mode=mode)
         else:
             raise ValueError("square: wrong number of arguments")
+        return self
 
     def rect(self, *args, mode=None):
         """Draws a rectangle.
@@ -1554,6 +1593,7 @@ class Canvas:
             self.polygon(args)
         else:
             self.polygon([[args[i * 2], args[i * 2 + 1]] for i in range(4)])
+        return self
 
     def triangle(self, *args):
         """Draws a triangle given three points
@@ -1568,6 +1608,7 @@ class Canvas:
             self.polygon(args)
         else:
             self.polygon([[args[i * 2], args[i * 2 + 1]] for i in range(3)])
+        return self
 
     def circle(self, *args, mode=""):
         """Draw a circle given center and radius
@@ -1598,6 +1639,7 @@ class Canvas:
         #self.renderer.new_sub_path()
         #self.renderer.arc(x, y, radius, 0, np.pi * 2.0)
         self._fillstroke()
+        return self
 
     def ellipse(self, *args, mode=None):
         """Draw an ellipse with center, width and height.
@@ -1663,6 +1705,7 @@ class Canvas:
         # if self.cur_stroke is not None:
         #     self.renderer.set_stroke(self.cur_stroke)
         #     self.renderer.stroke()
+        return self
 
     def line(self, *args):
         """Draws a line between two points
@@ -1685,6 +1728,7 @@ class Canvas:
             self.polyline([[args[0], args[1]], [args[2], args[3]]])
         if nostroke:
             self.cur_stroke = None
+        return self
 
     def point(self, *args):
         """Draw a point at a given position
@@ -1710,6 +1754,7 @@ class Canvas:
             raise ValueError("point: Illegal number of arguments")
         if nostroke:
             self.cur_stroke = None
+        return self
 
     def arrow(self, *args, size=2.5, overhang=0.7, length=2.0):
         """Draw an arrow between two points
@@ -1745,6 +1790,7 @@ class Canvas:
         self.no_stroke()
         self.polygon(P)
         self.pop()
+        return self
 
 
     def arc(self, *args):
@@ -1806,6 +1852,7 @@ class Canvas:
         self.renderer.set_matrix(save_mat)
         if self.cur_stroke is not None:
             self.renderer.stroke()
+        return self
 
     def polygon(self, *args, close=True):
         """Draw a polygon (closed by default).
@@ -1818,7 +1865,7 @@ class Canvas:
 
         To create an opne polygon set the named =close= argument to =False=, e.g. =c.polygon(points, close=False)=.
         """
-        self.polyline(*args, close=close)
+        return self.polyline(*args, close=close)
 
     def polyline(self, *args, close=False):
         """Draw a polyline (open by default).
@@ -1842,6 +1889,7 @@ class Canvas:
         tmp = Shape()
         tmp.polyline(points, closed=close)
         self._draw_shape(tmp)
+        return self
 
     def multibezier(self, *args, close=False):
         """
@@ -1863,6 +1911,7 @@ class Canvas:
         tmp = Shape()
         tmp.multibezier(points, closed=close)
         self._draw_shape(tmp)
+        return self
 
     def curve(self, *args, close=False):
         """Draw a curve (open by default) using Cardinal spline interpolation.
@@ -1884,15 +1933,18 @@ class Canvas:
         tmp = Shape()
         tmp.curve(points, close=close)
         self._draw_shape(tmp)
+        return self
 
     def identity(self):
         """Resets the current matrix to the identity (no transformation)"""
         self.renderer.set_matrix(np.eye(3)) #identity_matrix()
+        return self
 
     def reset_matrix(self):
         """Resets the current matrix to the identity (no transformation)"""
         self.renderer.set_matrix(np.eye(3)) #
         #self.renderer.identity_matrix()
+        return self
 
     def copy(self, *args):
         """The first parameter can optionally be an image, if an image is not specified the funtion will use
@@ -1918,6 +1970,7 @@ class Canvas:
             ValueError("Unspported number of arguments for copy")
         img = img[sy : sy + sh, sx : sx + sw]
         self.image(img, dx, dy, dw, dh)
+        return self
 
     def background(self, *args):
         """Clear the canvas with a given color
@@ -1949,6 +2002,7 @@ class Canvas:
                                  self._save_background)
         
         self._first_background = False
+        return self
 
     def get_buffer(self):
         surf = self.renderer.get_surface()
@@ -2277,6 +2331,7 @@ class Canvas:
             self.renderer.set_source_surface(img)
             self.renderer.paint_with_alpha(opacity)
         self.renderer.restore()
+        return self
 
     def text(self, text, *args, align="", valign="", center=None, **kwargs):
         """Draw text at a given position
@@ -2334,6 +2389,7 @@ class Canvas:
             self.renderer.text_path(line)
             self._fillstroke()
             y += self._text_leading
+        return self
 
     def text_shapes(self, text, *args, dist=1, align="", valign=""):
         if len(args) == 2:
