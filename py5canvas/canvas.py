@@ -1231,10 +1231,10 @@ class Canvas:
 
     def apply_matrix(self, mat):
         """Apply an affine (3x3) transformation matrix"""
-        matrix = cairo.Matrix(
-            mat[0][0], mat[1][0], mat[0][1], mat[1][1], mat[0][2], mat[1][2]
-        )
-        self.renderer.transform(matrix)
+        # matrix = cairo.Matrix(
+        #     mat[0][0], mat[1][0], mat[0][1], mat[1][1], mat[0][2], mat[1][2]
+        # )
+        self.renderer.transform(mat) #matrix)
         return self
 
     def get_origin(self):

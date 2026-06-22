@@ -529,9 +529,12 @@ class VideoInput:
             else:
                 print("No video")
                 if self.size is not None:
-                    return np.zeros((self.size[1], self.size[0], 3)).astype(np.uint8)
+                    img = np.zeros((self.size[1], self.size[0], 3)).astype(np.uint8)
                 else:
-                    return np.zeros((16, 16, 3)).astype(np.uint8)
+                    img = np.zeros((16, 16, 3)).astype(np.uint8)
+                if pil:
+                    return Image.fromarray((img*255).astype(np.uint8))
+                return img
 
         if self.size is not None:
             src_w, src_h = img.shape[1], img.shape[0]

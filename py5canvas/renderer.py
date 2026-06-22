@@ -110,6 +110,8 @@ class Renderer:
     def scale(self, sx: float, sy: float): pass
     def rotate(self, angle_rad: float): pass
     def set_matrix(self, matrix): pass
+    def transform(self, matrix): pass
+    
     def get_matrix(self): pass
     def get_origin(self): pass
     def paint(self): pass   # fill whole canvas with current color
@@ -325,6 +327,10 @@ try:
         def translate(self, tx, ty): self._ctx.translate(tx, ty)
         def scale(self, sx, sy): self._ctx.scale(sx, sy)
         def rotate(self, angle_rad): self._ctx.rotate(angle_rad)
+        def transform(self, mat): 
+            if isinstance(mat, np.ndarray):
+                mat = cairo.Matrix(mat[0][0], mat[1][0], mat[0][1], mat[1][1], mat[0][2], mat[1][2])
+            self._ctx.transform(mat)
         def set_matrix(self, mat):
             if isinstance(mat, np.ndarray):
                 mat = cairo.Matrix(mat[0][0], mat[1][0], mat[0][1], mat[1][1], mat[0][2], mat[1][2])
@@ -722,6 +728,9 @@ class SVGRenderer(Renderer):
     def set_matrix(self, matrix):
         self._matrix_stack[-1] = matrix
 
+    def apply_matrix(self, matrix):
+        self._matrix_stack[-1] *= matrix
+        
     def get_matrix(self):
         return self._matrix_stack[-1]
 
