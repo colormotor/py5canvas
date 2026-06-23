@@ -23,14 +23,15 @@ It will probably be significantly slow when using a large canvas size
 # from pyglet.window import key
 from pylab import bool
 import numpy as np
-import os, sys, time
+import os, sys, time, types
 from py5canvas import canvas, sketch_params
 from py5canvas.sketch_params import load_json, save_json
 from PIL import Image
 from py5canvas import globals as glob
 import traceback
 import importlib, inspect, types
-import importlib.util
+from importlib import util, abc
+
 
 import threading
 import cairo
@@ -1033,20 +1034,6 @@ class Sketch:
         print("Reloading sketch code")
         self.finalize_grab()
 
-        var_context = {}
-        self.var_context = var_context
-
-        self._frame_count = 0
-        self._delta_time = 0.0
-
-        # Save params if they exist
-        if self.params is not None and not self.has_error():
-            self.params.save()
-
-        if self.video_writer is not None:
-            self.video_writer.release()
-            self.video_writer = None
-
         # Call exit callback if any
         if 'exit' in var_context:
             try:
@@ -1057,12 +1044,28 @@ class Sketch:
                 print(e)
                 print_traceback()
 
+        
+        # Save params if they exist
+        if self.params is not None and not self.has_error():
+            self.params.save()
+
+        if self.video_writer is not None:
+            self.video_writer.release()
+            self.video_writer = None
+
+
         # And reset
         self.params = None
         self.gui_callback = None
         self._no_loop = False
         self.desc = ''
+        self._frame_count = 0
+        self._delta_time = 0.0
 
+        # Var context for injection
+        var_context = {}
+        self.var_context = var_context
+        
         # Set current directory to script dir
         if self.path:
             path = os.path.abspath(self.path)
@@ -1083,34 +1086,71 @@ class Sketch:
                 self.prog_uses_imgui = False
 
 
-            prog = compile(prog_text, self.path, 'exec')
+            # prog = compile(prog_text, self.path, 'exec')
 
-            # This is necessary to use `importlib.reload` inside a script
-            # as with `exec` alone it will have no effect
-            name = os.path.splitext(os.path.basename(path))[1]
-            loader = importlib.machinery.SourceFileLoader(name, path)
+            # # This is necessary to use `importlib.reload` inside a script
+            # # as with `exec` alone it will have no effect
+            # name = os.path.splitext(os.path.basename(path))[0]
+            # loader = importlib.machinery.SourceFileLoader(name, path)
+            # spec = importlib.util.spec_from_loader(name, loader)
+
+            # mod = types.ModuleType(name)
+            # mod.__spec__ = spec
+            # mod.__loader__ = loader
+            # mod.__package__ = name.rpartition('.')[0] or None
+            # mod.__file__ = path
+            # sys.modules[name] = mod
+
+            # # Exposes classes before load because these might be used outside of functions
+            # # var_context['VideoInput'] = canvas.VideoInput
+            # var_context['__loaded_py5sketch__'] = True
+
+            # # And also expose canvas as 'c' since the functions in the canvas are quite common names and
+            # # might be easily overwritten
+            # self.update_globals()
+
+            # # Default setup, so user is not obliged to define it
+            # var_context['setup'] = lambda: None #self.create_canvas(512, 512)
+            # var_context['sketch'] = self
+
+            # exec(prog, var_context)
+
+            class _StringLoader(importlib.abc.Loader):
+                def __init__(self, source, path):
+                    self.source = source
+                    self.path = path
+
+                def create_module(self, spec):
+                    return None  # use default module creation
+
+                def exec_module(self, module):
+                    code = compile(self.source, self.path, 'exec')
+                    exec(code, module.__dict__)
+
+            name = os.path.splitext(os.path.basename(path))[0] 
+            loader = _StringLoader(prog_text, path)
             spec = importlib.util.spec_from_loader(name, loader)
 
             mod = types.ModuleType(name)
             mod.__spec__ = spec
             mod.__loader__ = loader
-            mod.__package__ = name.rpartition('.')[0] or None
+            mod.__package__ = name.rpartition('.')[0] or ''
             mod.__file__ = path
+
             sys.modules[name] = mod
 
-            # Exposes classes before load because these might be used outside of functions
-            # var_context['VideoInput'] = canvas.VideoInput
+            # store module context
+            var_context = mod.__dict__
+            self.var_context = var_context
+            
+            # Setup global vars
+            self.update_globals()  # make sure this writes into var_context / mod.__dict__
+            var_context['setup'] = lambda: None
             var_context['__loaded_py5sketch__'] = True
-
-            # And also expose canvas as 'c' since the functions in the canvas are quite common names and
-            # might be easily overwritten
-            self.update_globals()
-
-            # Default setup, so user is not obliged to define it
-            var_context['setup'] = lambda: None #self.create_canvas(512, 512)
             var_context['sketch'] = self
 
-            exec(prog, var_context)
+            # Execute exactly once through the loader
+            loader.exec_module(mod)
 
             # *ISSUE* here. This injects all the canvas functionalities as globals
             # in the script. However, this means that any conflicting global in the
