@@ -362,7 +362,8 @@ try:
             ctx.set_source_surface(self.recording_surface)
             ctx.paint()
             surf.finish()
-            fix_clip_path(path, path)
+            fix_svg(path)
+            #fix_clip_path(path, path)
 
         def get_svg_string(self):
             raise NotImplementedError("CairoRenderer does not produce raw SVG string")
@@ -768,3 +769,81 @@ class SVGRenderer(Renderer):
             svg.append(elem)
         svg.append('</svg>')
         return '\n'.join(svg)
+
+
+# Fix svg export clip path
+# RecordingSurface adds a clip-path attribute that breaks Illustrator import
+def fix_namespace(xml_content):
+    # return xml_content
+    # Remove namespace prefixes from the XML content and replace ns1 with xlink (argh)
+    xml_content = xml_content.replace("ns0:", "").replace(":ns0", "")
+    xml_content = xml_content.replace("ns1:", "xlink:").replace(":ns1", ":xlink")
+    # Remove defs as svgpathtools cannot load these
+    # TODO this might bite us back
+    xml_content = xml_content.replace("<svg:defs>", "").replace("</svg:defs>", "")
+    return xml_content
+
+
+def fix_clip_path(file_path, out_path):
+    import xml.etree.ElementTree as ET
+
+    # Load the SVG file
+    tree = ET.parse(file_path)
+    root = tree.getroot()
+    # Define the namespace
+    namespace = {"svg": "http://www.w3.org/2000/svg"}
+
+    # Find the first <g> tag
+    g_tag = root.find(".//svg:g", namespace)
+
+    # Remove the 'clip-path' attribute if it exists
+    if "clip-path" in g_tag.attrib:
+        del g_tag.attrib["clip-path"]
+    res = ET.tostring(root, encoding="unicode")
+    # Save and then apply fixes
+    tree.write(out_path, encoding="UTF-8", xml_declaration=True, default_namespace="")
+    with open(out_path, "r") as f:
+        # Fix namepace
+        txt = fix_namespace(f.read())
+    with open(out_path, "w", encoding="utf-8") as f:
+        f.write(txt)
+
+
+def fix_svg(path, out_path=None):
+    import xml.etree.ElementTree as ET
+    if out_path is None:
+        out_path = path
+
+    SVG_NS = "http://www.w3.org/2000/svg"
+    XLINK_NS = "http://www.w3.org/1999/xlink"
+
+    # Preserve the prefixes Cairo writes
+    ET.register_namespace("svg", SVG_NS)
+    ET.register_namespace("xlink", XLINK_NS)
+
+    tree = ET.parse(path)
+    root = tree.getroot()
+
+    svg_g = f"{{{SVG_NS}}}g"
+    svg_use = f"{{{SVG_NS}}}use"
+
+    # Old fix_clip_path behavior
+    g_tag = root.find(f".//{svg_g}")
+    if g_tag is not None and "clip-path" in g_tag.attrib:
+        del g_tag.attrib["clip-path"]
+
+    # Remove the duplicate-rendering <use> element
+    for use in list(root.iter(svg_use)):
+        href = use.get("href") or use.get(f"{{{XLINK_NS}}}href")
+        if href and href.startswith("#"):
+            parent = next((p for p in root.iter() if use in list(p)), None)
+            if parent is not None:
+                parent.remove(use)
+
+    tree.write(out_path, encoding="UTF-8", xml_declaration=True)
+
+    # Existing namespace cleanup
+    with open(out_path, "r", encoding="utf-8") as f:
+        txt = fix_namespace(f.read())
+    with open(out_path, "w", encoding="utf-8") as f:
+        f.write(txt)

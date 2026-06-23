@@ -30,7 +30,6 @@ from dataclasses import dataclass
 from typing import Union, Optional
 from fontTools.ttLib import TTFont
 from . import renderer as rend
-from . import svg
 import pdb
 
 
@@ -433,8 +432,9 @@ class Canvas:
         self._height = height
         #self.surf = surf
 
-        self.renderer.set_source_rgba(*self._apply_colormode(background))
-        self.renderer.paint()
+        if save_background:
+            self.renderer.set_source_rgba(*self._apply_colormode(background))
+            self.renderer.paint()
 
         # ctx.set_fill_rule(cairo.FILL_RULE_EVEN_ODD)
         # #ctx.set_fill_rule(cairo.FILL_RULE_WINDING)
@@ -2088,11 +2088,12 @@ class Canvas:
         Requires pyperclip to be installed
         """
         import pyperclip, os
-        self.save('tmp.svg')
-        with open('tmp.svg', "r", encoding="utf-8") as f:
+        name = 'py5canvas_clipboard.svg'
+        self.save(name)
+        with open(name, "r", encoding="utf-8") as f:
             data = f.read()
             pyperclip.copy(data)
-            os.remove('tmp.svg')
+            #os.remove(name)
 
     def save(self, path):
         """Save the canvas into a given file path
@@ -2880,42 +2881,6 @@ def approx_arc_length_cubic(c0, c1, c2, c3):
     return v0 + v1 + v2 + v3 + v4
 
 
-# Fix svg export clip path
-# RecordingSurface adds a clip-path attribute that breaks Illustrator import
-def fix_namespace(xml_content):
-    # return xml_content
-    # Remove namespace prefixes from the XML content and replace ns1 with xlink (argh)
-    xml_content = xml_content.replace("ns0:", "").replace(":ns0", "")
-    xml_content = xml_content.replace("ns1:", "xlink:").replace(":ns1", ":xlink")
-    # Remove defs as svgpathtools cannot load these
-    # TODO this might bite us back
-    xml_content = xml_content.replace("<svg:defs>", "").replace("</svg:defs>", "")
-    return xml_content
-
-
-def fix_clip_path(file_path, out_path):
-    import xml.etree.ElementTree as ET
-
-    # Load the SVG file
-    tree = ET.parse(file_path)
-    root = tree.getroot()
-    # Define the namespace
-    namespace = {"svg": "http://www.w3.org/2000/svg"}
-
-    # Find the first <g> tag
-    g_tag = root.find(".//svg:g", namespace)
-
-    # Remove the 'clip-path' attribute if it exists
-    if "clip-path" in g_tag.attrib:
-        del g_tag.attrib["clip-path"]
-    res = ET.tostring(root, encoding="unicode")
-    # Save and then apply fixes
-    tree.write(out_path, encoding="UTF-8", xml_declaration=True, default_namespace="")
-    with open(out_path, "r") as f:
-        # Fix namepace
-        txt = fix_namespace(f.read())
-    with open(out_path, "w", encoding="utf-8") as f:
-        f.write(txt)
 
 
 def is_compound(S):
