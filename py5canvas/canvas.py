@@ -2272,7 +2272,7 @@ class Canvas:
         if isinstance(img, Canvas):
             if isinstance(img, rend.SVGRenderer):
                 raise NotImplementedError('SVG renderer does not support image yet')
-            img = img.renderer.surf
+            img = img.renderer._ctx.surface
         else:
             if not isinstance(img, np.ndarray):
                 # This should take care of tensors and PIL Images
