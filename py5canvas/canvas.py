@@ -2040,7 +2040,7 @@ class Canvas:
         - The path where to save
 
         """
-        self.surf.write_to_png(path)
+        self.renderer.write_to_png(path)
 
     def save_svg(self, path):
         """Save the canvas to an svg file
