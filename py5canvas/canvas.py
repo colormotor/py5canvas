@@ -955,19 +955,6 @@ class Canvas:
 
     line_join = stroke_join
 
-    def stroke_cap(self, cap):
-        """Specify the 'cap' mode for polylines.
-
-        Arguments:
-
-        - `join` (string): can be one of "round", "square" or "butt"
-        """
-
-        self.renderer.set_line_cap(join)
-        return self
-
-    line_cap = stroke_cap
-
     def blend_mode(self, mode="over"):
         """Specify the blending mode
 
