@@ -68,3 +68,7 @@ def run(frame_rate=60, inject=True, show_toolbar=None, renderer=''):
             filename = caller_module.__file__
 
         run_sketch.main(filename, fps=frame_rate, inject=inject, show_toolbar=show_toolbar)
+
+
+
+        
