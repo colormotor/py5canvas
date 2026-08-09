@@ -163,19 +163,6 @@ class Shape:
         self._spline_start = None
         return self
 
-    def polyline(self, points, closed=False):
-        """Add a contour of straight line segments from a sequence of (x,y) points."""
-        if not self._active:
-            self.begin_shape()  # temporary activation for standalone use
-        self.begin_contour()
-        for i, p in enumerate(points):
-            if i == 0:
-                self.vertex(*p)  # move-to
-            else:
-                self.vertex(*p)  # line-to
-        self.end_contour(closed)
-        return self
-
     def multibezier(self, points, close=False):
         """
         Add a contour of cubic Bézier segments.
