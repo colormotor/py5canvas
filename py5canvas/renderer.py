@@ -378,6 +378,7 @@ try:
                 self._ctx.stroke()
 
         def background(self, rgba, first=False, save=True):
+            first = False
             if first:
                 cur_op = self.get_blend_mode()
                 self.set_blend_mode("source")
