@@ -2021,6 +2021,14 @@ class Canvas:
         """Get canvas as a PIL image"""
         return Image.fromarray(self.get_image_array())
 
+    def _repr_png_(self):
+        """Tells Jupyter to render this object as a PNG image."""
+        import io
+
+        byte_arr = io.BytesIO()
+        self.get_image().save(byte_arr, format="PNG")
+        return byte_arr.getvalue()
+
     def get_image_grayscale(self):
         """Returns the canvas image as a grayscale numpy array (in 0-1 range)"""
         return self.get_image().convert("L")
