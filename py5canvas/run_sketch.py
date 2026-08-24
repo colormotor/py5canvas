@@ -1714,10 +1714,10 @@ class Sketch:
         self.oscclient.send_message(addr, [val])
 
     def _handle_osc(self, addr, *args):
-        print("received: " + addr)
-        print(args)
+        # print("received: " + addr)
+        # print(args)
         if "received_osc" in self.var_context:
-            print("Forwarding")
+            # print("Forwarding")
             self.var_context["received_osc"](addr, args)
 
     def cleanup(self):
