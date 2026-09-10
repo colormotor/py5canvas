@@ -325,40 +325,50 @@ class Font:
 
 
 class Gradient:
+    """Backend-agnostic gradient description. The Cairo pattern is created
+    lazily and cached the first time a Cairo renderer needs it."""
+
     def __init__(self, kind, **kw):
-        import cairo
-
-        extend_modes = {
-            "none": cairo.EXTEND_NONE,
-            "pad": cairo.EXTEND_PAD,
-            "repeat": cairo.EXTEND_REPEAT,
-            "reflect": cairo.EXTEND_REFLECT,
-        }
-        stops = kw.pop("stops", [])
-        extend = extend_modes.get(kw.pop("extend", "pad"), cairo.EXTEND_PAD)
-
+        self.kind = kind
+        self.stops = [
+            tuple(float(v) for v in np.atleast_1d(s)) for s in kw.pop("stops", [])
+        ]
+        self.extend = kw.pop("extend", "pad")
         if kind == "linear":
-            start = kw.get("start", (0, 0))
-            end = kw.get("end", (1, 0))
-            grad = cairo.LinearGradient(*start, *end)
+            self.start = tuple(float(v) for v in kw.get("start", (0, 0)))
+            self.end = tuple(float(v) for v in kw.get("end", (1, 0)))
         elif kind == "radial":
-            inner = kw.get("inner", (0, 0, 0))
-            outer = kw.get("outer", (0, 0, 1))
-            grad = cairo.RadialGradient(*inner, *outer)
+            self.inner = tuple(float(v) for v in kw.get("inner", (0, 0, 0)))
+            self.outer = tuple(float(v) for v in kw.get("outer", (0, 0, 1)))
         else:
             raise ValueError("kind must be 'linear' or 'radial'")
+        self._pattern = None
 
-        grad.set_extend(extend)
+    @property
+    def gradient(self):
+        if self._pattern is None:
+            import cairo
 
-        for stop in stops:
-            if len(stop) == 4:
-                grad.add_color_stop_rgb(*stop)
-            elif len(stop) == 5:
-                grad.add_color_stop_rgba(*stop)
+            extend_modes = {
+                "none": cairo.EXTEND_NONE,
+                "pad": cairo.EXTEND_PAD,
+                "repeat": cairo.EXTEND_REPEAT,
+                "reflect": cairo.EXTEND_REFLECT,
+            }
+            if self.kind == "linear":
+                pat = cairo.LinearGradient(*self.start, *self.end)
             else:
-                raise ValueError("stops must be (offset,r,g,b) or (offset,r,g,b,a)")
-
-        self.gradient = grad
+                pat = cairo.RadialGradient(*self.inner, *self.outer)
+            pat.set_extend(extend_modes.get(self.extend, cairo.EXTEND_PAD))
+            for stop in self.stops:
+                if len(stop) == 4:
+                    pat.add_color_stop_rgb(*stop)
+                elif len(stop) == 5:
+                    pat.add_color_stop_rgba(*stop)
+                else:
+                    raise ValueError("stops must be (offset,r,g,b) or (offset,r,g,b,a)")
+            self._pattern = pat
+        return self._pattern
 
     @classmethod
     def linear(cls, start, end, stops, extend="pad"):
@@ -367,6 +377,51 @@ class Gradient:
     @classmethod
     def radial(cls, inner, outer, stops, extend="pad"):
         return cls("radial", inner=inner, outer=outer, stops=stops, extend=extend)
+
+
+# class Gradient:
+#     def __init__(self, kind, **kw):
+#         import cairo
+
+#         extend_modes = {
+#             "none": cairo.EXTEND_NONE,
+#             "pad": cairo.EXTEND_PAD,
+#             "repeat": cairo.EXTEND_REPEAT,
+#             "reflect": cairo.EXTEND_REFLECT,
+#         }
+#         stops = kw.pop("stops", [])
+#         extend = extend_modes.get(kw.pop("extend", "pad"), cairo.EXTEND_PAD)
+
+#         if kind == "linear":
+#             start = kw.get("start", (0, 0))
+#             end = kw.get("end", (1, 0))
+#             grad = cairo.LinearGradient(*start, *end)
+#         elif kind == "radial":
+#             inner = kw.get("inner", (0, 0, 0))
+#             outer = kw.get("outer", (0, 0, 1))
+#             grad = cairo.RadialGradient(*inner, *outer)
+#         else:
+#             raise ValueError("kind must be 'linear' or 'radial'")
+
+#         grad.set_extend(extend)
+
+#         for stop in stops:
+#             if len(stop) == 4:
+#                 grad.add_color_stop_rgb(*stop)
+#             elif len(stop) == 5:
+#                 grad.add_color_stop_rgba(*stop)
+#             else:
+#                 raise ValueError("stops must be (offset,r,g,b) or (offset,r,g,b,a)")
+
+#         self.gradient = grad
+
+#     @classmethod
+#     def linear(cls, start, end, stops, extend="pad"):
+#         return cls("linear", start=start, end=end, stops=stops, extend=extend)
+
+#     @classmethod
+#     def radial(cls, inner, outer, stops, extend="pad"):
+#         return cls("radial", inner=inner, outer=outer, stops=stops, extend=extend)
 
 
 @draw_states_properties(
@@ -407,12 +462,12 @@ class Canvas:
         self,
         width,
         height,
+        color_scale=255,
         background=(200.0, 200.0, 200.0, 255.0),
         clear_callback=lambda: None,
         output_file="",
         recording=True,
         save_background=True,
-        color_scale=255,
         backend="cairo",
         **kwargs,
     ):
@@ -779,7 +834,7 @@ class Canvas:
             args = args[3:]
 
         theta = self._to_radians(angle)
-        x2, y2 = x1 + np.cos(theta) * length, x1 + np.sin(theta) * length
+        x2, y2 = x1 + np.cos(theta) * length, y1 + np.sin(theta) * length
 
         if len(args) < 2:
             raise ValueError(
@@ -911,6 +966,8 @@ class Canvas:
 
         if args[0] is None:
             self.cur_stroke = None
+        elif isinstance(args[0], Gradient):
+            self.cur_stroke = args[0]
         else:
             self.cur_stroke = self._apply_colormode(args)
         return self
@@ -1266,6 +1323,9 @@ class Canvas:
         and is left unchanged for them."""
         if self.no_draw:
             return
+        if self.cur_fill is None and self.cur_stroke is None:
+            return
+
         self.renderer.set_fill(self.cur_fill)
         self.renderer.set_stroke(self.cur_stroke)
         self.renderer.fillstroke()
@@ -1980,6 +2040,16 @@ class Canvas:
             self.last_background = args[0]
         else:
             self.last_background = args
+
+        # Gradient background hack
+        if isinstance(args[0], Gradient):
+            self.renderer.set_matrix(np.eye(3))
+            self.renderer.set_fill(args[0])
+            self.renderer.rectangle(0, 0, self._width, self._height)
+            self.renderer.fill()
+            self._first_background = False
+            return self
+
         self.renderer.set_matrix(np.eye(3))  # identity_matrix()
         # HACK - we don't want to necessarily save the background when exporting SVG
         # Especially if we want to plot the output, so only draw the background to the
@@ -2003,14 +2073,16 @@ class Canvas:
             return None
         return surf.get_data()
 
-    def get_image_array(self):
+    def get_image_array(self, rgba=False):
         """Get canvas image as a numpy array"""
         img = np.ndarray(
             shape=(self.height, self.width, 4),
             dtype=np.uint8,
             buffer=self.get_buffer(),
-        )[:, :, :3].copy()
-        img = img[:, :, ::-1]
+        ).copy()
+        if not rgba:
+            img = img[:, :, :-1]
+        img[:, :, :3] = img[:, :, :3][:, :, ::-1]
         return img
 
     def get_grayscale_array(self):

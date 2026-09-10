@@ -349,33 +349,50 @@ try:
             self._set_fill()
             self._ctx.fill()
 
-        def stroke(self):
-            self._ctx.set_source_rgba(*self._stroke)
-            self._ctx.stroke()
-
         def fill_preserve(self):
             self._set_fill()
             self._ctx.fill_preserve()
 
+        def _set_stroke(self):
+            if array_like(self._stroke):
+                self._ctx.set_source_rgba(*self._stroke)
+            else:  # gradient
+                self._ctx.set_source(self._stroke.gradient)
+
+        def stroke(self):
+            self._set_stroke()
+            self._ctx.stroke()
+
         def stroke_preserve(self):
-            self._ctx.set_source_rgba(*self._stroke)
+            self._set_stroke()
             self._ctx.stroke_preserve()
 
         def fillstroke(self):
             if self._fill is not None:
-                if array_like(self._fill):
-                    self._ctx.set_source_rgba(*self._fill)
-                else:
-                    # Assume gradient
-                    self._ctx.set_source(self._fill.gradient)
-
+                self._set_fill()
                 if self._stroke is not None:
                     self._ctx.fill_preserve()
                 else:
                     self._ctx.fill()
             if self._stroke is not None:
-                self._ctx.set_source_rgba(*self._stroke)
+                self._set_stroke()
                 self._ctx.stroke()
+
+        # def fillstroke(self):
+        #     if self._fill is not None:
+        #         if array_like(self._fill):
+        #             self._ctx.set_source_rgba(*self._fill)
+        #         else:
+        #             # Assume gradient
+        #             self._ctx.set_source(self._fill.gradient)
+
+        #         if self._stroke is not None:
+        #             self._ctx.fill_preserve()
+        #         else:
+        #             self._ctx.fill()
+        #     if self._stroke is not None:
+        #         self._ctx.set_source_rgba(*self._stroke)
+        #         self._ctx.stroke()
 
         def background(self, rgba, first=False, save=True):
             first = False
@@ -631,9 +648,11 @@ class SVGRenderer(Renderer):
         self._font_weight = FontWeight.NORMAL
         # recording of background (we'll draw a rect for background)
         self._background = None
-        self._gradients = {}  # id -> Gradient object
+        self._gradients = {}  # svg id -> Gradient
+        self._gradient_ids = {}  # gradient signature -> svg id
         self._gradient_id_counter = 0
         self._current_gradient = None
+        self._current_stroke_gradient = None
 
     def _add_path_command(self, cmd):
         self._path_parts.append(cmd)
@@ -661,47 +680,51 @@ class SVGRenderer(Renderer):
 
     def _svg_style(self):
         style_parts = []
-        style_parts = []
-        f = self._fill
-        if f is not None and f[3] > 0:
+        if self._current_gradient:
+            style_parts.append(f"fill:url(#{self._current_gradient})")
+        elif self._fill is not None and self._fill[3] > 0:
+            f = self._fill
             style_parts.append(
-                f"fill:rgba({int(f[0] * 255)},{int(f[1] * 255)},{int(f[2] * 255)},{int(f[3] * 255)})"
+                f"fill:rgba({int(f[0] * 255)},{int(f[1] * 255)},"
+                f"{int(f[2] * 255)},{f[3]:.3g})"
             )
         else:
             style_parts.append("fill:none")
-        s = self._stroke
-        if s is not None and s[3] > 0:
+
+        if self._current_stroke_gradient:
+            style_parts.append(f"stroke:url(#{self._current_stroke_gradient})")
+        elif self._stroke is not None and self._stroke[3] > 0:
+            s = self._stroke
             style_parts.append(
-                f"stroke:rgba({int(s[0] * 255)},{int(s[1] * 255)},{int(s[2] * 255)},{int(s[3] * 255)})"
+                f"stroke:rgba({int(s[0] * 255)},{int(s[1] * 255)},"
+                f"{int(s[2] * 255)},{s[3]:.3g})"
             )
+        else:
+            style_parts.append("stroke:none")
+        if not style_parts[-1].startswith("stroke:none"):
             style_parts.append(f"stroke-width:{self._line_width}")
             if self._dash:
-                dashes = ", ".join(str(x) for x in self._dash)
-                style_parts.append(f"stroke-dasharray:{dashes}")
+                style_parts.append(
+                    "stroke-dasharray:" + ", ".join(str(x) for x in self._dash)
+                )
             cap_map = {
                 LineCap.BUTT: "butt",
                 LineCap.ROUND: "round",
                 LineCap.SQUARE: "square",
             }
-            style_parts.append(f"stroke-linecap:{cap_map[self._cap]}")
             join_map = {
                 LineJoin.MITER: "miter",
                 LineJoin.ROUND: "round",
                 LineJoin.BEVEL: "bevel",
             }
+            style_parts.append(f"stroke-linecap:{cap_map[self._cap]}")
             style_parts.append(f"stroke-linejoin:{join_map[self._join]}")
-        else:
-            style_parts.append("stroke:none")
-
-        if self._current_gradient:
-            self._style_parts.append(f"fill:url(#{self._current_gradient})")
 
         fill_rule = "nonzero" if self._fill_rule == FillRule.NONZERO else "evenodd"
         style_parts.append(f"fill-rule:{fill_rule}")
         if self._blend_mode != BlendMode.OVER:
             style_parts.append(f"mix-blend-mode:{self._blend_mode}")
-        style = "; ".join(style_parts)
-        return style
+        return "; ".join(style_parts)
 
     def move_to(self, x, y):
         self._add_path_command(f"M {x:.4f} {y:.4f}")
@@ -759,23 +782,34 @@ class SVGRenderer(Renderer):
         )
 
     def rectangle(self, x, y, w, h, r=None):
-        # TODO broken
-        if r is None:
-            r = 0
-        style = self._svg_style()
-        self._elements.append(
-            f'<rect x="{x:.4f}" y="{y:.4f}" '
-            f'width="{w:.4f}" height="{h:.4f}" rx="{r:.4f}" ry="{r:.4f}" '
-            f'style="{style}" '
-            f'transform="{self._svg_transform()}"/>'
-        )
+        r = 0 if r is None else min(r, min(abs(w), abs(h)) / 2)
+        if r <= 0:
+            self._add_path_command(f"M {x:.4f} {y:.4f}")
+            self._add_path_command(f"L {x + w:.4f} {y:.4f}")
+            self._add_path_command(f"L {x + w:.4f} {y + h:.4f}")
+            self._add_path_command(f"L {x:.4f} {y + h:.4f}")
+        else:
+            self._add_path_command(f"M {x + r:.4f} {y:.4f}")
+            self._add_path_command(f"L {x + w - r:.4f} {y:.4f}")
+            self._add_path_command(f"A {r:.4f} {r:.4f} 0 0 1 {x + w:.4f} {y + r:.4f}")
+            self._add_path_command(f"L {x + w:.4f} {y + h - r:.4f}")
+            self._add_path_command(
+                f"A {r:.4f} {r:.4f} 0 0 1 {x + w - r:.4f} {y + h:.4f}"
+            )
+            self._add_path_command(f"L {x + r:.4f} {y + h:.4f}")
+            self._add_path_command(f"A {r:.4f} {r:.4f} 0 0 1 {x:.4f} {y + h - r:.4f}")
+            self._add_path_command(f"L {x:.4f} {y + r:.4f}")
+            self._add_path_command(f"A {r:.4f} {r:.4f} 0 0 1 {x + r:.4f} {y:.4f}")
+        self.close_path()
 
     def fill(self):
-        if self._fill is not None and self._fill[3] > 0:
+        if self._current_gradient or (self._fill is not None and self._fill[3] > 0):
             self._emit_path()
 
     def stroke(self):
-        if self._stroke is not None and self._stroke[3] > 0:
+        if self._current_stroke_gradient or (
+            self._stroke is not None and self._stroke[3] > 0
+        ):
             self._emit_path()
 
     def fillstroke(self):
@@ -796,7 +830,7 @@ class SVGRenderer(Renderer):
         self.set_fill(rgba)
         self.rectangle(0, 0, self.width, self.height)
         self.fill()
-        self._fill = old_fill
+        self.set_fill(old_fill)
 
     def set_source_rgba(self, r, g, b, a):
         # store for later fill/stroke
@@ -804,46 +838,76 @@ class SVGRenderer(Renderer):
         self._stroke = (r, g, b, a)  # will be set separately by canvas
 
     # Styling
+    def _register_gradient(self, grad):
+        geom = (
+            (grad.start, grad.end)
+            if grad.kind == "linear"
+            else (grad.inner, grad.outer)
+        )
+        key = (grad.kind, geom, tuple(grad.stops), grad.extend)
+        if key not in self._gradient_ids:
+            grad_id = f"grad{self._gradient_id_counter}"
+            self._gradient_id_counter += 1
+            self._gradient_ids[key] = grad_id
+            self._gradients[grad_id] = grad
+        return self._gradient_ids[key]
+
     def set_fill(self, fill):
         self._fill = fill
+        self._current_gradient = (
+            self._register_gradient(fill)
+            if fill is not None and not array_like(fill)
+            else None
+        )
 
     def set_stroke(self, stroke):
         self._stroke = stroke
+        self._current_stroke_gradient = (
+            self._register_gradient(stroke)
+            if stroke is not None and not array_like(stroke)
+            else None
+        )
 
     def set_source_gradient(self, gradient):
-        # Generate a unique ID and store the gradient info
-        grad_id = f"grad{self._gradient_id_counter}"
-        self._gradient_id_counter += 1
-        self._gradients[grad_id] = gradient
-        # Set fill/stroke to use this gradient (will be used in _emit_path)
-        self._current_gradient = grad_id
+        self.set_fill(gradient)
 
     def _generate_gradient_defs(self):
+        spread_map = {
+            "pad": "pad",
+            "repeat": "repeat",
+            "reflect": "reflect",
+            "none": "pad",
+        }  # cairo EXTEND_NONE has no SVG equivalent
         defs = []
         for grad_id, grad in self._gradients.items():
             stops_xml = []
-            for stop in grad.stops_data:
-                offset, *rgba = stop
-                r, g, b, a = rgba if len(rgba) == 4 else (*rgba, 1.0)
+            for stop in grad.stops:
+                offset, r, g, b = stop[0], stop[1], stop[2], stop[3]
+                a = stop[4] if len(stop) > 4 else 1.0
                 stops_xml.append(
-                    f'<stop offset="{offset}" stop-color="rgba({int(r * 255)},{int(g * 255)},{int(b * 255)},{a})" />'
+                    f'<stop offset="{offset:g}" '
+                    f'stop-color="rgb({round(r * 255)},{round(g * 255)},{round(b * 255)})" '
+                    f'stop-opacity="{a:g}"/>'
                 )
-            spread = grad.extend_mode  # 'pad', 'repeat', 'reflect'
+            spread = spread_map.get(grad.extend, "pad")
             if grad.kind == "linear":
                 x1, y1 = grad.start
                 x2, y2 = grad.end
                 defs.append(
-                    f'<linearGradient id="{grad_id}" x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" '
-                    f'gradientUnits="userSpaceOnUse" spreadMethod="{spread}">'
+                    f'<linearGradient id="{grad_id}" x1="{x1:g}" y1="{y1:g}" '
+                    f'x2="{x2:g}" y2="{y2:g}" gradientUnits="userSpaceOnUse" '
+                    f'spreadMethod="{spread}">'
                     + "".join(stops_xml)
                     + "</linearGradient>"
                 )
-            else:  # radial
+            else:
                 cx0, cy0, r0 = grad.inner
                 cx1, cy1, r1 = grad.outer
+                # inner radius needs the SVG2 'fr' attribute
                 defs.append(
-                    f'<radialGradient id="{grad_id}" cx="{cx1}" cy="{cy1}" r="{r1}" '
-                    f'fx="{cx0}" fy="{cy0}" gradientUnits="userSpaceOnUse" spreadMethod="{spread}">'
+                    f'<radialGradient id="{grad_id}" cx="{cx1:g}" cy="{cy1:g}" r="{r1:g}" '
+                    f'fx="{cx0:g}" fy="{cy0:g}" fr="{r0:g}" '
+                    f'gradientUnits="userSpaceOnUse" spreadMethod="{spread}">'
                     + "".join(stops_xml)
                     + "</radialGradient>"
                 )
