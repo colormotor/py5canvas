@@ -576,12 +576,10 @@ if imgui is not None:
                             flags = imgui.InputTextFlags.ENTER_RETURNS_TRUE
                             if "ret" in opts and not opts["ret"]:
                                 flags = 0
-                            if "buf_length" in opts:
-                                buf_length = opts["buf_length"]
-                            if "multiline" in opts and opts["multiline"]:
-                                changed, params[key] = imgui.input_text_multiline(
-                                    name, params[key], [0, 0]
-                                )  # , imgui.InputTextFlags.ENTER_RETURNS_TRUE)
+                            if 'buf_length' in opts:
+                                buf_length = opts['buf_length']
+                            if 'multiline' in opts and opts['multiline']:
+                                changed, params[key] = imgui.input_text_multiline(name, params[key], [0, 0], flags) #, imgui.InputTextFlags.ENTER_RETURNS_TRUE)
                             else:
                                 changed, params[key] = imgui.input_text(
                                     name, params[key], flags
