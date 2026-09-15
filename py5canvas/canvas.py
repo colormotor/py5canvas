@@ -265,9 +265,9 @@ def is_number(x):
 class CanvasState:
     def __init__(self, c):
         self.c = c
-        self.cur_fill = c._scale_color([255.0])
+        self.cur_fill = c._scale_color([c.color_scale])
         self.cur_stroke = c._scale_color([0.0])
-        self.cur_tint = c._scale_color([255.0])
+        self.cur_tint = c._scale_color([c.color_scale])
         self._stroke_cap = "round"
         self._stroke_join = "miter"
         self._text_halign = "left"
@@ -463,7 +463,7 @@ class Canvas:
         width,
         height,
         color_scale=255,
-        background=(200.0, 200.0, 200.0, 255.0),
+        background=None,  # (200.0, 200.0, 200.0, 255.0),
         clear_callback=lambda: None,
         output_file="",
         recording=True,
@@ -485,7 +485,9 @@ class Canvas:
 
         # Create SVG surface for saving
         self.color_scale = np.ones(4) * color_scale
-
+        # Default background color like P5/Processing
+        if background is None:
+            background = (np.array((200.0, 200.0, 200.0, 255.0)) / 255) * color_scale
         # This is useful for py5sketch to reset SVG each time background is cleared
         self.clear_callback = clear_callback
 
@@ -929,7 +931,6 @@ class Canvas:
         - Three arguments specify a color depending on the color mode (rgb or hsv), e.g. `stroke(255, 0, 0)` will set the stroke to red, when the color mode is RGB
         - Four arguments specify a color with opacity
         """
-
         if args[0] is None:
             self.cur_tint = None
         else:
@@ -2073,25 +2074,58 @@ class Canvas:
             return None
         return surf.get_data()
 
-    def get_image_array(self, rgba=False):
-        """Get canvas image as a numpy array"""
+    def get_image_array(self, rgba=False, straight_alpha=False):
+        """Get canvas image as numpy array. Returns straight (non-premultiplied)
+        alpha by default, as expected by PIL/PNG/numpy math."""
+        buf = self.get_buffer()
+        if buf is None:
+            return None
         img = np.ndarray(
             shape=(self.height, self.width, 4),
             dtype=np.uint8,
-            buffer=self.get_buffer(),
-        ).copy()
+            buffer=buf,
+        )[
+            :, :, [2, 1, 0, 3]
+        ].copy()  # BGRA -> RGBA (fancy index also detaches from surface)
+
+        if straight_alpha and img[:, :, 3].min() < 255:
+            print("Straight alpha")
+            a = img[:, :, 3].astype(np.float32)[:, :, None]
+            rgb = img[:, :, :3].astype(np.float32)
+            old_rgb = np.array(rgb)
+            img[:, :, :3] = np.clip(
+                np.rint(rgb * 255.0 / np.maximum(a, 1.0)), 0, 255
+            ).astype(np.uint8)
+            # pdb.set_trace()
         if not rgba:
-            img = img[:, :, :-1]
-        img[:, :, :3] = img[:, :, :3][:, :, ::-1]
+            img = img[:, :, :3]
         return img
+
+    # def get_image_array(self, rgba=False, premul=False):
+    #     """Get canvas image as a numpy array"""
+    #     img = np.ndarray(
+    #         shape=(self.height, self.width, 4),
+    #         dtype=np.uint8,
+    #         buffer=self.get_buffer(),
+    #     ).copy()
+    #     if not rgba:
+    #         img = img[:, :, :-1]
+    #     img[:, :, :3] = img[:, :, :3][:, :, ::-1]
+
+    #     return img
 
     def get_grayscale_array(self):
         """Get grayscale image of canvas contents as float numpy array (0 to 1 range)"""
         return np.mean(self.get_image_array() / 255, axis=-1)
 
-    def get_image(self):
+    def get_image(self, rgba=False, straight_alpha=False):
         """Get canvas as a PIL image"""
-        return Image.fromarray(self.get_image_array())
+        # if rgba:
+        return Image.fromarray(
+            self.get_image_array(rgba, straight_alpha)
+        )  # , mode="RGBa")
+        # else:
+        #    return Image.fromarray(self.get_image_array(rgba, straight_alpha), mode="RGB")
 
     def _repr_png_(self):
         """Tells Jupyter to render this object as a PNG image."""
@@ -2337,7 +2371,7 @@ class Canvas:
         """
         return Canvas(w, h)
 
-    def image(self, img, *args, opacity=1.0):
+    def image(self, img, *args, premultiplied=True, opacity=1.0):
         """Draw an image at position with (optional) size and (optional) opacity
 
         Arguments:
@@ -2369,7 +2403,7 @@ class Canvas:
                     print("Converting it to RGBA.")
                     img = img.convert("RGBA")
                 img = np.array(img)
-            img = numpy_to_surface(img)
+            img = numpy_to_surface(img, premultiplied=premultiplied)
         self.renderer.save()
         if len(args) == 0:
             pos = np.zeros(2)
@@ -2399,18 +2433,30 @@ class Canvas:
             sy = size[1] / img.get_height()
             self.renderer.scale(sx, sy)
 
+        tint = self.cur_tint
+
+        # Skip white tint for performance
+        if tint is not None and np.allclose(
+            np.asarray(tint, dtype=float), (1, 1, 1, 1)
+        ):
+            tint = None
+
         # Apply tint if set
-        if self.cur_tint is not None:
-            r, g, b, a = self.cur_tint
+        if tint is not None:
+            r, g, b, a = tint
             op = self.renderer.get_blend_mode()
             self.renderer.push_group()
             # base image
             self.renderer.set_source_surface(img, 0, 0)
-            self.renderer.paint_with_alpha(1)
+            self.renderer.paint()
             # multiply tint
             self.renderer.set_blend_mode("multiply")
             self.renderer.set_source_rgba(r, g, b, 1.0)
-            self.renderer.mask_surface(img, 0, 0)
+            self.renderer.paint()
+            # fix alpha
+            self.renderer.set_blend_mode("dest_in")
+            self.renderer.set_source_surface(img, 0, 0)
+            self.renderer.paint()
             # render group
             self.renderer.pop_group_to_source()
             self.renderer.set_blend_mode(op)
@@ -2719,85 +2765,159 @@ def degrees(x):
 #     return surf
 
 
-def numpy_to_surface(arr):
-    """
-    LLM optimization
-    Convert numpy array to a pycairo ImageSurface with fewer allocations.
+# def numpy_to_surface(arr):
+#     """
+#     LLM optimization
+#     Convert numpy array to a pycairo ImageSurface with fewer allocations.
 
-    Supported inputs:
-      - HxW uint8                  -> grayscale, opaque
-      - HxWx3 uint8               -> RGB, opaque
-      - HxWx4 uint8               -> RGBA, premultiplied into Cairo ARGB32 memory layout
-    """
+#     Supported inputs:
+#       - HxW uint8                  -> grayscale, opaque
+#       - HxWx3 uint8               -> RGB, opaque
+#       - HxWx4 uint8               -> RGBA, premultiplied into Cairo ARGB32 memory layout
+#     """
+#     import cairo
+
+#     if arr.dtype != np.uint8:
+#         arr = (arr * 255).astype(np.uint8)
+#         # raise TypeError("Fast path expects uint8 input")
+
+#     h, w = arr.shape[:2]
+
+#     if arr.ndim == 2:
+#         # grayscale -> RGB24
+#         stride = cairo.Format.RGB24.stride_for_width(w)
+#         buf = np.empty((h, stride), dtype=np.uint8)
+#         pixels = buf[:, : w * 4].reshape(h, w, 4)
+
+#         pixels[..., 0] = arr  # B
+#         pixels[..., 1] = arr  # G
+#         pixels[..., 2] = arr  # R
+#         pixels[..., 3] = 0  # unused byte for RGB24
+
+#         surface = cairo.ImageSurface.create_for_data(
+#             buf, cairo.FORMAT_RGB24, w, h, stride
+#         )
+#         return surface
+
+#     if arr.ndim != 3:
+#         raise ValueError("Expected HxW, HxWx3, or HxWx4 array")
+
+#     c = arr.shape[2]
+
+#     if c == 3:
+#         # RGB -> RGB24, no premultiplication needed
+#         stride = cairo.Format.RGB24.stride_for_width(w)
+#         buf = np.empty((h, stride), dtype=np.uint8)
+#         pixels = buf[:, : w * 4].reshape(h, w, 4)
+
+#         pixels[..., 0] = arr[..., 2]  # B
+#         pixels[..., 1] = arr[..., 1]  # G
+#         pixels[..., 2] = arr[..., 0]  # R
+#         pixels[..., 3] = 0  # unused byte for RGB24
+
+#         surface = cairo.ImageSurface.create_for_data(
+#             buf, cairo.FORMAT_RGB24, w, h, stride
+#         )
+#         return surface
+
+#     if c == 4:
+#         # RGBA -> ARGB32, premultiplied, little-endian byte layout B,G,R,A
+#         stride = cairo.Format.ARGB32.stride_for_width(w)
+#         buf = np.empty((h, stride), dtype=np.uint8)
+#         pixels = buf[:, : w * 4].reshape(h, w, 4)
+
+#         premul = False
+#         if premul:
+#             x = pixels / 255
+#             x[:, :, :3] = x[:, :, :3] * x[:, :, -1][:, :, np.newaxis]
+#             pixels[:, :, :3] = (x[:, :, :3] * 255).astype(np.uint8)
+#             # pixels[:, :, :3] = pixels[:, :, :3] * pixels[:, :, -1][:, :, np.newaxis]
+#             # pixels[:, :, :] = (pixels * 255).astype(np.uint8)
+#             # a = arr[..., 3].astype(np.uint16)
+
+#             # Integer premultiply with rounding
+#             # pixels[..., 0] = ((arr[..., 2].astype(np.uint16) * a + 127) // 255).astype(
+#             #     np.uint8
+#             # )  # B
+#             # pixels[..., 1] = ((arr[..., 1].astype(np.uint16) * a + 127) // 255).astype(
+#             #     np.uint8
+#             # )  # G
+#             # pixels[..., 2] = ((arr[..., 0].astype(np.uint16) * a + 127) // 255).astype(
+#             #     np.uint8
+#             # )  # R
+
+#             # pixels[..., 0] = ((arr[..., 2].astype(np.uint16) * a + 127) // 255).astype(
+#             #     np.uint8
+#             # )  # B
+#             # pixels[..., 1] = ((arr[..., 1].astype(np.uint16) * a + 127) // 255).astype(
+#             #     np.uint8
+#             # )  # G
+#             # pixels[..., 2] = ((arr[..., 0].astype(np.uint16) * a + 127) // 255).astype(
+#             #     np.uint8
+#             # )  # R
+
+#             # pixels[..., 3] = arr[..., 3]  # A
+#         else:
+#             buf[:, 0 : w * 4 : 4] = arr[..., 2]  # B
+#             buf[:, 1 : w * 4 : 4] = arr[..., 1]  # G
+#             buf[:, 2 : w * 4 : 4] = arr[..., 0]  # R
+#             buf[:, 3 : w * 4 : 4] = arr[..., 3]  # A
+
+#         surface = cairo.ImageSurface.create_for_data(
+#             buf, cairo.FORMAT_ARGB32, w, h, stride
+#         )
+#         return surface
+
+#     raise ValueError("Expected 1, 3, or 4 channels")
+
+
+def numpy_to_surface(arr, premultiplied=True):
     import cairo
 
+    if arr.ndim == 3 and arr.shape[2] == 1:
+        arr = arr[:, :, 0]
+
     if arr.dtype != np.uint8:
-        arr = (arr * 255).astype(np.uint8)
-        # raise TypeError("Fast path expects uint8 input")
+        if np.issubdtype(arr.dtype, np.floating):
+            arr = (np.clip(arr, 0.0, 1.0) * 255).astype(np.uint8)
+        else:
+            arr = arr.astype(np.uint8)
 
     h, w = arr.shape[:2]
 
-    if arr.ndim == 2:
-        # grayscale -> RGB24
+    if arr.ndim == 2 or arr.shape[2] == 3:
         stride = cairo.Format.RGB24.stride_for_width(w)
         buf = np.empty((h, stride), dtype=np.uint8)
         pixels = buf[:, : w * 4].reshape(h, w, 4)
+        if arr.ndim == 2:
+            pixels[..., 0] = arr
+            pixels[..., 1] = arr
+            pixels[..., 2] = arr
+        else:
+            pixels[..., 0] = arr[..., 2]
+            pixels[..., 1] = arr[..., 1]
+            pixels[..., 2] = arr[..., 0]
+        pixels[..., 3] = 0
+        return cairo.ImageSurface.create_for_data(buf, cairo.FORMAT_RGB24, w, h, stride)
 
-        pixels[..., 0] = arr  # B
-        pixels[..., 1] = arr  # G
-        pixels[..., 2] = arr  # R
-        pixels[..., 3] = 0  # unused byte for RGB24
-
-        surface = cairo.ImageSurface.create_for_data(
-            buf, cairo.FORMAT_RGB24, w, h, stride
-        )
-        return surface
-
-    if arr.ndim != 3:
-        raise ValueError("Expected HxW, HxWx3, or HxWx4 array")
-
-    c = arr.shape[2]
-
-    if c == 3:
-        # RGB -> RGB24, no premultiplication needed
-        stride = cairo.Format.RGB24.stride_for_width(w)
-        buf = np.empty((h, stride), dtype=np.uint8)
-        pixels = buf[:, : w * 4].reshape(h, w, 4)
-
-        pixels[..., 0] = arr[..., 2]  # B
-        pixels[..., 1] = arr[..., 1]  # G
-        pixels[..., 2] = arr[..., 0]  # R
-        pixels[..., 3] = 0  # unused byte for RGB24
-
-        surface = cairo.ImageSurface.create_for_data(
-            buf, cairo.FORMAT_RGB24, w, h, stride
-        )
-        return surface
-
-    if c == 4:
-        # RGBA -> ARGB32, premultiplied, little-endian byte layout B,G,R,A
+    if arr.shape[2] == 4:
         stride = cairo.Format.ARGB32.stride_for_width(w)
         buf = np.empty((h, stride), dtype=np.uint8)
         pixels = buf[:, : w * 4].reshape(h, w, 4)
-
-        a = arr[..., 3].astype(np.uint16)
-
-        # Integer premultiply with rounding
-        pixels[..., 0] = ((arr[..., 2].astype(np.uint16) * a + 127) // 255).astype(
-            np.uint8
-        )  # B
-        pixels[..., 1] = ((arr[..., 1].astype(np.uint16) * a + 127) // 255).astype(
-            np.uint8
-        )  # G
-        pixels[..., 2] = ((arr[..., 0].astype(np.uint16) * a + 127) // 255).astype(
-            np.uint8
-        )  # R
-        pixels[..., 3] = arr[..., 3]  # A
-
-        surface = cairo.ImageSurface.create_for_data(
+        if premultiplied:
+            pixels[..., 0] = arr[..., 2]
+            pixels[..., 1] = arr[..., 1]
+            pixels[..., 2] = arr[..., 0]
+        else:
+            print("Premultipliying")
+            a = arr[..., 3].astype(np.uint16)
+            for dst, src in ((0, 2), (1, 1), (2, 0)):  # byte order is B,G,R,A
+                v = arr[..., src].astype(np.uint16)
+                pixels[..., dst] = ((v * a + 127) // 255).astype(np.uint8)
+        pixels[..., 3] = arr[..., 3]
+        return cairo.ImageSurface.create_for_data(
             buf, cairo.FORMAT_ARGB32, w, h, stride
         )
-        return surface
 
     raise ValueError("Expected 1, 3, or 4 channels")
 
