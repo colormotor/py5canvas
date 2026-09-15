@@ -118,6 +118,7 @@ def preprocess_guiparams(_gui_params):
                         raise ValueError("Currently unsupported option sequence")
             else:
                 opts = {}
+            opts["default"] = val
             opts["__key__"] = key
             gui_params[name] = (val, opts)
     return gui_params
@@ -158,6 +159,21 @@ def update_params(params, new_params):
             update_params(params[key], val)
         else:
             params[key] = val
+
+
+def slider_float_default(label, v, v_min, v_max, v_default):
+    ret, v = imgui.slider_float(label, v, v_min, v_max)
+    if imgui.begin_popup_context_item(label):
+        buf = f"reset to {v_default}"
+        res = imgui.menu_item(buf)
+
+        if res[1]:
+            print("Resetting to default")
+            v = v_default
+            ret = True
+        imgui.menu_item("close")
+        imgui.end_popup()
+    return ret, v
 
 
 class SketchParams:
@@ -577,9 +593,17 @@ if imgui is not None:
                         elif param_type == "float":
                             changed, params[key] = imgui.input_float(name, params[key])
                         elif param_type == "float_slider":
-                            changed, params[key] = imgui.slider_float(
-                                name, params[key], opts["min"], opts["max"]
+                            # changed, params[key] = imgui.slider_float(
+                            #     name, params[key], opts["min"], opts["max"]
+                            # )
+                            changed, params[key] = slider_float_default(
+                                name,
+                                params[key],
+                                opts["min"],
+                                opts["max"],
+                                opts["default"],
                             )
+
                         elif param_type == "int_slider":
                             changed, params[key] = imgui.slider_int(
                                 name,
