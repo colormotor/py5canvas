@@ -2003,6 +2003,8 @@ def main(path="", fps=0, inject=True, show_toolbar=False):
     def char_callback(window, char):
         if sketch.impl is not None:
             sketch.impl.char_callback(window, char)
+        if not has_imgui():
+            return
         if imgui.get_io().want_capture_keyboard:
             return
         if check_callback("key_pressed"):

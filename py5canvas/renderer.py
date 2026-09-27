@@ -113,7 +113,7 @@ class Renderer:
         pass
 
     def fill_preserve(self):
-        fill()  # default: no preserve, will be overridden by Cairo
+        self.fill()  # default: no preserve, will be overridden by Cairo
 
     def stroke_preserve(self):
         stroke()
@@ -303,6 +303,9 @@ try:
 
         def close_path(self):
             self._ctx.close_path()
+
+        def new_path(self):
+            self._ctx.new_path()
 
         def new_sub_path(self):
             self._ctx.new_sub_path()
@@ -534,6 +537,13 @@ try:
             fix_svg(path)
             # fix_clip_path(path, path)
 
+        def save_pdf(self, path):
+            surf = cairo.PDFSurface(path, self.width, self.height)
+            ctx = cairo.Context(surf)
+            ctx.set_source_surface(self.recording_surface)
+            ctx.paint()
+            surf.finish()
+
         def get_svg_string(self):
             raise NotImplementedError("CairoRenderer does not produce raw SVG string")
 
@@ -739,6 +749,10 @@ class SVGRenderer(Renderer):
 
     def close_path(self):
         self._add_path_command("Z")
+
+    def new_path(self):
+        # reset path
+        pass
 
     def new_sub_path(self):
         # Not needed for SVG as new_path starts a new d= string if we call move_to

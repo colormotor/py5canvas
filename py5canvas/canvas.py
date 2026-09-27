@@ -1176,12 +1176,12 @@ class Canvas:
 
     def text_width(self, txt):
         # x_advance safer than width (works with spaces)
-        info = self.renderer.text_extents()
+        info = self.renderer.text_extents(txt)
         # info = self.ctx.get_scaled_font().text_extents(txt)
         return info.x_advance
 
     def text_height(self, txt):
-        info = self.renderer.text_extents()
+        info = self.renderer.text_extents(txt)
         # info = self.ctx.get_scaled_font().text_extents(txt)
         return info.height
 
@@ -2168,19 +2168,11 @@ class Canvas:
         - The path where to save
 
         """
-        if not isinstance(self.renderer, rend.CairoRenderer):
+        if self.backend != "cairo":
             raise NotImplementedError(
-                "pdf saving is only implemented for CairoRenderer"
+                "pdf saving is only supported with the cairo backend"
             )
-        if self.recording_surface is None:
-            raise ValueError("No recording surface in canvas")
-        import cairo
-
-        surf = cairo.PDFSurface(path, self.width, self.height)
-        ctx = cairo.Context(surf)
-        ctx.set_source_surface(self.renderer.recording_surface)
-        ctx.paint()
-        surf.finish()
+        self.renderer.save_pdf(path)
 
     def Image(self):
         print("Image is deprected use =get_image()= instead")
