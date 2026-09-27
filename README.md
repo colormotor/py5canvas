@@ -25,7 +25,7 @@
 Py5canvas is a simple library that allows to draw 2d graphics in Python with an interface that is designed for users that are familiar to Processing and P5js.
 The library is designed to work inside Jupyter notebooks and/or interactively as a &ldquo;sketch&rdquo; structured similarly to Processing.
 
-The main idea behind this system is to facilitate the development of creative and interactive applications with Python, while enabling access to the huge number of packages available in Python echosystem. The project started with the development of a simple interface to allow students in [Goldsmiths computational arts](https://www.gold.ac.uk/pg/ma-computational-arts/) to create graphics inside notebooks with an interface similar to P5js. It has since developed into a bigger framework that implements a Pyhthon &ldquo;flavour&rdquo; of Processing, mainly focused towards 2d vector graphics.
+The main idea behind this system is to facilitate the development of creative and interactive applications with Python, while enabling access to the huge number of packages available in Python echo-system. The project started with the development of a simple interface to allow students in [Goldsmiths computational arts](https://www.gold.ac.uk/pg/ma-computational-arts/) to create graphics inside notebooks with an interface similar to P5js. It has since developed into a bigger framework that implements a Pyhthon &ldquo;flavour&rdquo; of Processing, mainly focused towards 2d vector graphics.
 
 Refer to [this notebook](https://github.com/colormotor/py5canvas-examples/blob/master/other/canvas_tutorial.ipynb) for an overview of using Py5canvas in a Jupyter notebook. Download or clone the code in [this example repository](https://github.com/colormotor/py5canvas-examples) for examples of interactive scripts. The latter is a fork and extension of [the examples for p5py project](https://github.com/p5py/p5-examples), another similar Python port of Processing. See below for how this project differs from p5py.
 
@@ -47,8 +47,7 @@ The main drive to develop this new system has been to provide a drawing interfac
 
 While the syntax of the sketches is similar to P5js or Processing, the aim of this system is to provide a platform similar to DrawBot for interactive editing of scripts and with a focus on 2d vector graphics.
 
-The interactive sketch system allows for the easy creation of a UI and parameter saving, which is similar in spirit to DrawBot. The syntax of sketches is almost identical to [p5py](https://p5.readthedocs.io/en/latest/), making the relevant examples and documentation a useful reference for py5canvas as well. The examples Most of these latter examples are an adaptation of Processing examples developed for a project very similar to this one taken from the example code of provided with p5py.
-
+The interactive sketch system allows for the easy creation of a UI and parameter saving, which is similar in spirit to DrawBot. The syntax of sketches is almost identical to [p5py](https://p5.readthedocs.io/en/latest/), making the relevant examples and documentation a useful reference for py5canvas as well.  
 
 <a id="org7844890"></a>
 
@@ -165,7 +164,7 @@ To install on Google Colab, and Linux if you don&rsquo;t want to use conda
 
 ## Canvas API
 
-Once installed you can use the py5canvas API in a notebook (or Python program) by simply importing it. This is a simple example that will save an image and show it below the notebook cell:
+Once installed you can use the py5canvas API in a notebook (or Python program) by importing it globally (using the `*` syntax). This is usually not recommended in Python, but it allows to use a syntax as similar as possible to Processing, without requiring the use of Python specific constructs like [namespaces/modules](https://docs.python.org/3/tutorial/modules.html) and classes. This is a simple example that will save an image and show it below the notebook cell:
 
     from py5canvas import *
     # Create our canvas object
@@ -186,7 +185,7 @@ Once installed you can use the py5canvas API in a notebook (or Python program) b
 
 ![img](https://raw.githubusercontent.com/colormotor/rumore/main/images/canvas.png)
 
-In general, the syntax is very similar to P5js but it uses `snake_case` as a syntax convention. The canvas functions become available to the notebook cell once `create_canvas` is created. Note that this is a hack to expose a functionality as similar as possible to Processing. However, under the hood py5canvas creates a `Canvas` object that can be also accessed explicitly if desired. For more detailed instructions refer to [this notebook](https://github.com/colormotor/py5canvas/blob/main/examples/canvas_tutorial.ipynb).
+In general, the syntax is very similar to P5js but it uses `snake_case` as a syntax convention. The canvas functions become available to the notebook cell once `create_canvas` is created. Note that this is a hack to expose a functionality as similar as possible to Processing. Under the hood, py5canvas creates a `Canvas` object that can be also accessed explicitly if desired. For more detailed instructions refer to [this notebook](https://github.com/colormotor/py5canvas/blob/main/examples/canvas_tutorial.ipynb).
 
 Note also that the Canvas object is intended to be a simple interface on top of [pyCairo](https://pycairo.readthedocs.io/en/latest/), but it does not expose all the functionalities of the API. If necessary, these can be accessed with the `ctx` class variable.
 
@@ -195,7 +194,7 @@ Note also that the Canvas object is intended to be a simple interface on top of 
 
 ## Interactive sketches
 
-While the Canvas API alone does not supprt interactivity, you can run interactive sketches with a program structure similar to P5js and Processing.
+While the Canvas API alone does not support interactivity, you can run interactive sketches with a program structure similar to P5js and Processing.
 
 <a id="orgb7067ec"></a>
 
@@ -369,16 +368,17 @@ Note that once called, the **next** frame will be saved.
 
 ### GUI support and parameters
 
-The `py5sketch` program can be used in combination with the [Python bindings](https://pypi.org/project/imgui/#files) of [Dear ImGui](https://github.com/ocornut/imgui), an [&ldquo;immediate mode&rdquo; UI](https://pyimgui.readthedocs.io/en/latest/guide/first-steps.html#what-is-immediate-mode-gui) built on top of OpenGL. A basic usage example of IMGUI can be found in the `imgui_test.py` example.
+The `py5sketch` program can be used in combination with ["slimgui", Python bindings](https://pypi.org/project/slimgui/) of [Dear ImGui](https://github.com/ocornut/imgui), a hardware-accelerated [&ldquo;immediate mode&rdquo; UI](https://pyimgui.readthedocs.io/en/latest/guide/first-steps.html#what-is-immediate-mode-gui). A basic usage example of IMGUI can be found in the `imgui_test.py` example.
 
 1.  Default UI
 
-    If pyImGui is installed, the `py5sketch` program will feature a basic toolbar. The toolbar allows to:
+    If slimgui is installed, the `py5sketch` program will feature a basic toolbar. The toolbar allows to:
     
     -   Load a sketch
     -   Backup a sketch
     -   Reload the current sketch
-    -   Save the output for the current sketch as a SVG file.
+    -   Save the output for the current sketch as a SVG file, PDF or record a given number of frames as an mp4 movie.
+    - Set global sketch parameters, such as the number of frames to record in the movie or if the window is always shown on top of any other window (convenient for live reloading).
     
     &ldquo;Backing up a sketch&rdquo; means that the current sketch, and its parameters (see the following) will be saved with the name specified. This can be useful to save the current iteration of a sketch while continuing to work on the code. E.g. say you are working on a sketch and realize you like the results, but this is not the final result you where trying to achieve. You can &ldquo;backup&rdquo; the sketch and then eventually go back to the code later, while continue working on the current sketch and not risking to destroy the achieved result.
 

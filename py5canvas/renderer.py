@@ -324,7 +324,7 @@ try:
         def ellipse(self, x, y, rw, rh):
             self.save()
             self.translate(x, y)
-            self.scale(rw * 2, rh * 2)
+            self.scale(rw, rh)
             self.new_sub_path()
             self.arc(0, 0, 1, 0, np.pi * 2.0)
             self.close_path()

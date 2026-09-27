@@ -475,6 +475,7 @@ class Canvas:
         # # See https://pycairo.readthedocs.io/en/latest/reference/context.html
         # surf = cairo.ImageSurface(cairo.FORMAT_ARGB32, width, height)
         # ctx = MultiContext(surf)
+        self.backend = backend
         if backend == "cairo" and rend.CairoRenderer is not None:
             self.renderer = rend.CairoRenderer(width, height, recording=recording)
         else:
@@ -1873,6 +1874,7 @@ class Canvas:
             w, h, start, stop = args[1:]
         if w == 0 or h == 0:
             return
+        print("Arc")
 
         # Cairo expects degrees
         start, stop = (self._to_radians(start), self._to_radians(stop))
@@ -2499,6 +2501,13 @@ class Canvas:
         return self
 
     def text_shapes(self, text, *args, dist=1, align="", valign=""):
+        if self.backend != "cairo":
+            raise NotImplementedError(
+                "text_shapes is currently only supported by the cairo backend"
+            )
+
+        import cairo
+
         if len(args) == 2:
             if is_number(args[0]):
                 pos = args
@@ -2944,6 +2953,8 @@ _ft_initialized = False
 
 def create_cairo_font_face_for_file(filename, faceindex=0, loadoptions=0):
     "given the name of a font file, and optional faceindex to pass to FT_New_Face and loadoptions to pass to cairo_ft_font_face_create_for_ft_face, creates a cairo.FontFace object that may be used to render text with that font."
+    import cairo
+
     global _ft_initialized
     global _freetype_so
     global _cairo_so
