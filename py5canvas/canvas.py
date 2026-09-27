@@ -262,61 +262,6 @@ def is_number(x):
     return isinstance(x, numbers.Number)
 
 
-class CanvasState:
-    def __init__(self, c):
-        self.c = c
-        self.cur_fill = c._scale_color([c.color_scale])
-        self.cur_stroke = c._scale_color([0.0])
-        self.cur_tint = c._scale_color([c.color_scale])
-        self._stroke_cap = "round"
-        self._stroke_join = "miter"
-        self._text_halign = "left"
-        self._text_valign = "baseline"
-        self._rect_mode = "corner"
-        self._ellipse_mode = "center"
-        self._font = "sans-serif"
-        self._text_size = 16
-        self._text_leading = 16
-        self._line_width = 1.0
-        self._angle_mode = "radians"
-        self._dash = []
-
-    def set(self, prev=None):
-        """Called if calling pop"""
-
-        def should_set(prev, name):
-            if prev is None:
-                return True
-            return prev.__dict__[name] != self.__dict__[name]
-
-        if should_set(prev, "_stroke_cap"):
-            self.c.stroke_cap(self._stroke_cap)
-        if should_set(prev, "_stroke_join"):
-            self.c.stroke_join(self._stroke_join)
-        if should_set(prev, "_line_width"):
-            self.c.stroke_weight(self._line_width)
-        if should_set(prev, "_text_size"):
-            self.c.text_size(self._text_size)
-        if should_set(prev, "_dash"):
-            self.c.stroke_dash(self._dash)
-
-
-def draw_states_properties(*names):
-    def decorator(cls):
-        for name in names:
-
-            def getter(self, n=name):
-                return getattr(self.draw_states[-1], n)
-
-            def setter(self, value, n=name):
-                setattr(self.draw_states[-1], n, value)
-
-            setattr(cls, name, property(getter, setter))
-        return cls
-
-    return decorator
-
-
 @dataclass
 class Font:
     obj: Union[str, object]
@@ -424,6 +369,77 @@ class Gradient:
 #         return cls("radial", inner=inner, outer=outer, stops=stops, extend=extend)
 
 
+class CanvasState:
+    def __init__(self, c):
+        self.c = c
+        self.cur_fill = c._scale_color([c.color_scale])
+        self.cur_stroke = c._scale_color([0.0])
+        self.cur_tint = c._scale_color([c.color_scale])
+        self._stroke_cap = "round"
+        self._stroke_join = "miter"
+        self._text_halign = "left"
+        self._text_valign = "baseline"
+        self._rect_mode = "corner"
+        self._ellipse_mode = "center"
+        self._stroke_weight = 1
+        self._text_font = "sans-serif"
+        self._text_size = 16
+        self._text_leading = 16
+        self._angle_mode = "radians"
+        self._stroke_dash = []
+
+        # Map underscored attributes to canvas setters,
+        # if the canvas has a function with the same name without a leading underscore
+        self.settable = {
+            k: getattr(c, k[1:])
+            for k in self.__dict__.keys()
+            if k[0] == "_" and hasattr(c, k[1:])
+        }
+
+    def set(self, prev=None):
+        """Called if calling pop"""
+
+        def should_set(prev, name):
+            if prev is None:
+                return True
+            return prev.__dict__[name] != self.__dict__[name]
+
+        # Go through the settable attributes and call the setter function if present
+        for k, func in self.settable.items():
+            if should_set(prev, k):
+                func(getattr(self, k))
+        # if should_set(prev, "_stroke_cap"):
+        #     self.c.stroke_cap(self._stroke_cap)
+        # if should_set(prev, "_stroke_join"):
+        #     self.c.stroke_join(self._stroke_join)
+        # if should_set(prev, "_line_width"):
+        #     self.c.stroke_weight(self._line_width)
+        # if should_set(prev, "_text_size"):
+        #     self.c.text_size(self._text_size)
+        # if should_set(prev, "_dash"):
+        #     self.c.stroke_dash(self._dash)
+
+
+def draw_states_properties(*names):
+    """Decorator adding draw state setters and getters to canvas from a list of names
+    These are assumed to be underscored
+    """
+
+    def decorator(cls):
+        for name in names:
+
+            def getter(self, n=name):
+                return getattr(self.draw_states[-1], n)
+
+            def setter(self, value, n=name):
+                setattr(self.draw_states[-1], n, value)
+
+            setattr(cls, name, property(getter, setter))
+        return cls
+
+    return decorator
+
+
 @draw_states_properties(
     "cur_fill",
     "cur_stroke",
@@ -431,14 +447,14 @@ class Gradient:
     "_stroke_join",
     "_text_halign",
     "_text_valign",
+    "_stroke_weight",
     "_rect_mode",
     "_ellipse_mode",
-    "_font",
+    "_text_font",
     "_text_size",
-    "_line_width",
     "_text_leading",
     "_angle_mode",
-    "_dash",
+    "_stroke_dash",
 )
 class Canvas:
     """
@@ -980,6 +996,7 @@ class Canvas:
         Arguments:
         - A sequence of lengths, indicating alternating (on/off) dashed segments
         """
+        self._stroke_dash = dash
         self.renderer.set_dash(dash)
         return self
 
@@ -989,6 +1006,7 @@ class Canvas:
         Arguments:
         - The width in pixel of the stroke
         """
+        self._stroke_weight = w
         self.renderer.set_line_width(w)
         return self
 
@@ -999,7 +1017,7 @@ class Canvas:
 
         - `join` (string): can be one of "miter", "bevel" or "round"
         """
-
+        self._stroke_join = join
         self.renderer.set_line_join(join)
         # join = join.lower()
         # joins = {
@@ -1052,6 +1070,7 @@ class Canvas:
 
         - `cap` (string): can be one of "butt", "round" or "square"
         """
+        self._stroke_cap = cap
         self.renderer.set_line_cap(cap.lower())
         return self
 
@@ -1112,21 +1131,21 @@ class Canvas:
                     # Only CairoRenderer supports set_font_face; SVG will ignore fine.
                     if hasattr(self.renderer, "set_font_face"):
                         self.renderer.set_font_face(face)
-                    self._font = f"{info['family']} {info['subfamily']}"
+                    self._text_font = f"{info['family']} {info['subfamily']}"
                 except Exception as e:
                     print(f"Error loading font: {e}")
                 return
             else:
-                self._font = font
+                self._text_font = font
                 self.renderer.select_font_face(font)
         else:
-            self._font = font.obj
-            if type(self._font) == str:
+            self._text_font = font.obj
+            if type(self._text_font) == str:
                 # "Toy" case of a System font selected by name
-                self.renderer.select_font_face(self._font)
+                self.renderer.select_font_face(self._text_font)
             else:
                 # Loaded font case
-                self.renderer.set_font_face(self._font)
+                self.renderer.set_font_face(self._text_font)
             if font.style is not None:
                 self.text_style(font.style)
             if font.size is not None:
@@ -1142,13 +1161,13 @@ class Canvas:
         "bolditalic")
         """
         if style == "bolditalic":
-            self.renderer.select_font_face(self._font, "bold", "italic")
+            self.renderer.select_font_face(self._text_font, "bold", "italic")
         if style == "normal":
-            self.renderer.select_font_face(self._font, "normal")
+            self.renderer.select_font_face(self._text_font, "normal")
         elif style == "italic":
-            self.renderer.select_font_face(self._font, "normal", "italic")
+            self.renderer.select_font_face(self._text_font, "normal", "italic")
         elif style == "bold":
-            self.renderer.select_font_face(self._font, "bold")
+            self.renderer.select_font_face(self._text_font, "bold")
         else:
             print(
                 f"font style ={style}= not recognised (choose from: normal, italic, bold, bolditalic)"
