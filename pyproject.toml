@@ -17,7 +17,7 @@ dependencies = [
   "moderngl",
   "glfw",
   "pycairo",
-  "pyperclip"
+  "pyperclip",
   "matplotlib",
   "rumore",
   "easydict",
