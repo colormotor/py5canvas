@@ -21,7 +21,7 @@ It will probably be significantly slow when using a large canvas size
 # pyglet.options['osx_alt_loop'] = True
 
 # from pyglet.window import key
-from pylab import bool
+# from pylab import bool
 import numpy as np
 import os, sys, time, types
 from py5canvas import canvas, sketch_params

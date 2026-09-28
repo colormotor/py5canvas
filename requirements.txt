@@ -1,8 +1,0 @@
-numpy
-pillow
-pycairo
-glfw
-moderngl
-easydict
-xdialog
-imgui [glfw]

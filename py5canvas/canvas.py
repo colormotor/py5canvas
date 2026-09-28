@@ -28,7 +28,6 @@ from easydict import EasyDict as edict
 import rumore  # Noise utils
 from dataclasses import dataclass
 from typing import Union, Optional
-from fontTools.ttLib import TTFont
 from . import renderer as rend
 import pdb
 
@@ -523,6 +522,7 @@ class Canvas:
         # # ctx.set_antialias(cairo.ANTIALIAS_BEST)
         # ctx.set_source_rgba(*self._apply_colormode(background))
         # ctx.paint()  # rectangle(0, 0, width, height)
+        self.fill_rule("evenodd")
 
         self.last_background = background
         self._first_background = True
@@ -1611,8 +1611,6 @@ class Canvas:
         self._fillstroke()
         return self
 
-    rect = rectangle
-
     def square(self, *args, mode=None):
         """Draw a square.
 
@@ -1751,7 +1749,7 @@ class Canvas:
         if not (w > 0 and h > 0):
             return
         if mode.lower() == "corner":
-            center += [w / 2, h / 2]
+            center += np.array([w / 2, h / 2])
         if mode.lower() == "radius":
             w = w * 2
             h = h * 2
@@ -2137,7 +2135,7 @@ class Canvas:
         return byte_arr.getvalue()
 
     def get_image_grayscale(self):
-        """Returns the canvas image as a grayscale numpy array (in 0-1 range)"""
+        """Returns the canvas image as a PIL image"""
         return self.get_image().convert("L")
 
     def save_image(self, path):
@@ -2792,7 +2790,7 @@ def show_image(im, size=None, title="", cmap="gray"):
         plt.figure()
     if title:
         plt.title(title)
-    plt.imshow(im, cmap)
+    plt.imshow(im, cmap=cmap)
     plt.show()
 
 
@@ -3136,69 +3134,71 @@ def _pick_name(name_table, name_id):
     return None
 
 
-def read_font_names(path):
-    """Return a dict with family, subfamily, full_name, postscript_name."""
-    with TTFont(path, lazy=True) as f:
-        name = f["name"]
-        # Family: prefer Typographic Family (16) then legacy Family (1)
-        family = _pick_name(name, 16) or _pick_name(name, 1)
-        # Subfamily/Style: prefer Typographic Subfamily (17) then legacy Subfamily (2)
-        subfamily = _pick_name(name, 17) or _pick_name(name, 2)
-        # Full name and PostScript name if present
-        full_name = _pick_name(name, 4)
-        postscript_name = _pick_name(name, 6)
+# def read_font_names(path):
+#     """Return a dict with family, subfamily, full_name, postscript_name."""
+#     from fontTools.ttLib import TTFont
 
-    return {
-        "family": family,
-        "subfamily": subfamily,
-        "full_name": full_name
-        or (f"{family} {subfamily}".strip() if family and subfamily else None),
-        "postscript_name": postscript_name,
-    }
-    #     # end if
-    #     # Problem: Cairo doesn't know to call FT_Done_Face when its font_face object is
-    #     # destroyed, so we have to do that for it, by attaching a cleanup callback to
-    #     # the font_face. This only needs to be done once for each font face, while
-    #     # cairo_ft_font_face_create_for_ft_face will return the same font_face if called
-    #     # twice with the same FT Face.
-    #     # The following check for whether the cleanup has been attached or not is
-    #     # actually unnecessary in our situation, because each call to FT_New_Face
-    #     # will return a new FT Face, but we include it here to show how to handle the
-    #     # general case.
-    #     if (
-    #         _cairo_so.cairo_font_face_get_user_data(cr_face, ct.byref(_ft_destroy_key))
-    #         == None
-    #     ):
-    #         status = _cairo_so.cairo_font_face_set_user_data(
-    #             cr_face, ct.byref(_ft_destroy_key), ft_face, _freetype_so.FT_Done_Face
-    #         )
-    #         if status != CAIRO_STATUS_SUCCESS:
-    #             raise RuntimeError(
-    #                 "Error %d doing user_data dance for %s" % (status, filename)
-    #             )
-    #         # end if
-    #         ft_face = None  # Cairo has stolen my reference
-    #     # end if
+#     with TTFont(path, lazy=True) as f:
+#         name = f["name"]
+#         # Family: prefer Typographic Family (16) then legacy Family (1)
+#         family = _pick_name(name, 16) or _pick_name(name, 1)
+#         # Subfamily/Style: prefer Typographic Subfamily (17) then legacy Subfamily (2)
+#         subfamily = _pick_name(name, 17) or _pick_name(name, 2)
+#         # Full name and PostScript name if present
+#         full_name = _pick_name(name, 4)
+#         postscript_name = _pick_name(name, 6)
 
-    #     # set Cairo font face into Cairo context
-    #     cairo_ctx = cairo.Context(_surface)
-    #     cairo_t = _PycairoContext.from_address(id(cairo_ctx)).ctx
-    #     _cairo_so.cairo_set_font_face(cairo_t, cr_face)
-    #     status = _cairo_so.cairo_font_face_status(cairo_t)
-    #     if status != CAIRO_STATUS_SUCCESS:
-    #         raise RuntimeError(
-    #             "Error %d creating cairo font face for %s" % (status, filename)
-    #         )
-    #     # end if
+#     return {
+#         "family": family,
+#         "subfamily": subfamily,
+#         "full_name": full_name
+#         or (f"{family} {subfamily}".strip() if family and subfamily else None),
+#         "postscript_name": postscript_name,
+#     }
+#     #     # end if
+#     #     # Problem: Cairo doesn't know to call FT_Done_Face when its font_face object is
+#     #     # destroyed, so we have to do that for it, by attaching a cleanup callback to
+#     #     # the font_face. This only needs to be done once for each font face, while
+#     #     # cairo_ft_font_face_create_for_ft_face will return the same font_face if called
+#     #     # twice with the same FT Face.
+#     #     # The following check for whether the cleanup has been attached or not is
+#     #     # actually unnecessary in our situation, because each call to FT_New_Face
+#     #     # will return a new FT Face, but we include it here to show how to handle the
+#     #     # general case.
+#     #     if (
+#     #         _cairo_so.cairo_font_face_get_user_data(cr_face, ct.byref(_ft_destroy_key))
+#     #         == None
+#     #     ):
+#     #         status = _cairo_so.cairo_font_face_set_user_data(
+#     #             cr_face, ct.byref(_ft_destroy_key), ft_face, _freetype_so.FT_Done_Face
+#     #         )
+#     #         if status != CAIRO_STATUS_SUCCESS:
+#     #             raise RuntimeError(
+#     #                 "Error %d doing user_data dance for %s" % (status, filename)
+#     #             )
+#     #         # end if
+#     #         ft_face = None  # Cairo has stolen my reference
+#     #     # end if
 
-    # finally:
-    #     _cairo_so.cairo_font_face_destroy(cr_face)
-    #     _freetype_so.FT_Done_Face(ft_face)
-    # # end try
+#     #     # set Cairo font face into Cairo context
+#     #     cairo_ctx = cairo.Context(_surface)
+#     #     cairo_t = _PycairoContext.from_address(id(cairo_ctx)).ctx
+#     #     _cairo_so.cairo_set_font_face(cairo_t, cr_face)
+#     #     status = _cairo_so.cairo_font_face_status(cairo_t)
+#     #     if status != CAIRO_STATUS_SUCCESS:
+#     #         raise RuntimeError(
+#     #             "Error %d creating cairo font face for %s" % (status, filename)
+#     #         )
+#     #     # end if
 
-    # # get back Cairo font face as a Python object
-    # face = cairo_ctx.get_font_face()
-    # return face
+#     # finally:
+#     #     _cairo_so.cairo_font_face_destroy(cr_face)
+#     #     _freetype_so.FT_Done_Face(ft_face)
+#     # # end try
+
+#     # # get back Cairo font face as a Python object
+#     # face = cairo_ctx.get_font_face()
+#     # return face
 
 
 # Get font family name for file
@@ -3236,6 +3236,8 @@ def _pick_name(name_table, name_id):
 
 def read_font_names(path):
     """Return a dict with family, subfamily, full_name, postscript_name."""
+    from fontTools.ttLib import TTFont
+
     with TTFont(path, lazy=True) as f:
         name = f["name"]
         # Family: prefer Typographic Family (16) then legacy Family (1)

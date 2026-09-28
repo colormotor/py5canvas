@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "py5canvas"
-version = "1.1.1"
+version = "1.3.0"
 description = "Drawings and animations with a p5.js / Processing-like API."
 readme = { file = "README.md", content-type = "text/markdown" }
 license = { text = "MIT" }
@@ -13,17 +13,19 @@ requires-python = ">=3.9"
 dependencies = [
   "numpy",
   "pillow",
-  "PyOpenGL",
+  "opencv-python",
   "moderngl",
   "glfw",
   "pycairo",
+  "pyperclip"
   "matplotlib",
   "rumore",
   "easydict",
   "xdialog",
-  "nanobind>=2.8.0",
   "slimgui",
-  "platformdirs"
+  "platformdirs",
+  "fonttools",
+  "svgpathutils"
 ]
 
 [project.scripts]

@@ -7,7 +7,8 @@ a default setup would look like this
 {
     'server port': 9999,
     'client address': 'localhost',
-    'client port': '9998'
+    'client port': '9998'if label != 'Ours':
+        continue
 }
 These parameters will not change until you restart py5sketch
 '''
