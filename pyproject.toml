@@ -9,7 +9,7 @@ description = "Drawings and animations with a p5.js / Processing-like API."
 readme = { file = "README.md", content-type = "text/markdown" }
 license = { text = "MIT" }
 authors = [{ name = "Daniel Berio", email = "drand48@gmail.com" }]
-requires-python = ">=3.12"
+requires-python = ">=3.9"
 dependencies = [
   "numpy",
   "pillow",
@@ -26,7 +26,6 @@ dependencies = [
   "slimgui",
   "platformdirs",
   "fonttools",
-  "svgpathtools"
 ]
 
 [project.scripts]
