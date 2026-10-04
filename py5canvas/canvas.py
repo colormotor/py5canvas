@@ -457,20 +457,21 @@ def draw_states_properties(*names):
 )
 class Canvas:
     """
-    Defines a drawing canvas (pyCairo) that behaves similarly to p5js
+    Defines a drawing canvas (pyCairo) that behaves similarly to p5js.
 
-    Constructor arguments:
+    Canvas constructor arguments:
 
-    - =width= : (=int=), width of the canvas in pixels
-    - =height= : (=int=), height of the canvas in pixels
-    - =clear_callback= (optional): function, a callback to be called when the canvas is cleared (for internal use mostly)
+    - `width` : (`int`), width of the canvas in pixels
+    - `height` : (`int`), height of the canvas in pixels
+    - `color_scale` : (`float`, default is `255`). Defines the maximum value for a full intensity color channel.
 
-    In a notebook you can create a canvas globally with either of:
+    In a notebook, after importing py5canvas globally with `from py5canvas import *`, you can create a canvas globally with either of:
 
-    - =size(width, height)=
-    - =create_canvas(width, height)=
+    - `size(width, height)`
+    - `create_canvas(width, height)`
 
-    When using these functions all the canvas functionalities below will become globally available to the notebook.
+    When using these functions all the canvas properties/methods below will become globally available to the notebook.
+
     """
 
     def __init__(
@@ -486,7 +487,16 @@ class Canvas:
         backend="cairo",
         **kwargs,
     ):
-        """Constructor"""
+        """
+        Canvas constructor
+
+        Arguments:
+
+        - `width` : (`int`), width of the canvas in pixels
+        - `height` : (`int`), height of the canvas in pixels
+        - `color_scale` : (`float`, default is `255`). Defines the maximum value for a full intensity color channel.
+
+        """
         # # See https://pycairo.readthedocs.io/en/latest/reference/context.html
         # surf = cairo.ImageSurface(cairo.FORMAT_ARGB32, width, height)
         # ctx = MultiContext(surf)
@@ -650,7 +660,12 @@ class Canvas:
         return self
 
     def no_tint(self):
-        """Do not tint images"""
+        """Do not tint images
+
+        Returns:
+
+        - The canvas instance for chaining with other commands
+        """
         self.tint(None)
         return self
 
@@ -698,10 +713,6 @@ class Canvas:
         Examples:
 
         - `color_mode('rgb', 1.0)` will set the color mode to RGB in the 0-1 range.
-
-        Returns:
-
-        - (float): red component value in the current color scale
         """
         self._color_mode = mode
         if len(args):
@@ -877,12 +888,13 @@ class Canvas:
             - offset is between 0 and 1
             - color is a tuple (r, g, b[, a]) in current color mode
 
-        Example:
+        For example:
         ```
-            fill(linear_gradient(0, 0, 200, 0,
-                                (0, (1, 0, 0)),
-                                (1, (0, 0, 1))))
+            fill(linear_gradient(0, 0, 200, 200,
+                                (0, (255, 0, 0)),
+                                (1, (0, 0, 255))))
         ```
+        fills the area between the $x,y$ coordinates $(0,0)$ and $(200, 200)$ with a gradient going fromm red to blue
         """
         if is_number(args[0]):
             x1, y1, x2, y2 = args[:4]
@@ -940,12 +952,12 @@ class Canvas:
         return Gradient.radial((cx0, cy0, r0), (cx1, cy1, r1), stops, extend=extend)
 
     def tint(self, *args):
-        """Set the tint color for images
+        """Set the tint color for images. In practice this multiplies the image color by the color provided as an argument.
 
         Arguments:
-        - A single argument specifies a grayscale value, e.g. `stroke(255)` will set the stroke to white.
-        - Two arguments specify grayscale with opacity, e.g. `stroke(0, 128)` will set the stroke to black with 50% opacity.
-        - Three arguments specify a color depending on the color mode (rgb or hsv), e.g. `stroke(255, 0, 0)` will set the stroke to red, when the color mode is RGB
+        - A single argument specifies a grayscale value, e.g. `tint(128)` will darken the images by 50%.
+        - Two arguments specify grayscale with opacity, e.g. `tint(255, 128)` will render images with 50% transparency.
+        - Three arguments specify a color depending on the color mode (rgb or hsv), e.g. `tint(255, 0, 0)` will multiply the image colors by red.
         - Four arguments specify a color with opacity
         """
         if args[0] is None:
@@ -1081,7 +1093,7 @@ class Canvas:
 
         Arguments:
         - `halign` (string): Horizontal alignment. One of "left", "center" or "right"
-        - `valign` (string): Horizontal alignment. One of "baseline" (default), "top", "bottom", or "center"
+        - `valign` (string): Vertical alignment. One of "baseline" (default), "top", "bottom", or "center"
         """
         self._text_halign = halign
         self._text_valign = valign
@@ -1278,7 +1290,7 @@ class Canvas:
         - Providing a single number will apply a uniform transformation.
         - Providing a pair of number will scale in the x and y directions.
         - The scale can be specified as an array/list (e.g `scale([x,y])`
-        or as single arguments (e.g. `scale(x, y)`)'''
+        or as single arguments (e.g. `scale(x, y)`).
         """
 
         if len(args) == 1:
@@ -1291,7 +1303,7 @@ class Canvas:
         return self
 
     def rotate(self, angle):
-        """Rotate by `theta` radians (or degrees, depeending on the angle mode)"""
+        """Rotate by `theta` radians (or degrees, depending on the angle mode)"""
         self.renderer.rotate(self._to_radians(angle))
         return self
 
@@ -1553,7 +1565,7 @@ class Canvas:
 
         Followed by an optional radius parameter that can be used to create rounded rectangles
 
-        An optional named `mode` argument allows to ignore the current rect mode since it explictly defines the
+        An optional named `mode` argument allows to ignore the current rect mode since it explicitly defines the
         corners of the rect
 
         The interpretation of `x` and `y` depends on the current rect mode.
@@ -1621,7 +1633,7 @@ class Canvas:
          - `x, y, size`
 
         The interpretation of `x` and `y` depends on the current rect mode. These indicate the
-        center of the rectangle if the rect mode is `"center"` and the top left corner otherwise.
+        center of the rectangle if the rect mode is `"center"` and the top left corner otherwise (default).
         """
         if mode is None:
             mode = self._rect_mode
@@ -1640,11 +1652,12 @@ class Canvas:
 
         Input arguments can be in the following formats:
 
-         - `[topleft_x, topleft_y], [width, height]`,
-         - `[topleft_x, topleft_y], width, height`,
+         - `[x, y], [width, height]`,
+         - `[x, y], width, height`,
          - `topleft_x, topleft_y, width, height`
 
-        Depending on
+        By default the arguments `x` and `y` specify the top-left corner of the rectangle.
+        If `rect_mode('center')` has been set, these specify the rectangle center.
         """
         return self.rectangle(*args, mode=mode)
 
@@ -1668,7 +1681,7 @@ class Canvas:
 
         Input arguments can be in the following formats:
 
-         - `a, b, c` (Four points specified as lists/tuples/numpy arrays
+         - `a, b, c` (three points specified as lists/tuples/numpy arrays
          - `x1, y1, x2, y2, x3, y3`
         """
 
@@ -1679,7 +1692,8 @@ class Canvas:
         return self
 
     def circle(self, *args, mode=""):
-        """Draw a circle given center and radius
+        """Draw a circle given center and size (default is the circle diameter__.
+        If `ellipse_mode` is set to `"radius"` the size specifies the circle radius.
 
         Input arguments can be in the following formats:
 
@@ -1860,9 +1874,9 @@ class Canvas:
         return self
 
     def arc(self, *args):
-        """Draw an ellpitical arc, given the center of the ellipse `x, y`
+        """Draw an elliptical arc, given the center of the ellipse `x, y`
         the size of the ellipse `w, h` and the initial and final angles
-        in radians  `start, stop`.
+         `start, stop`. Angles are specified in radians or degrees depending on the angle mode (default is radians).
         A last optional `mode` argument determines the arc's fill style.
         The fill modes are a semi-circle (`OPEN`), a closed semi-circle (`CHORD`),
         or a closed pie segment (`PIE`).
@@ -1929,7 +1943,7 @@ class Canvas:
         - a numpy array with shape =(n, 2)=, representing =n= points (a point for each row and a coordinate for each column)
         - two lists (or numpy array) of numbers, one for each coordinate
 
-        To create an opne polygon set the named =close= argument to =False=, e.g. =c.polygon(points, close=False)=.
+        To create an open polygon set the named =close= argument to =False=, e.g. =c.polygon(points, close=False)=.
         """
         return self.polyline(*args, close=close)
 
@@ -2094,8 +2108,7 @@ class Canvas:
         return surf.get_data()
 
     def get_image_array(self, rgba=False, straight_alpha=False):
-        """Get canvas image as numpy array. Returns straight (non-premultiplied)
-        alpha by default"""
+        """Get canvas image as numpy array. Returns an image with pre-multiplied alpha by default"""
         buf = self.get_buffer()
         if buf is None:
             return None
@@ -2135,7 +2148,7 @@ class Canvas:
         return byte_arr.getvalue()
 
     def get_image_grayscale(self):
-        """Returns the canvas image as a PIL image"""
+        """Returns the canvas image as a PIL grayscale image"""
         return self.get_image().convert("L")
 
     def save_image(self, path):
@@ -2159,7 +2172,7 @@ class Canvas:
         self.renderer.save_svg(path)
 
     def save_pdf(self, path):
-        """Save the canvas to an svg file
+        """Save the canvas to an pdf file
 
         Arguments:
 
@@ -2178,7 +2191,7 @@ class Canvas:
 
     def to_clipboard(self):
         """Copy canvas contents to clipboard (as SVG data)
-        Requires pyperclip to be installed
+        Requires the [pyperclip](https://pypi.org/project/pyperclip/) package to be installed
         """
         import pyperclip, os
 
@@ -2191,7 +2204,8 @@ class Canvas:
 
     def save(self, path):
         """Save the canvas into a given file path
-        The file format depends on the file extension
+        The file format depends on the file extension.
+        Supported file formats/extensions are `.svg`,`.pdf` (both vector) and `.png` (raster).
         """
         if ".svg" in path:
             self.save_svg(path)
@@ -2458,8 +2472,8 @@ class Canvas:
 
             - `text`, the text to display
             - the position of the text, either a pair of x, y arguments or a list like object (e.g. `[x, y]`)
-            - `align`, horizontal alignment, etiher `'left'` (default), `'center'` or `'right'`
-            - `valign`, vertical alignment, etiher `'bottom'` (default), `'center'` or `'top'`
+            - `align`, horizontal alignment, either `'left'` (default), `'center'` or `'right'`
+            - `valign`, vertical alignment, either `'bottom'` (default), `'center'` or `'top'`
             (Deprecated) if center=True the text will be horizontally centered
         """
 
@@ -2611,8 +2625,8 @@ class Canvas:
         - `text`, the text to sample
         - the position of the text, either a pair of x, y arguments or a list like object (e.g. `[x, y]`)
         - `dist`, approximate distance between samples
-        - `align`, horizontal alignment, etiher `'left'` (default), `'center'` or `'right'`
-        - `valign`, vertical alignment, etiher `'bottom'` (default), `'center'` or `'top'`
+        - `align`, horizontal alignment, either `'left'` (default), `'center'` or `'right'`
+        - `valign`, vertical alignment, either `'bottom'` (default), `'center'` or `'top'`
         """
         return sum(
             self.text_shapes(text, *args, dist=dist, align=align, valign=valign), []
@@ -2626,8 +2640,8 @@ class Canvas:
         - `text`, the text to sample
         - the position of the text, either a pair of x, y arguments or a list like object (e.g. `[x, y]`)
         - `dist`, approximate distance between samples
-        - `align` (named), horizontal alignment, etiher `'left'` (default), `'center'` or `'right'`
-        - `valign` (named), vertical alignment, etiher `'bottom'` (default), `'center'` or `'top'`
+        - `align` (named), horizontal alignment, either `'left'` (default), `'center'` or `'right'`
+        - `valign` (named), vertical alignment, either `'bottom'` (default), `'center'` or `'top'`
         """
         return np.vstack(
             self.text_shape(text, *args, dist=dist, align=align, valign=valign)
@@ -2760,23 +2774,23 @@ def numpy_to_surface(arr, premultiplied=True):
     raise ValueError("Expected 1, 3, or 4 channels")
 
 
-def create_font(name, size=None, style=None):
+def create_font(font, size=None, style=None):
     """Create a font from a file or from system fonts
     Arguments:
 
     - `font` (string or object): Either a string describing the font file path or system font name
     """
     # TODO fix API and redundancy here and in text_font
-    if os.path.isfile(name):
+    if os.path.isfile(font):
         try:
             # info = read_font_names(name)
             # font = f"{info['family']} {info['subfamily']}"
-            font = create_cairo_font_face_for_file(name)
+            font = create_cairo_font_face_for_file(font)
         except Exception as e:
-            print(f"Error: failed to load font {name}:")
+            print(f"Error: failed to load font {font}:")
             print(e)
     else:
-        font = name
+        font = font
     return Font(font, size, style)
 
 

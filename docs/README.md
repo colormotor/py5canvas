@@ -1,19 +1,19 @@
 
 # Canvas API
-Defines a drawing canvas (pyCairo) that behaves similarly to p5js
+Defines a drawing canvas (pyCairo) that behaves similarly to p5js.
 
-Constructor arguments:
+Canvas constructor arguments:
 
 - `width` : (`int`), width of the canvas in pixels
 - `height` : (`int`), height of the canvas in pixels
-- `clear_callback` (optional): function, a callback to be called when the canvas is cleared (for internal use mostly)
+- `color_scale` : (`float`, default is `255`). Defines the maximum value for a full intensity color channel.
 
-In a notebook you can create a canvas globally with either of:
+In a notebook, after importing py5canvas globally with `from py5canvas import *`, you can create a canvas globally with either of:
 
 - `size(width, height)`
 - `create_canvas(width, height)`
 
-When using these functions all the canvas functionalities below will become globally available to the notebook.
+When using these functions all the canvas properties/methods below will become globally available to the notebook.
 
 ## Properties
 ### `center`
@@ -46,8 +46,18 @@ Do not fill subsequent shapes
 ### `no_stroke()`
 Do not stroke subsequent shapes
 
+### `no_tint()`
+Do not tint images
+
+Returns:
+
+- The canvas instance for chaining with other commands
+
 ### `fill_rule(...)`
-Sets the fill rule
+Sets the fill rule for complex shapes.
+
+Arguments:
+- One of `"evenodd"`, `"nonzero"`, or `"winding"`
 
 ### `color_mode(...)`
 Set the color mode for the canvas
@@ -58,11 +68,6 @@ Set the color mode for the canvas
 Examples:
 
 - `color_mode('rgb', 1.0)` will set the color mode to RGB in the 0-1 range.
-
-Returns:
-
-- (float): red component value in the current color scale
- 
 
 ### `red(...)`
 Return the red component of a color.
@@ -141,15 +146,18 @@ Returns:
 
 - (float): brightness component value in the current color scale
 
-### `fill(...)`
-Set the color of the current fill
+### `linear_gradient_angle(...)`
+Create a linear gradient fill.
 
-Arguments:
+Can be called in two ways:
+    `linear_gradient(x1, y1, angle, length, stop1, stop2, ...)`
+    `linear_gradient((x1, y1), angle, length, stop1, stop2, ...)`
 
-- A single argument specifies a grayscale value, e.g `fill(128)` will fill with 50% gray.
-- Two arguments specify grayscale with opacity, e.g. `fill(255, 128)` will fill with transparent white.
-- Three arguments specify a color depending on the color mode (rgb or hsv)
-- Four arguments specify a color with opacity
+Each stop is a tuple:
+   `(offset, color)`
+where:
+    - offset is between 0 and 1
+    - color is a tuple (r, g, b[, a]) in current color mode
 
 ### `linear_gradient(...)`
 Create a linear gradient fill.
@@ -164,12 +172,13 @@ where:
     - offset is between 0 and 1
     - color is a tuple (r, g, b[, a]) in current color mode
 
-Example:
+For example:
 ```
-    fill(linear_gradient(0, 0, 200, 0,
-                        (0, (1, 0, 0)),
-                        (1, (0, 0, 1))))
+    fill(linear_gradient(0, 0, 200, 200,
+                        (0, (255, 0, 0)),
+                        (1, (0, 0, 255))))
 ```
+fills the area between the $x,y$ coordinates $(0,0)$ and $(200, 200)$ with a gradient going fromm red to blue
 
 ### `radial_gradient(...)`
 Create a radial gradient fill.
@@ -194,6 +203,25 @@ Example:
                         (1, (0, 0, 0))))
 ```
 
+### `tint(...)`
+Set the tint color for images. In practice this multiplies the image color by the color provided as an argument.
+
+Arguments:
+- A single argument specifies a grayscale value, e.g. `tint(128)` will darken the images by 50%.
+- Two arguments specify grayscale with opacity, e.g. `tint(255, 128)` will render images with 50% transparency.
+- Three arguments specify a color depending on the color mode (rgb or hsv), e.g. `tint(255, 0, 0)` will multiply the image colors by red.
+- Four arguments specify a color with opacity
+
+### `fill(...)`
+Set the color of the current fill
+
+Arguments:
+
+- A single argument specifies a grayscale value, e.g `fill(128)` will fill with 50% gray.
+- Two arguments specify grayscale with opacity, e.g. `fill(255, 128)` will fill with transparent white.
+- Three arguments specify a color depending on the color mode (rgb or hsv)
+- Four arguments specify a color with opacity
+
 ### `stroke(...)`
 Set the color of the current stroke
 
@@ -202,6 +230,12 @@ Arguments:
 - Two arguments specify grayscale with opacity, e.g. `stroke(0, 128)` will set the stroke to black with 50% opacity.
 - Three arguments specify a color depending on the color mode (rgb or hsv), e.g. `stroke(255, 0, 0)` will set the stroke to red, when the color mode is RGB
 - Four arguments specify a color with opacity
+
+### `stroke_dash(...)`
+Set the line dash (stippling)
+
+Arguments:
+- A sequence of lengths, indicating alternating (on/off) dashed segments
 
 ### `stroke_weight(...)`
 Set the line width
@@ -227,7 +261,7 @@ Arguments:
     - `ADD = "add"` - Source colors added to canvas
     - `MULTIPLY = "multiply"` - Colors multiplied (always darker)
     - `SCREEN = "screen"` - Colors inverted, multiplied, then inverted (always lighter)
-    - `OVERLAY = "overlay"` - MULTIPLY for dark areas, SCREEN for light areas
+    - `OVERLAY = "overlay"` - MULTIPLY for dark areas, SCREEN f
     - `DARKEST = "darken"` - Keeps the darker color value
     - `LIGHTEST = "lighten"` - Keeps the lighter color value
     - `DIFFERENCE = "difference"` - Canvas minus source (absolute value)
@@ -254,7 +288,7 @@ Specify the text alignment.
 
 Arguments:
 - `halign` (string): Horizontal alignment. One of "left", "center" or "right"
-- `valign` (string): Horizontal alignment. One of "baseline" (default), "top", "bottom", or "center"
+- `valign` (string): Vertical alignment. One of "baseline" (default), "top", "bottom", or "center"
 
 ### `text_size(...)`
 Specify the text size
@@ -322,10 +356,10 @@ Arguments:
 - Providing a single number will apply a uniform transformation.
 - Providing a pair of number will scale in the x and y directions.
 - The scale can be specified as an array/list (e.g `scale([x,y])`
-or as single arguments (e.g. `scale(x, y)`)'''
+or as single arguments (e.g. `scale(x, y)`).
 
 ### `rotate(...)`
-Rotate by `theta` radians (or degrees, depeending on the angle mode)
+Rotate by `theta` radians (or degrees, depending on the angle mode)
 
 ### `apply_matrix(...)`
 Apply an affine (3x3) transformation matrix
@@ -343,146 +377,19 @@ Return RGB components for a color defined as HSB
 ### `rgb(...)`
 Return HSV components for a color defined as RGB
 
-### `rect_mode(...)`
-Set the "mode" for drawing rectangles.
-
-Arguments:
-- `mode` (string): can be one of 'corner', 'corners', 'center', 'radius'
-
-### `ellipse_mode(...)`
-Set the "mode" for drawing rectangles.
-
-Arguments:
-- `mode` (string): can be one of 'corner', 'center'
-
-### `rectangle(...)`
-Draw a rectangle.
-Can use `rect` equivalently.
-
-Arguments:
-The first sequence of arguments is one of
-
- - `[x, y], [width, height]`,
- - `[x, y], width, height`,
- - `x, y, width, height`
- - `[[topleft_x, topleft_y], [bottomright_x, bottomright_y]]`
-
-Followed by an optional radius parameter that can be used to create rounded rectangles
-
-An optional named `mode` argument allows to ignore the current rect mode since it explictly defines the
-corners of the rect
-
-The interpretation of `x` and `y` depends on the current rect mode.
-These indicate the center of the rectangle if the rect mode is
-`"center"` or `"radius"` and the top-left corner otherwise.
-
-### `square(...)`
-Draw a square.
-
-Arguments:
-
-The first sequence of arguments is one of
- - `[x, y], size`,
- - `x, y, size`
-
-The interpretation of `x` and `y` depends on the current rect mode. These indicate the
-center of the rectangle if the rect mode is `"center"` and the top left corner otherwise.
-
-### `rect(...)`
-Draws a rectangle.
-
-Input arguments can be in the following formats:
-
- - `[topleft_x, topleft_y], [width, height]`,
- - `[topleft_x, topleft_y], width, height`,
- - `topleft_x, topleft_y, width, height`
-
-Depending on
-
-### `quad(...)`
-Draws a quadrangle given four points
-
-Input arguments can be in the following formats:
-
- - `a, b, c, d` (Four points specified as lists/tuples/numpy arrays
- - `x1, y1, x2, y2, x3, y3, x4, y4`, a sequence of numbers, one for each coordinate
-
-### `line(...)`
-Draws a line between two points
-
-Input arguments can be in the following formats:
-
- - `a, b` (Two points specified as lists/tuples/numpy arrays
- - `x1, y1, x2, y2`, a sequence of numbers, one for each coordinate
-
-### `point(...)`
-Draw a point at a given position
-
-Input arguments can be in the following formats:
-
- - `[x, y]`: a single point specified as a tuple/list/numpy array
- - `x1, y1`: two coordinates
-
-### `arrow(...)`
-Draw an arrow between two points
-
-Input arguments can be in the following formats:
-
- - `a, b` (Two points specified as lists/tuples/numpy arrays
- - `x1, y1, x2, y2`, a sequence of numbers, one for each coordinate
-
-### `triangle(...)`
-Draws a triangle given three points
-
-Input arguments can be in the following formats:
-
- - `a, b, c` (Four points specified as lists/tuples/numpy arrays
- - `x1, y1, x2, y2, x3, y3`
-
-### `circle(...)`
-Draw a circle given center and radius
-
-Input arguments can be in the following formats:
-
-- `[center_x, center_y], radius`,
-- `center_x, center_y, raidus`
-
-### `ellipse(...)`
-Draw an ellipse with center, width and height.
-
-Input arguments can be in the following formats:
-
-- `[center_x, center_y], [width, height]`,
-- `[center_x, center_y], width, height`,
-- `center_x, center_y, width, height`
-- `[center_x, center_y], width`,
-- `center_x, center_y, width`,
-
-### `arc(...)`
-Draw an ellpitical arc, given the center of the ellipse `x, y`
-the size of the ellipse `w, h` and the initial and final angles
-in radians  `start, stop`.
-A last optional `mode` argument determines the arc's fill style.
-The fill modes are a semi-circle (`OPEN`), a closed semi-circle (`CHORD`),
-or a closed pie segment (`PIE`).
-
-Input arguments can be in the following formats:
-
-  - `x, y, w, h, start, stop`
-  - `[x, y]`, `[w, h]`, `[start, stop]`
-  - `[x, y]`, `w, h, start, stop`
-
 ### `begin_shape()`
-Begin drawing a compound shape
+Start building a complex shape. Drawing is deferred until end_shape().
 
 ### `end_shape(...)`
-End drawing a compound shape
+Finish the shape and draw it.
 
 ### `begin_contour()`
-Begin drawing a contour
+Start a new contour within the currently built shape.
+If no shape is active, a new one is created automatically.
 
 ### `end_contour(...)`
-End drawing a contour
+End the current contour. If not inside a begin_shape/end_shape block,
+the contour is drawn immediately.
 
 Arguments:
 
@@ -517,124 +424,182 @@ Requires three points. Input arguments can be in the following formats:
 ### `curve_tightness(...)`
 Sets the 'tension' parameter for the curve used when using `curve_vertex`
 
-### `cubic(...)`
-Draw a cubic bezier curve
-
-Input arguments can be in the following formats:
-
-- `[x1, y1], [x2, y2], [x3, y3]`
-- `x1, y1, x2, y2, x3, y3`
-
-### `quadratic(...)`
-Draw a quadratic bezier curve
-
-Input arguments can be in the following formats:
-
--    `[x1, y1], [x2, y2]`
--    `x1, y1, x2, y2`
-
-### `bezier(...)`
-Draws a bezier curve segment from current point
-    The degree of the curve (2 or 3) depends on the input arguments
-Arguments:
-Input arguments can be in the following formats:
-    `[x1, y1], [x2, y2], [x3, y3]` is cubic
-    `x1, y1, x2, y2, x3, y3` is cubic
-    `[x1, y1], [x2, y2]` is quadratic
-    `x1, y1, x2, y2` is quadratic
-
-### `create_graphics(...)`
-Create a new canvas with the specified width and height
-E.g. `c = create_graphics(128, 128)` will put a new canvas into
-the variable `c`. You can draw the contents of the canvas with the `image` function.
-
-### `image(...)`
-Draw an image at position with (optional) size and (optional) opacity
-
-Arguments:
-
-- `img`: The input image. Can be either a PIL image, a numpy array, a Canvas or a pyCairo surface.
-- optional arguments: position and size can be specified with the following formats:
-    - `x, y`:  position only
-    - `x, y, w, h`: position and size
-    - `[x, y]`: position only (also a numpy array or tuple are valid)
-    - `[x, y], [w, h]`: position and size
-if the position is not specified, the original image dimensions will be used
-
-- `opacity`: a value between 0 and 1 specifying image opacity.
-
 ### `shape(...)`
-Draw a shape represented as a list of polylines, see the `polyline`
-method for the format of each polyline. Also accepts a single polyline as an input
+Draw a pre‑built Shape object or a list of polylines (list of lists/arrays).
+For lists, each polyline becomes one contour (open or closed).
 
-### `text(...)`
-Draw text at a given position
+### `rect_mode(...)`
+Set the "mode" for drawing rectangles.
+
+Arguments:
+- `mode` (string): can be one of 'corner', 'corners', 'center', 'radius'
+
+### `ellipse_mode(...)`
+Set the "mode" for drawing rectangles.
+
+Arguments:
+- `mode` (string): can be one of 'corner', 'center'
+
+### `rectangle(...)`
+Draw a rectangle.
+Can use `rect` equivalently.
+
+Arguments:
+The first sequence of arguments is one of
+
+ - `[x, y], [width, height]`,
+ - `[x, y], width, height`,
+ - `x, y, width, height`
+ - `[[topleft_x, topleft_y], [bottomright_x, bottomright_y]]`
+
+Followed by an optional radius parameter that can be used to create rounded rectangles
+
+An optional named `mode` argument allows to ignore the current rect mode since it explicitly defines the
+corners of the rect
+
+The interpretation of `x` and `y` depends on the current rect mode.
+These indicate the center of the rectangle if the rect mode is
+`"center"` or `"radius"` and the top-left corner otherwise.
+
+### `square(...)`
+Draw a square.
 
 Arguments:
 
-    - `text`, the text to display
-    - the position of the text, either a pair of x, y arguments or a list like object (e.g. `[x, y]`)
-    - `align`, horizontal alignment, etiher `'left'` (default), `'center'` or `'right'`
-    - `valign`, vertical alignment, etiher `'bottom'` (default), `'center'` or `'top'`
-    (Deprecated) if center=True the text will be horizontally centered
+The first sequence of arguments is one of
+ - `[x, y], size`,
+ - `x, y, size`
 
-### `text_shape(...)`
-Retrieves polylines for a given string of text in the current font
+The interpretation of `x` and `y` depends on the current rect mode. These indicate the
+center of the rectangle if the rect mode is `"center"` and the top left corner otherwise (default).
 
-Arguments:
+### `rect(...)`
+Draws a rectangle.
 
-- `text`, the text to sample
-- the position of the text, either a pair of x, y arguments or a list like object (e.g. `[x, y]`)
-- `dist`, approximate distance between samples
-- `align`, horizontal alignment, etiher `'left'` (default), `'center'` or `'right'`
-- `valign`, vertical alignment, etiher `'bottom'` (default), `'center'` or `'top'`
+Input arguments can be in the following formats:
 
-### `text_points(...)`
-Retrieves points for a given string of text in the current font
+ - `[x, y], [width, height]`,
+ - `[x, y], width, height`,
+ - `topleft_x, topleft_y, width, height`
 
-Arguments:
+By default the arguments `x` and `y` specify the top-left corner of the rectangle.
+If `rect_mode('center')` has been set, these specify the rectangle center.
 
-- `text`, the text to sample
-- the position of the text, either a pair of x, y arguments or a list like object (e.g. `[x, y]`)
-- `dist`, approximate distance between samples
-- `align` (named), horizontal alignment, etiher `'left'` (default), `'center'` or `'right'`
-- `valign` (named), vertical alignment, etiher `'bottom'` (default), `'center'` or `'top'`
+### `quad(...)`
+Draws a quadrangle given four points
 
-### `text_bounds(...)`
-Returns the bounding box of a string of text at a given position
+Input arguments can be in the following formats:
+
+ - `a, b, c, d` (Four points specified as lists/tuples/numpy arrays
+ - `x1, y1, x2, y2, x3, y3, x4, y4`, a sequence of numbers, one for each coordinate
+
+### `triangle(...)`
+Draws a triangle given three points
+
+Input arguments can be in the following formats:
+
+ - `a, b, c` (three points specified as lists/tuples/numpy arrays
+ - `x1, y1, x2, y2, x3, y3`
+
+### `circle(...)`
+Draw a circle given center and size (default is the circle diameter__.
+If `ellipse_mode` is set to `"radius"` the size specifies the circle radius.
+
+Input arguments can be in the following formats:
+
+- `[center_x, center_y], radius`,
+- `center_x, center_y, raidus`
+
+### `ellipse(...)`
+Draw an ellipse with center, width and height.
+
+Input arguments can be in the following formats:
+
+- `[center_x, center_y], [width, height]`,
+- `[center_x, center_y], width, height`,
+- `center_x, center_y, width, height`
+- `[center_x, center_y], width`,
+- `center_x, center_y, width`,
+
+### `line(...)`
+Draws a line between two points
+
+Input arguments can be in the following formats:
+
+ - `a, b` (Two points specified as lists/tuples/numpy arrays
+ - `x1, y1, x2, y2`, a sequence of numbers, one for each coordinate
+
+### `point(...)`
+Draw a point at a given position
+
+Input arguments can be in the following formats:
+
+ - `[x, y]`: a single point specified as a tuple/list/numpy array
+ - `x1, y1`: two coordinates
+
+### `arrow(...)`
+Draw an arrow between two points
+
+Input arguments can be in the following formats:
+
+- `a, b` (Two points specified as lists/tuples/numpy arrays
+- `x1, y1, x2, y2`, a sequence of numbers, one for each coordinate
+
+### `arc(...)`
+Draw an elliptical arc, given the center of the ellipse `x, y`
+the size of the ellipse `w, h` and the initial and final angles
+ `start, stop`. Angles are specified in radians or degrees depending on the angle mode (default is radians).
+A last optional `mode` argument determines the arc's fill style.
+The fill modes are a semi-circle (`OPEN`), a closed semi-circle (`CHORD`),
+or a closed pie segment (`PIE`).
+
+Input arguments can be in the following formats:
+
+  - `x, y, w, h, start, stop`
+  - `[x, y]`, `[w, h]`, `[start, stop]`
+  - `[x, y]`, `w, h, start, stop`
 
 ### `polygon(...)`
 Draw a polygon (closed by default).
 
 The polyline is specified as either:
 
-- a list of `[x,y]` pairs (e.g. `[[0, 100], [200, 100], [200, 200]]`)
-- a numpy array with shape `(n, 2)`, representing `n` points (a point for each row and a coordinate for each column)
+- a list of =[x,y]= pairs (e.g. =[[0, 100], [200, 100], [200, 200]]=)
+- a numpy array with shape =(n, 2)=, representing =n= points (a point for each row and a coordinate for each column)
 - two lists (or numpy array) of numbers, one for each coordinate
 
-To create an opne polygon set the named `close` argument to `False`, e.g. `c.polygon(points, close=False)`.
-
-### `curve(...)`
-Draw a curve (open by default).
-
-The polyline is specified as either:
-
-- a list of `[x,y]` pairs (e.g. `[[0, 100], [200, 100], [200, 200]]`)
-- a numpy array with shape `(n, 2)`, representing `n` points (a point for each row and a coordinate for each column)
-- two lists (or numpy array) of numbers, one for each coordinate
-
-To close the curve set the named `close` argument to `True`, e.g. `c.curve(points, close=True)`.
+To create an open polygon set the named =close= argument to =False=, e.g. =c.polygon(points, close=False)=.
 
 ### `polyline(...)`
 Draw a polyline (open by default).
 
 The polyline is specified as either:
 
-- a list of `[x,y]` pairs (e.g. `[[0, 100], [200, 100], [200, 200]]`)
-- a numpy array with shape `(n, 2)`, representing `n` points (a point for each row and a coordinate for each column)
+- a list of =[x,y]= pairs (e.g. =[[0, 100], [200, 100], [200, 200]]=)
+- a numpy array with shape =(n, 2)=, representing =n= points (a point for each row and a coordinate for each column)
 - two lists (or numpy array) of numbers, one for each coordinate
 
-To close the polyline set the named `close` argument to `True`, e.g. `c.polyline(points, close=True)`.
+To close the polyline set the named =close= argument to =True=, e.g. =c.polyline(points, close=True)=.
+
+### `multibezier(...)`
+Draw a sequence of connected cubic Bézier curves.
+
+Input can be:
+- a list of [x,y] pairs: first point is start, then triples of control points
+  (c1, c2, end) for each segment.
+- two lists (or numpy arrays) of x, y coordinates, similarly arranged.
+- a flat list of coordinates.
+
+### `curve(...)`
+Draw a curve (open by default) using Cardinal spline interpolation.
+
+The polyline is specified as either:
+
+- a list of =[x,y]= pairs (e.g. =[[0, 100], [200, 100], [200, 200]]=)
+- a numpy array with shape =(n, 2)=, representing =n= points (a point for each row and a coordinate for each column)
+- two lists (or numpy array) of numbers, one for each coordinate
+
+To close the curve set the named =close= argument to =True=, e.g. =c.curve(points, close=True)=.
 
 ### `identity()`
 Resets the current matrix to the identity (no transformation)
@@ -658,17 +623,17 @@ or
 Clear the canvas with a given color
 Accepts either an array with the color components, or single color components (as in `fill`)
 
-### `get_image_array()`
-Get canvas image as a numpy array
+### `get_image_array(...)`
+Get canvas image as numpy array. Returns an image with pre-multiplied alpha by default
 
 ### `get_grayscale_array()`
 Get grayscale image of canvas contents as float numpy array (0 to 1 range)
 
-### `get_image()`
+### `get_image(...)`
 Get canvas as a PIL image
 
 ### `get_image_grayscale()`
-Returns the canvas image as a grayscale numpy array (in 0-1 range)
+Returns the canvas image as a PIL grayscale image
 
 ### `save_image(...)`
 Save the canvas to an image
@@ -685,15 +650,20 @@ Arguments:
 - The path where to save
 
 ### `save_pdf(...)`
-Save the canvas to an svg file
+Save the canvas to an pdf file
 
 Arguments:
 
 - The path where to save
 
+### `to_clipboard()`
+Copy canvas contents to clipboard (as SVG data)
+Requires the [pyperclip](https://pypi.org/project/pyperclip/) package to be installed
+
 ### `save(...)`
 Save the canvas into a given file path
-The file format depends on the file extension
+The file format depends on the file extension.
+Supported file formats/extensions are `.svg`,`.pdf` (both vector) and `.png` (raster).
 
 ### `show(...)`
 Display the canvas in a notebook
@@ -706,6 +676,69 @@ Arguments:
 - `size` (tuple, optional): The size of the displayed image, by default this is the size of the canvas
 - `title` (string, optional): A title for the figure
 - `axis` (bool, optional): If `True` shows the coordinate axes
+
+### `create_turtle(...)`
+Create a turtle object at a given position (default is the origin)
+
+Arguments:
+- Optional, a pair of initial coordinates (either two values or a tuple/vector). The default is (0, 0)
+- `autodraw` (`bool`, default `True`): if `True` automatically draws the turtle path if the pen is down
+
+### `create_graphics(...)`
+Create a new canvas with the specified width and height
+E.g. `c = create_graphics(128, 128)` will put a new canvas into
+the variable `c`. You can draw the contents of the canvas with the `image` function.
+
+### `image(...)`
+Draw an image at position with (optional) size and (optional) opacity
+
+Arguments:
+
+- `img`: The input image. Can be either a PIL image, a numpy array, a Canvas or a pyCairo surface.
+- optional arguments: position and size can be specified with the following formats:
+    - `x, y`:  position only
+    - `x, y, w, h`: position and size
+    - `[x, y]`: position only (also a numpy array or tuple are valid)
+    - `[x, y], [w, h]`: position and size
+if the position is not specified, the original image dimensions will be used
+
+- `opacity`: a value between 0 and 1 specifying image opacity.
+
+### `text(...)`
+Draw text at a given position
+
+Arguments:
+
+    - `text`, the text to display
+    - the position of the text, either a pair of x, y arguments or a list like object (e.g. `[x, y]`)
+    - `align`, horizontal alignment, either `'left'` (default), `'center'` or `'right'`
+    - `valign`, vertical alignment, either `'bottom'` (default), `'center'` or `'top'`
+    (Deprecated) if center=True the text will be horizontally centered
+
+### `text_shape(...)`
+Retrieves polylines for a given string of text in the current font
+
+Arguments:
+
+- `text`, the text to sample
+- the position of the text, either a pair of x, y arguments or a list like object (e.g. `[x, y]`)
+- `dist`, approximate distance between samples
+- `align`, horizontal alignment, either `'left'` (default), `'center'` or `'right'`
+- `valign`, vertical alignment, either `'bottom'` (default), `'center'` or `'top'`
+
+### `text_points(...)`
+Retrieves points for a given string of text in the current font
+
+Arguments:
+
+- `text`, the text to sample
+- the position of the text, either a pair of x, y arguments or a list like object (e.g. `[x, y]`)
+- `dist`, approximate distance between samples
+- `align` (named), horizontal alignment, either `'left'` (default), `'center'` or `'right'`
+- `valign` (named), vertical alignment, either `'bottom'` (default), `'center'` or `'top'`
+
+### `text_bounds(...)`
+Returns the bounding box of a string of text at a given position
 
 
 # Interactive sketches
@@ -731,6 +764,9 @@ Returns `True` if mouse is pressed
 ### `mouse_is_pressed`
 Returns `True` if mouse is pressed
 
+### `key`
+Returns last key pressed
+
 ### `mouse_pos`
 The current position of the mouse as an array
 
@@ -741,6 +777,9 @@ The number of milliseconds since the script has loaded
 
 ### `seconds()`
 The number of seconds since the script has loaded
+
+### `key_is_down(...)`
+Returns True if the key `k` is pressed
 
 ### `open_file_dialog(...)`
 Opens a dialog to select a file.
@@ -760,7 +799,7 @@ Opens a dialog to select a folder/directory to be opened,
 The function returns the path of the directory if it is selected or an empty string othewise.
 
 ### `save_canvas(...)`
-Tells the sketch to dump the next frame to an SVG file 
+Tells the sketch to dump the next frame to an SVG file
 
 ### `toggle_gui(...)`
 Toggle between GUI and non-gui
@@ -773,7 +812,6 @@ Sets the sketch windo to floating or not
 
 ### `fullscreen(...)`
 Sets fullscreen or windowed mode depending on the first argument (`True` or `False`)
-        
 
 ### `no_loop()`
 Stops the drawing loop keeping the last frame fixed on the canvas
@@ -795,6 +833,7 @@ Arguments:
 - `path` (string), the directory where to save the video
 - `num_frames` (int), the number of frames to save, default: 0
 - `framerate` (int), the framerate, default: 30
+
 - `gamma` (float), the gamma correction, default: 1.0 (see the [OpenCV docs](https://docs.opencv.org/4.x/d3/dc1/tutorial_basic_linear_transform.html))
 - `reload` (bool), whether to reload the sketch, default: True
 
@@ -853,10 +892,13 @@ by `uniform`.
 
 ### `random_choice(a, size=None, replace=True, p=None)`
 Generates a random sample from a given 1-D array
-.. versionadded:: 1.7.0
+.. note::
+    New code should use the `~numpy.random.Generator.choice`
+    method of a `~numpy.random.Generator` instance instead;
+    please see the :ref:`random-quick-start`.
 
 
-### `random_int(low, high=None, size=None, dtype=int)`
+### `random_int(low, high=None, size=None, dtype=<class 'int'>)`
 Return random integers from `low` (inclusive) to `high` (exclusive).
 Return random integers from the "discrete uniform" distribution of
 the specified dtype in the "half-open" interval [`low`, `high`). If
@@ -899,7 +941,7 @@ Get radians given an angle in degrees
 ### `degrees(x)`
 Get degrees given an angle in radians
 
-### `constrain(a, a_min, a_max, out=None, **kwargs)`
+### `constrain(a, a_min=<no value>, a_max=<no value>, out=None, *, min=<no value>, max=<no value>, **kwargs)`
 Given an interval, values outside the interval are clipped to
 the interval edges.  For example, if an interval of ``[0, 1]``
 is specified, values smaller than 0 become 0, and values larger
@@ -907,7 +949,7 @@ than 1 become 1.
 Equivalent to but faster than ``np.minimum(a_max, np.maximum(a, a_min))``.
 
 
-### `create_font(name, size=None, style=None)`
+### `create_font(font, size=None, style=None)`
 Create a font from a file or from system fonts
 Arguments:
 
@@ -955,6 +997,10 @@ so that `log(exp(x)) = x`. The natural logarithm is logarithm in base
 `e`.
 
 
+### `sqrt(x)`
+Return the non-negative square-root of an array, element-wise.
+
+
 ### `floor(x)`
 Return the floor (int) of the input, element-wise.
 
@@ -999,23 +1045,23 @@ Create a vector with components specified as comma-separated values
 ### `range_between(a,b,num,endpoint)`
 Returns a list of numbers that goes from a and b in a specified number of steps.
 
-E.g. ~range_between(0, 1, 5)~ will give the list ~[0.0, 0.25, 0.5, 0.75, 1.0]~
+E.g. `range_between(0, 1, 5)` will give the list `[0.0, 0.25, 0.5, 0.75, 1.0]`
 
-Similar to ~np.linspace~
+Similar to `np.linspace`
 
 ### `linspace(a,b,num,endpoint)`
 Returns a list of numbers that goes from a and b in a specified number of steps.
 
-E.g. ~linspace(0, 1, 5)~ will give the list ~[0.0, 0.25, 0.5, 0.75, 1.0]~
+E.g. `linspace(0, 1, 5)` will give the list `[0.0, 0.25, 0.5, 0.75, 1.0]`
 
-Similar to ~np.linspace~
+Similar to `np.linspace`
 
 ### `arange(a,b,step)`
 Returns a list of numbers that goes from a and b with equal steps
 
-E.g. ~arange(0, 1, 0.25)~ will give the list ~[0.0, 0.25, 0.5, 0.75, 1.0]~
+E.g. `arange(0, 1, 0.25)` will give the list `[0.0, 0.25, 0.5, 0.75, 1.0]`
 
-Similar to ~np.linspace~
+Similar to `np.linspace`
 
 ### `grid_points(x,y)`
 Given two 1d arrays/lists of numbers representing the x and y axes,
@@ -1027,7 +1073,7 @@ Angle between two vectors (2d) [-pi,pi]
 
 ### `rotate_vector(...)`
 Rotate a 2D vector (x, y) by a given angle in radians.
-Input can be two numbers ~x, y~ or a tuple/array, followed by the angle in radians
+Input can be two numbers `x, y` or a tuple/array, followed by the angle in radians
 
 ### `dist(...)`
 Computes the (Euclidean) distance between two points
@@ -1063,14 +1109,14 @@ Get a point along a bezier curve (cubic) given a parameter value
 
 Arguments:
 - Four points, specified either as a list of points, a sequence of four points, or a sequence of coordiantes
-- ~t~ the parameter at which to sample the curve. This can also be an array, in which case the result will be a list of tangents
+- `t` the parameter at which to sample the curve. This can also be an array, in which case the result will be a list of tangents
 
 ### `bezier_tangent(...)`
 Get the tangent to a bezier curve (cubic) given a parameter value
 
 Arguments:
 - Four points, specified either as a list of points, a sequence of four points, or a sequence of coordiantes
-- ~t~ the parameter at which to sample the curve. This can also be an array, in which case the result will be a list of tangents
+- `t` the parameter at which to sample the curve. This can also be an array, in which case the result will be a list of tangents
 
 ### `noise_seed(seed)`
 Sets the seed for the noise generator
