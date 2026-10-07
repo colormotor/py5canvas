@@ -1717,6 +1717,9 @@ class Canvas:
         if mode == "corner":
             x += radius
             y += radius
+        if radius==0:
+            return
+
         self.renderer.ellipse(x, y, radius, radius)
         # self.renderer.new_sub_path()
         # self.renderer.arc(x, y, radius, 0, np.pi * 2.0)
@@ -1767,6 +1770,9 @@ class Canvas:
         if mode.lower() == "radius":
             w = w * 2
             h = h * 2
+
+        if w == 0 and h == 0:
+            return
 
         self.renderer.ellipse(center[0], center[1], w / 2, h / 2)
         self._fillstroke()
