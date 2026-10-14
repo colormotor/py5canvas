@@ -1717,7 +1717,7 @@ class Canvas:
         if mode == "corner":
             x += radius
             y += radius
-        if radius==0:
+        if radius == 0:
             return
 
         self.renderer.ellipse(x, y, radius, radius)
@@ -1911,7 +1911,6 @@ class Canvas:
             w, h, start, stop = args[1:]
         if w == 0 or h == 0:
             return
-        print("Arc")
 
         # Cairo expects degrees
         start, stop = (self._to_radians(start), self._to_radians(stop))
@@ -2374,7 +2373,7 @@ class Canvas:
         """
         return Canvas(w, h)
 
-    def image(self, img, *args, premultiplied=True, opacity=1.0):
+    def image(self, img, *args, premultiplied=False, opacity=1.0):
         """Draw an image at position with (optional) size and (optional) opacity
 
         Arguments:
